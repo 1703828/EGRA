@@ -19,13 +19,15 @@ import rasterio
 from rasterio.crs import CRS
 from scipy import ndimage
 
-DIR_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'cache')
+DIR_DADES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+DIR_MDT = os.path.join(DIR_DADES, 'mdt')       # MDT descarregats (scripts/descarregar_mdt.py)
+DIR_CACHE = os.path.join(DIR_DADES, 'cache')   # fitxers generats (no es versionen)
 # terrenys del selector: (nom al panell, fitxer, es zona de detall)
 TERRENYS = [
-    ('Peninsula', os.path.join(DIR_CACHE, 'peninsula_200m.tif'), False),
-    ('Asturies', os.path.join(DIR_CACHE, 'asturias_25m.tif'), False),
-    ('Picos', os.path.join(DIR_CACHE, 'detall_5m.tif'), True),
-    ('Luarca', os.path.join(DIR_CACHE, 'detall_5m_luarca.tif'), True),
+    ('Peninsula', os.path.join(DIR_MDT, 'peninsula_200m.tif'), False),
+    ('Asturies', os.path.join(DIR_MDT, 'asturias_25m.tif'), False),
+    ('Picos', os.path.join(DIR_MDT, 'picos_5m.tif'), True),
+    ('Luarca', os.path.join(DIR_MDT, 'luarca_5m.tif'), True),
 ]
 VERSIO_CACHE = 5  # canviar-la si canvia la manera de calcular els derivats (invalida les caches)
 

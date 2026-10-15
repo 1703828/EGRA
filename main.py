@@ -5,10 +5,10 @@ Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode
 Moduls:
   camera.py        camera orbital amb ratoli, enganxada al terreny
   terrain.py       terreny (textures, graella, faldilles) + shaders/terrain.vert i .frag
-  data_io.py       lectura dels MDT, mascares, derivats i cache .npz (data/cache/)
+  data_io.py       lectura dels MDT (data/mdt/), mascares, derivats i cache .npz (data/cache/)
   eclipse_data.py  dataset de l'eclipsi del CNIG (overlays i punt d'observacio)
 
-Executa:  python main.py                         (selector amb els terrenys de data/cache/)
+Executa:  python main.py                         (selector amb els terrenys de data/mdt/)
           python main.py data/mdt05/PNOA_...tif  (afegeix un altre MDT en EPSG:25830)
 """
 import os

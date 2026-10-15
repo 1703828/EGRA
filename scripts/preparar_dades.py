@@ -2,7 +2,7 @@
 Prepara les caches de tots els terrenys del selector (data/cache/<nom>.derivats.npz):
 gradient, distancia a la costa, altitud mitjanada i overlays de l'eclipsi.
 
-Cal haver descarregat abans els MDT (scripts/descarregar_mdt.py). Despres d'executar aquest
+Els MDT son a data/mdt/ (o es descarreguen amb scripts/descarregar_mdt.py). Despres d'executar aquest
 script, el programa (python main.py) carrega cada terreny en una fraccio de segon.
 
 Executa (des de l'arrel del projecte):

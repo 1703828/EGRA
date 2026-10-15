@@ -5,8 +5,8 @@ Fa servir les mateixes classes Terrain i Camera que main.py, amb un context Open
 "standalone" i un framebuffer propi (amb antialiasing 4x).
 
 Exemples (des de l'arrel del projecte):
-    python scripts/captura.py data/cache/detall_5m.tif captures/picos.png --azimut 285 --elevacio 12
-    python scripts/captura.py data/cache/peninsula_200m.tif captures/peninsula.png --elevacio 10
+    python scripts/captura.py data/mdt/picos_5m.tif captures/picos.png --azimut 281.4 --elevacio 9.6
+    python scripts/captura.py data/mdt/peninsula_200m.tif captures/peninsula.png --overlay enfosquiment --limits
 """
 import argparse
 import os

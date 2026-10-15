@@ -2,16 +2,18 @@
 T0 -- Descarrega del MDT pel servei WCS 2.0.1 de l'IGN.
 
 Demana una zona (bbox en lat/lon) a una resolucio donada i en fa un sol GeoTIFF
-en EPSG:25830 (ETRS89 / UTM 30N) a data/cache/.
+en EPSG:25830 (ETRS89 / UTM 30N) a data/mdt/.
 
 La zona es divideix en rajoles (2000x2000 pixels com a maxim per peticio). Cada rajola
 es guarda a data/cache/rajoles/<nom>_<res>m_x<xmin>_y<ymax>_r<rajola>/ i, si ja hi es, no es torna a baixar.
 
 Exemples (executar des de l'arrel del projecte):
-    python scripts/descarregar_mdt.py peninsula
-    python scripts/descarregar_mdt.py asturias
-    python scripts/descarregar_mdt.py detall --centre 43.54 -6.54
-    python scripts/descarregar_mdt.py --res 25 --bbox 43.3 43.6 -6.8 -6.3 --sortida prova_25m.tif
+    python scripts/descarregar_mdt.py peninsula     # 200 m -> data/mdt/peninsula_200m.tif
+    python scripts/descarregar_mdt.py asturias      #  25 m -> data/mdt/asturias_25m.tif
+    python scripts/descarregar_mdt.py picos         #   5 m, 20x20 km -> data/mdt/picos_5m.tif
+    python scripts/descarregar_mdt.py luarca        #   5 m, 20x20 km -> data/mdt/luarca_5m.tif
+    python scripts/descarregar_mdt.py --res 5 --centre 43.3 -5.0 --sortida zona_5m.tif
+    python scripts/descarregar_mdt.py --res 25 --bbox 43.3 43.6 -6.8 -6.3 --sortida zona_25m.tif
 
 Que hem comprovat del servei (GetCapabilities + DescribeCoverage, octubre 2026):
   - Cobertures Elevacion25830_<res> amb res = 1000, 500, 200, 25, 5. Eixos del SUBSET: "x" i "y".
@@ -39,15 +41,17 @@ EPSG = 25830
 NODATA = -32767.0  # nomes per a pixels que no ha cobert cap rajola (no n'hi hauria d'haver)
 
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIR_CACHE = os.path.join(ARREL, 'data', 'cache')
+DIR_MDT = os.path.join(ARREL, 'data', 'mdt')      # GeoTIFF de sortida
+DIR_CACHE = os.path.join(ARREL, 'data', 'cache')  # rajoles descarregades (no es versionen)
 
-# configuracions predefinides: resolucio (m), bbox (lat_min, lat_max, lon_min, lon_max), fitxer
+# configuracions predefinides: resolucio (m), zona i fitxer de sortida.
+# La zona es un bbox (lat_min, lat_max, lon_min, lon_max) o un centre (lat, lon) d'un quadrat de MIDA_DETALL_KM.
 PREDEFINITS = {
     'peninsula': dict(res=200, bbox=(35.9, 43.9, -9.5, 3.4), sortida='peninsula_200m.tif'),
     'asturias':  dict(res=25,  bbox=(42.88, 43.67, -7.19, -4.51), sortida='asturias_25m.tif'),
-    'detall':    dict(res=5,   bbox=None, sortida='detall_5m.tif'),  # bbox a partir de --centre
+    'picos':     dict(res=5,   centre=(43.262, -4.949), sortida='picos_5m.tif'),   # Picos de Europa
+    'luarca':    dict(res=5,   centre=(43.54, -6.54), sortida='luarca_5m.tif'),
 }
-CENTRE_DETALL = (43.54, -6.54)  # Luarca (lat, lon), per defecte
 MIDA_DETALL_KM = 20.0
 
 
@@ -184,7 +188,8 @@ def descarregar(res, bbox, sortida, mida_rajola=2000):
             mosaic[f0:f1, c0:c1] = rajola
             print(f"  [{n}/{total}] rajola fila {fr} col {cr}: {estat}  ({time.time() - t0:.0f} s)")
 
-    cami = os.path.join(DIR_CACHE, sortida)
+    os.makedirs(DIR_MDT, exist_ok=True)
+    cami = os.path.join(DIR_MDT, sortida)
     desar_geotiff(cami, mosaic, xmin, ymax, res)
     valid = mosaic[mosaic != NODATA]
     print(f"Desat {cami}")
@@ -220,9 +225,9 @@ def main():
     p.add_argument('--res', type=int, choices=[5, 25, 200, 500, 1000], help='resolucio en metres')
     p.add_argument('--bbox', type=float, nargs=4, metavar=('LAT_MIN', 'LAT_MAX', 'LON_MIN', 'LON_MAX'))
     p.add_argument('--centre', type=float, nargs=2, metavar=('LAT', 'LON'),
-                   help=f'centre de la zona de detall (per defecte {CENTRE_DETALL})')
+                   help='centre d\'una zona quadrada (amb --mida-km)')
     p.add_argument('--mida-km', type=float, default=MIDA_DETALL_KM, help='costat de la zona amb --centre')
-    p.add_argument('--sortida', help='nom del fitxer de sortida dins de data/cache/')
+    p.add_argument('--sortida', help='nom del fitxer de sortida dins de data/mdt/')
     p.add_argument('--rajola', type=int, default=2000, help='pixels maxims per costat de cada peticio')
     a = p.parse_args()
 
@@ -231,8 +236,8 @@ def main():
     sortida = a.sortida or conf.get('sortida')
     if a.bbox:
         bbox = bbox_utm(*a.bbox)
-    elif a.centre or a.predefinit == 'detall':
-        bbox = bbox_centre(*(a.centre or CENTRE_DETALL), a.mida_km)
+    elif a.centre or conf.get('centre'):
+        bbox = bbox_centre(*(a.centre or conf['centre']), a.mida_km)
     elif conf.get('bbox'):
         bbox = bbox_utm(*conf['bbox'])
     else:

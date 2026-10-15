@@ -1,14 +1,22 @@
-# fitxers generats pels scripts (MDT descarregats per WCS, rajoles...)
+# --- fitxers generats (es tornen a crear amb scripts/preparar_dades.py) ---
 data/cache/
 
-# dades grans: no es versionen
-data/**/*.tif
-data/**/*.tiff
-data/**/*.gpkg
+# --- dades que no fa servir el programa ---
+data/mdt05/altres/
+data/mdt200/
 
+# --- documents interns de l'equip (no es versionen) ---
+actes/
+captures/
+CLAUDE.md
+TASQUES_TERRENY.md
+
+# --- reptes de classe (referencia) ---
+repte*/
+
+# --- Python, sistema i editors ---
 __pycache__/
+*.pyc
 .DS_Store
 imgui.ini
-
-# reptes de classe (no formen part del projecte)
-repte*/
+.vscode/
