@@ -1,0 +1,15 @@
+glfw
+slimgui
+moderngl
+PyGLM
+numpy
+PyOpenGL
+trimesh
+tifffile
+scipy
+rasterio
+pyproj
+requests
+fiona
+geopandas
+Pillow

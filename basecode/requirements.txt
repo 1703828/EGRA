@@ -1,0 +1,7 @@
+glfw
+slimgui
+moderngl
+PyGLM
+numpy
+PyOpenGL
+trimesh

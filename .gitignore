@@ -1,0 +1,14 @@
+# fitxers generats pels scripts (MDT descarregats per WCS, rajoles...)
+data/cache/
+
+# dades grans: no es versionen
+data/**/*.tif
+data/**/*.tiff
+data/**/*.gpkg
+
+__pycache__/
+.DS_Store
+imgui.ini
+
+# repte de classe (no forma part del projecte)
+repte2/
