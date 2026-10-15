@@ -20,6 +20,13 @@ from rasterio.crs import CRS
 from scipy import ndimage
 
 DIR_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'cache')
+# terrenys del selector: (nom al panell, fitxer, es zona de detall)
+TERRENYS = [
+    ('Peninsula', os.path.join(DIR_CACHE, 'peninsula_200m.tif'), False),
+    ('Asturies', os.path.join(DIR_CACHE, 'asturias_25m.tif'), False),
+    ('Picos', os.path.join(DIR_CACHE, 'detall_5m.tif'), True),
+    ('Luarca', os.path.join(DIR_CACHE, 'detall_5m_luarca.tif'), True),
+]
 VERSIO_CACHE = 5  # canviar-la si canvia la manera de calcular els derivats (invalida les caches)
 
 

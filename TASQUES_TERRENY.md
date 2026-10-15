@@ -199,6 +199,11 @@ scripts/preparar_dades.py
 
 Al final, `terreny.py` es pot eliminar o deixar com a exemple mínim.
 
+**Fet:** `terreny.py` s'ha eliminat i el programa és `python main.py`. Seguint l'estructura del repte 4,
+els shaders es carreguen de fitxers amb `basecode.shaders.load_program` (el `basecode/` s'ha
+actualitzat a la versió del repte 4). La llista de terrenys és a `data_io.TERRENYS`. Comprovat: la
+versió reorganitzada dibuixa exactament el mateix que l'anterior (comparació píxel a píxel).
+
 ## T8 (opcional, només si sobra temps) — LOD per rajoles
 
 Piràmide de rajoles (p. ex. 256×256 mostres) a diversos nivells generades per l'script.

@@ -1,7 +1,7 @@
 """
 Captura del terreny renderitzada fora de pantalla (sense finestra) i desada en PNG.
 
-Fa servir les mateixes classes Terrain i Camera que terreny.py, amb un context OpenGL
+Fa servir les mateixes classes Terrain i Camera que main.py, amb un context OpenGL
 "standalone" i un framebuffer propi (amb antialiasing 4x).
 
 Exemples (des de l'arrel del projecte):
@@ -19,7 +19,10 @@ from PIL import Image
 from pyproj import Transformer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import terreny  # noqa: E402
+from camera import Camera  # noqa: E402
+from data_io import TERRENYS  # noqa: E402
+from terrain import Terrain, COLOR_CEL, limits_utm, zones_de_detall  # noqa: E402
+import eclipse_data  # noqa: E402
 
 
 class AppSenseFinestra:
@@ -56,15 +59,15 @@ def main():
     app = AppSenseFinestra(*a.mida)
     ctx = app.ctx
     ctx.enable_only(mgl.DEPTH_TEST)
-    terrain = terreny.Terrain(app, a.fitxer)
+    terrain = Terrain(app, a.fitxer)
     terrain.sun_azimuth, terrain.sun_elevation = a.azimut, a.elevacio
     terrain.curvatura = a.curvatura
     if a.zones:
-        llista = [t for t in terreny.TERRENYS if os.path.exists(t[1])]
-        terrain.zones = terreny.zones_de_detall(terrain, llista, terreny.limits_utm(llista))
+        llista = [t for t in TERRENYS if os.path.exists(t[1])]
+        terrain.zones = zones_de_detall(terrain, llista, limits_utm(llista))
     if a.exageracio is not None:
         terrain.exaggeration = a.exageracio  # abans de la camera: l'objectiu s'enganxa a l'altitud exagerada
-    app.camera = camera = terreny.Camera(app, terrain)
+    app.camera = camera = Camera(app, terrain)
     camera.yaw, camera.pitch = a.gir, a.inclinacio
     camera.distance = a.distancia * max(terrain.mida)
     if a.objectiu:
@@ -79,7 +82,7 @@ def main():
     terrain.limits_totalitat = a.limits
     if a.sol_maxim:
         info = terrain.info_punt(camera.target.x, camera.target.z)
-        e = terreny.eclipse_data.punt(info['lat'], info['lon'])
+        e = eclipse_data.punt(info['lat'], info['lon'])
         terrain.sun_azimuth, terrain.sun_elevation = e['azimut'], e['elevacio']
         print(f"Sol al maxim de l'eclipsi a {info['lat']:.4f}, {info['lon']:.4f}: "
               f"azimut {e['azimut']:.1f}, elevacio {e['elevacio']:.1f}")
@@ -90,7 +93,7 @@ def main():
     fbo_ms = ctx.simple_framebuffer(app.WIN_SIZE, samples=4)
     fbo = ctx.simple_framebuffer(app.WIN_SIZE)
     fbo_ms.use()
-    fbo_ms.clear(*terreny.COLOR_CEL)
+    fbo_ms.clear(*COLOR_CEL)
     terrain.render()
     ctx.copy_framebuffer(fbo, fbo_ms)
 

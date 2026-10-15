@@ -10,5 +10,5 @@ __pycache__/
 .DS_Store
 imgui.ini
 
-# repte de classe (no forma part del projecte)
-repte2/
+# reptes de classe (no formen part del projecte)
+repte*/

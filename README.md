@@ -7,8 +7,24 @@ del 12 d'agost de 2026 sobre el terreny real d'Espanya.
 
 ```
 conda activate egra
-python terreny.py                                # selector: Peninsula, Asturies, Picos, Luarca
-python terreny.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif   # afegeix un altre MDT (EPSG:25830)
+python main.py                                   # selector: Peninsula, Asturies, Picos, Luarca
+python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif      # afegeix un altre MDT (EPSG:25830)
+```
+
+Preparació de les dades (només el primer cop): descarregar els MDT (veure més avall) i generar les
+caches de tots els terrenys amb `python scripts/preparar_dades.py`.
+
+## Estructura del codi
+
+```
+main.py              GraphicsEngine (subclasse de GraphicsEngineBase), seleccio de terrenys i panell
+camera.py            Camera orbital amb ratoli, enganxada al terreny
+terrain.py           Terrain: textures, graella, faldilles, zones de detall
+shaders/             terrain.vert i terrain.frag (es carreguen amb basecode.shaders.load_program)
+data_io.py           lectura dels MDT, mascara de mar, derivats, cache .npz i llista de TERRENYS
+eclipse_data.py      dataset de l'eclipsi del CNIG (overlays i punt d'observacio)
+scripts/             descarregar_mdt.py, preparar_dades.py, captura.py
+basecode/            codi base de classe (versio del repte 4)
 ```
 
 Al panell hi ha els **overlays de l'eclipsi** (enfosquiment màxim, durada de la totalitat i ombres

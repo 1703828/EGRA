@@ -23,7 +23,8 @@ atura't fins que l'usuari ho provi i et demani la següent.
 
 - Entorn conda **`egra`** (Python 3.11). Executar sempre amb `conda activate egra` i `python ...`, o
   sense activar-lo amb `~/anaconda3/envs/egra/bin/python ...`. **No fer servir l'anaconda base.**
-  - Programa: `python terreny.py`
+  - Programa: `python main.py`
+  - Caches de tots els terrenys: `python scripts/preparar_dades.py`
   - Descàrrega del MDT: `python scripts/descarregar_mdt.py <peninsula|asturias|detall>` (des de l'arrel)
 - Llibreries instal·lades a `egra`: numpy, scipy, rasterio, pyproj, requests, fiona, geopandas 1.2 (conda-forge)
   i glfw, moderngl, PyGLM, slimgui, tifffile, PyOpenGL, trimesh (pip).
@@ -32,14 +33,26 @@ atura't fins que l'usuari ho provi i et demani la següent.
 
 ## Organització del codi (la de classe, cal mantenir-la)
 
-- `basecode/` (`engine.py`, `window.py`, `ui_panel.py`): el `GraphicsEngineBase` dels reptes.
-  **No el modifiquis.** El projecte en fa una subclasse i sobreescriu `on_init`, `drawables`,
+- `basecode/`: el codi base de classe, a la versió del repte 4 (`engine.py`, `window.py`,
+  `ui_panel.py`, `shaders.py`, `camera.py`, `light.py`, `objects.py`...). **No el modifiquis.** El projecte en fa una subclasse i sobreescriu `on_init`, `drawables`,
   `render`, `build_ui` i `on_destroy`.
 - Cada objecte visible té VBO/IBO + VAO + shader program, uniforms `m_proj`, `m_view` i `m_model`,
   un mètode `render()` i un mètode `destroy()` que allibera els recursos.
 - La interfície es fa amb slimgui dins de `build_ui` (finestra "Opcions").
-- L'estructura de mòduls objectiu (`main.py`, `camera.py`, `terrain.py`, `data_io.py`,
-  `eclipse_data.py`, `shaders/`, `scripts/`) és a la T7 de `TASQUES_TERRENY.md`.
+- Els shaders són fitxers a `shaders/` i es carreguen amb `basecode.shaders.load_program(ctx, nom, carpeta)`,
+  com al repte 4.
+- Estructura (T7, feta):
+  ```
+  main.py              GraphicsEngine (subclasse de GraphicsEngineBase), seleccio de terrenys i panell
+  camera.py            Camera orbital amb ratoli, enganxada al terreny
+  terrain.py           Terrain: textures, graella, faldilles, zones de detall
+  shaders/             terrain.vert i terrain.frag (es carreguen amb basecode.shaders.load_program)
+  data_io.py           lectura dels MDT, mascara de mar, derivats, cache .npz i llista de TERRENYS
+  eclipse_data.py      dataset de l'eclipsi del CNIG (overlays i punt d'observacio)
+  scripts/             descarregar_mdt.py, preparar_dades.py, captura.py
+  basecode/            codi base de classe (versio del repte 4)
+  ```
+- Les carpetes `repteX/` són els reptes de classe (referència) i no es pugen al git.
 
 ## Convencions
 
