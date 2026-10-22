@@ -7,12 +7,16 @@ completem una tasca. Estats possibles d'una tasca:
 |---|---|
 | `PENDENT` | No s'ha començat |
 | `EN CURS` | S'hi està treballant |
-| `FET` | Implementat, però l'equip encara no ha fet la comprovació |
-| `VALIDAT` | L'equip ha fet la comprovació indicada i ha passat |
+| `FET` | Implementat i amb les comprovacions de Claude descrites; pendent de revisió de l'equip |
+| `VALIDAT` | L'equip ha fet i confirmat la comprovació indicada |
 
-Una tasca **només** passa a `VALIDAT` quan s'ha fet la comprovació de la seva fitxa.
+Una tasca **només** passa a `VALIDAT` quan l'equip ha fet la comprovació de la seva fitxa i n'ha
+entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 
-Darrera actualització: 2026-10-22 (decisions P1–P9 resoltes; pas 0.1 executat).
+Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
+tasques, decisions, dependències, comprovacions i estat.
+
+Darrera actualització: 2026-10-22 (`CLAUDE.md` nou; P12 resolta).
 
 ---
 
@@ -22,20 +26,20 @@ Darrera actualització: 2026-10-22 (decisions P1–P9 resoltes; pas 0.1 executat
    pugui fer l'equip. No es continua fins que l'equip ho prova i ho demana.
 2. **Tres tipus de canvis, mai barrejats en una mateixa tasca:**
    - **R — reorganització:** mou fitxers o codi **sense canviar el comportament**. Es comprova
-     amb captures idèntiques píxel a píxel i la llista de proves manuals.
+     amb captures de la mateixa escena, fetes al mateix ordinador i en les mateixes condicions
+     (idèntiques píxel a píxel en aquest entorn controlat; no és una garantia entre GPUs), i amb
+     la llista de proves manuals.
    - **C — correcció / canvi de comportament:** el comportament canvia a propòsit. Té una
      comprovació numèrica o visual abans/després.
    - **N — funcionalitat nova.**
 3. Cap representació visual es presenta com a simulació validada. A la interfície i a la web,
    tot el que sigui il·lustratiu s'etiqueta com a **"il·lustratiu"**, i les eines de depuració
    com a **"depuració"**.
-4. No es fan commits, push, descàrregues, eliminacions de dades ni instal·lacions sense permís
-   explícit en aquell moment.
-5. Les instruccions d'aquest pla (i els missatges de l'equip) prevalen sobre `CLAUDE.md` i
-   `TASQUES_TERRENY.md`, que estan desactualitzats. Les tasques antigues **no** s'executen
-   automàticament. Còpia exacta de les instruccions antigues: `CLAUDE_ANTIC.md` (només local,
-   fora del Git). L'equip prepara una versió nova de `CLAUDE.md`: no es reescriu fins que l'equip
-   ho digui.
+4. No es fan commits, push, instal·lacions, descàrregues grans, eliminacions de dades ni
+   reescriptures de l'historial sense autorització explícita. Una autorització ja donada per a
+   una acció concreta no cal repetir-la.
+5. `TASQUES_TERRENY.md` no és la cua de treball vigent: només és un antecedent. `CLAUDE_ANTIC.md`
+   és l'arxiu històric de les instruccions antigues (només local, fora del Git).
 6. Senzillesa: no s'afegeixen capes ni abstraccions sense una necessitat concreta. No es complica
    el model només per fer encaixar decimals: primer s'explica quin efecte visible té cada error.
 
@@ -69,17 +73,27 @@ Darrera actualització: 2026-10-22 (decisions P1–P9 resoltes; pas 0.1 executat
 | D20 | (P6) Comprovació independent: una **font externa fiable consultada a mà** en uns quants punts i moments, **sense noves dependències**. Les dades del CNIG no usades a l'ajust són una comprovació complementària, **de la mateixa font**. Cada comparació documenta hora, coordenades, refracció i definició dels contactes. | 22/10 |
 | D21 | (P8) MDT nous a una carpeta ignorada per Git; Picos continua versionat com a exemple inicial. Fonts i instruccions de descàrrega documentades. Sense reescriure l'historial. | 22/10 |
 | D22 | (P9) Primer la **vista il·lustrativa** des de la Lluna, identificada com a tal. La vista coherent és una ampliació posterior. El Sol amb textura es manté al pla, i més endavant una animació **visual** de la superfície (sense simular el plasma). | 22/10 |
+| D23 | (P10) Font externa per a la comprovació independent: el **calculador de circumstàncies locals de la NASA** per a l'eclipsi de 2026 (convencions a §6.3.1). | 22/10 |
+| D24 | (P11) Si en verificar les coordenades un punt és ambigu, es pregunta a l'equip **només per aquell punt**. | 22/10 |
+| D25 | (P12) `CLAUDE.md` substituït per la versió nova de l'equip (instruccions estables de treball). `CLAUDE_ANTIC.md` es conserva sense canvis com a arxiu històric local. En aquell moment el nou `CLAUDE.md` mantenia la política de versionament (ignorat pel Git); canviat a D27. | 22/10 |
+| D26 | Ritme: avançar amb **tasques reals** del projecte. Els conceptes s'expliquen quan apareixen a la implementació, amb explicacions curtes lligades al codi. No s'afegeixen exercicis independents ni passos d'aprovació nous si l'equip no els demana. | 22/10 |
+| D27 | `CLAUDE.md` passa a versionar-se (instruccions compartides de l'equip): es treu la regla corresponent del `.gitignore`. `CLAUDE_ANTIC.md` continua fora dels commits. | 22/10 |
+| D28 | Compartir la feina: push de la branca `reorganitzacio-projecte` i de l'etiqueta `abans-reorganitzacio` a `origin`, **sense fusionar amb `main`** ni canviar la visibilitat del repositori. | 22/10 |
+| D29 | Web de seguiment: primera versió **local** a `docs/` (HTML, CSS i JavaScript mínim, sense frameworks ni WebGL) abans de la reorganització del codi. **No es publica encara** amb GitHub Pages. | 22/10 |
 
 ### 1.2 Pendents
 
-| # | Pregunta | Bloqueja |
-|---|---|---|
-| P10 | Quina font externa fem servir per a la comprovació independent (D20)? Proposta: el calculador de circumstàncies locals de la NASA (GSFC) o el mapa interactiu de X. Jubier, que donen C1–C4 per a coordenades donades. Cal confirmar-ne les convencions (§6.3). | 3.8 |
-| P11 | Ubicacions ambigües, si n'apareixen en verificar-les (tasca 0.3). | 0.3 |
+Cap pregunta oberta en aquest moment. (Historial: P1–P12 resoltes a D15–D25.)
 
 ---
 
-## 2. Funcionalitats existents (estat del codi a 22/10/2026, sense commit)
+## 2. Funcionalitats existents (fotografia guardada a l'etiqueta `abans-reorganitzacio`)
+
+Aquesta llista descriu el codi tal com està guardat al commit de l'etiqueta
+`abans-reorganitzacio` (branca `reorganitzacio-projecte`; consulteu l'identificador amb
+`git rev-parse --short abans-reorganitzacio`). Des d'aquella fotografia **no s'ha modificat cap
+fitxer de codi**: els únics canvis posteriors són de documentació (`PLA_DE_TREBALL.md`, encara
+sense commit, i `CLAUDE.md`, que el Git ignora). Es pot comprovar amb `git status`.
 
 Res d'aquesta llista no està validat formalment per l'equip.
 
@@ -225,6 +239,38 @@ durant gairebé dues hores (la paral·laxi canvia amb l'altura del Sol).
      (corbes cada 3,6 s).
   2. Una font externa (NASA/Espenak, efemèrides de l'OAN) consultada a mà en pocs punts.
   3. Una llibreria d'efemèrides (p. ex. Skyfield amb JPL). Caldria permís per instal·lar-la.
+
+### 6.3.1 Font externa: el calculador de la NASA (D23)
+
+Verificat el 22/10/2026 (pàgina i codi del calculador llegits):
+
+- **Enllaç exacte:** <https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html>
+  ("Total Solar Eclipse of 2026 Aug 12", mapa interactiu de la NASA/GSFC).
+- **Com es consulta:** es fa clic al mapa i un globus mostra les circumstàncies locals d'aquell punt.
+  No hi ha cap camp per escriure coordenades: el punt es col·loca a mà i el globus en mostra la
+  latitud i la longitud decimals. **A cada comparació s'han d'anotar les coordenades que mostra el
+  globus**, no les que volíem, i comparar-les amb les del CNIG en aquell mateix punt.
+- **Què dona:** tipus d'eclipsi, durada de la totalitat, magnitud (fracció del **diàmetre** tapada),
+  enfosquiment (*obscuration*, fracció de l'**àrea**; és la que es compara amb la banda 3 del CNIG),
+  i per a C1, C2, màxim, C3 i C4: data, hora en **TU** i altura i azimut del Sol.
+- **Convencions (de la pàgina i del fitxer `SEcirc.js`):**
+  - Prediccions de Fred Espenak (NASA/GSFC), efemèrides VSOP87/ELP2000-85, elements de Bessel.
+  - **ΔT = 71,4 s** (valor previst quan es va fer el mapa). Si el ΔT real d'aquell dia va ser diferent
+    (valor a consultar a l'IERS), totes les hores es desplacen aquesta diferència.
+  - **Altitud de l'observador = 0 m** (nivell del mar) fixa al codi (`obsvconst[2] = 0`). El CNIG fa
+    servir l'altitud del GMTED. És una diferència coneguda de convenció.
+  - **Altura del Sol sense refracció** (geomètrica): el codi la calcula directament
+    (`Math.asin(...)`), sense cap terme de refracció. El CNIG (banda 1) sí que la inclou: per
+    comparar-les cal treure la refracció del CNIG o afegir-la a la NASA, i documentar-ho.
+  - Azimut des del nord cap a l'est (N = 0°, E = 90°, S = 180°, O = 270°), la mateixa convenció
+    que fem servir nosaltres.
+  - **Limbe mitjà de la Lluna:** les prediccions *no* inclouen les muntanyes i valls de la vora de la
+    Lluna. La mateixa pàgina avisa que això canvia els contactes i les durades ~1–3 s.
+  - Si el Sol és sota l'horitzó en un contacte, el globus hi afegeix un asterisc.
+- **Atribució obligatòria:** "Eclipse Predictions by Fred Espenak, NASA's GSFC". El calculador del
+  mapa és de Xavier Jubier.
+- **Conseqüència per als llindars (§6.4):** amb una incertesa de ~1–3 s pel limbe i ~1–2 s pel ΔT,
+  l'objectiu de ≤ 5 s als contactes té sentit; demanar menys no.
 
 ### 6.4 Quina precisió necessitem (objectius provisionals, D19)
 
@@ -483,7 +529,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 
 ### F0 — Preservar i fixar la línia base (mínim)
 
-**0.1 Preservar l'estat actual** — Tipus: Git. Estat: `FET` (pendent de la comprovació de l'equip)
+**0.1 Preservar l'estat actual** — Tipus: Git. Estat: `VALIDAT` (22/10/2026: l'equip ha fet les tres comprovacions i n'ha entès el resultat: codi guardat al commit `d515dc4`, etiqueta `abans-reorganitzacio`; els canvis posteriors del pla encara no són a cap commit)
 - Aprenem: l'àrea de preparació (*staging*), els moviments de fitxers, les branques i les etiquetes.
 - Canvia: només el Git: la branca `reorganitzacio-projecte`, un commit amb l'estat actual (fitxers
   revisats un a un, sense `git add .`) i l'etiqueta `abans-reorganitzacio`. Sense push.
@@ -512,16 +558,59 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 
 ### F1 — Entendre el programa (mínim)
 
-**1.0 Seguir un punt del terreny fins a un píxel** — Tipus: aprenentatge (sense canviar el codi del programa). Estat: `PENDENT` (proposada com a primera tasca)
+**1.0 Seguir un vèrtex dibuixat fins a un píxel** — Tipus: aprenentatge (sense canviar el codi del programa). Estat: `VALIDAT` (22/10/2026: l'equip l'ha executat amb `COINCIDEIX` i ha donat l'activitat per tancada; la predicció de la modificació queda com a opcional per decisió de l'equip, D26)
+
+Resultat: `scripts/exercici_fotograma.py` (nou) i l'activitat documentada a
+`docs/exercici_1_0_vertex_a_pixel.md` (pàgina provisional fins que hi hagi la web, 5.1). Comprovat
+per Claude: dues execucions (per defecte i `--distancia 0.5`) amb `RESULTAT: COINCIDEIX`, la
+posició del vèrtex a 1,37 cm de la del vertex shader real, i la creu sobre el terreny a les dues
+captures. Cap altre fitxer del programa s'ha modificat.
+
+Tres conceptes que cal distingir:
+- **Vèrtex:** un punt de la malla que entra al vertex shader. Al terreny n'hi ha 1024 × 1024, i
+  cadascun surt amb una posició a la pantalla (`gl_Position`).
+- **Fragment:** un candidat a pintar un píxel. La GPU el genera en rasteritzar un triangle, per a
+  cada píxel que el triangle cobreix, amb els valors interpolats entre els seus 3 vèrtexs
+  (profunditat, UV...). Passa pel fragment shader i el test de profunditat el pot descartar.
+- **Píxel:** una cel·la del framebuffer que guarda el color i la profunditat del fragment guanyador.
+  Un vèrtex gairebé mai cau exactament al centre d'un píxel.
+
+Per què no serveix el cim del MDT original: la GPU no dibuixa el MDT de 5 m, sinó una malla de
+1024² vèrtexs on l'altura de cada vèrtex es llegeix amb `textureLod(tex_altitud, uv, lod_vertexs)`.
+A Picos, `lod_vertexs` ≈ 1,97: la GPU barreja els nivells de mipmap 1 (mitjanes de 2×2) i 2 (de 4×4).
+El cim de 2647 m del MDT no existeix a la superfície dibuixada.
+
 - Aprenem: coordenades del món (km), `m_model`, `m_view` (`lookAt`), `m_proj` (`perspective`),
-  coordenades de clip, divisió per w, NDC, viewport i profunditat.
-- Canvia: res del programa. Un script de prova (`scripts/exercici_fotograma.py`) agafa el cim més
-  alt de Picos, calcula a mà `m_proj · m_view · m_model · p` amb la mateixa càmera que `captura.py`,
-  i prediu el píxel i la profunditat on ha de sortir. Després fa la captura i hi marca el píxel.
-- Depèn: 0.1.
-- Comprovació: l'equip executa el script; el punt marcat cau sobre el cim a la captura i la
-  profunditat predita coincideix amb la del depth buffer (diferència < 0,001).
-- Documentem: O2.1 i O2.2 a la web (teoria + captura amb el punt + números).
+  coordenades de clip, divisió per w, NDC, viewport, profunditat no lineal, i la diferència entre
+  vèrtex, fragment i píxel.
+- Canvia: res del programa. Un script de prova (`scripts/exercici_fotograma.py`):
+  1. Tria **un vèrtex de la graella** (índexs i, j) i n'obté l'altura **tal com la llegeix la GPU**:
+     llegeix de la textura els nivells de mipmap que fa servir (`texture.read(level=…)`) i els
+     barreja com `textureLod`.
+  2. Comprova que és **visible i sense obstacles**: ha d'estar a la zona central de la imatge, en una
+     vessant que miri cap a la càmera, i un recorregut des de la càmera fins al vèrtex sobre la malla
+     dibuixada no ha de trobar cap punt més alt que el raig. A més, els píxels del voltant han de
+     tenir una profunditat contínua (no és una silueta).
+  3. Calcula a mà `m_proj · m_view · m_model · p` amb la mateixa càmera que `captura.py`, i en
+     treu la posició a la pantalla (amb decimals) i la profunditat.
+  4. Renderitza **sense antialiasing** (per poder llegir la profunditat d'un sol mostreig), llegeix
+     la profunditat del píxel que conté el punt i en marca la posició a la captura.
+- **Tolerància (es calcula, no es fixa):** la diferència esperada entre la profunditat predita i la
+  llegida és la suma de:
+  - **El desplaçament dins del píxel:** el centre del píxel és fins a ~0,7 px del vèrtex, i allà la
+    profunditat és la del triangle interpolat. Error ≈ |gradient de profunditat a la pantalla| ×
+    desplaçament; el gradient es mesura amb els píxels veïns.
+  - **La quantificació del depth buffer:** amb 24 bits, un pas és 2⁻²⁴ ≈ 6·10⁻⁸ (cal confirmar els
+    bits reals del framebuffer).
+  - **L'arrodoniment float32** de les matrius i de la posició (relatiu ~10⁻⁷).
+
+  Com que la profunditat no és lineal (té molta més precisió a prop del pla *near*), el resultat
+  també es dona convertit a **metres de profunditat segons l'eix de visió** (que és el que val la w; no és la distància en línia recta fins al punt), que és més fàcil d'interpretar.
+- Depèn: 0.1 (validada per l'equip).
+- Comprovació: l'equip executa el script. (a) La marca cau sobre el vèrtex triat a la captura.
+  (b) La diferència de profunditat és menor que la tolerància calculada per a aquell punt, i el
+  script mostra tots dos números i els tres termes de la tolerància.
+- Documentem: O2.1 i O2.2 a la web (teoria de vèrtex/fragment/píxel, captura amb la marca, números).
 
 **1.1 Com es dibuixa un fotograma** — Tipus: documentació. Estat: `PENDENT`
 - Aprenem: el pipeline gràfic, les matrius model/vista/projecció, VBO/IBO/VAO, shaders, uniforms,
@@ -537,7 +626,8 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 Per a totes les tasques de la F2:
 - Aprenem: mòduls i imports de Python, i responsabilitats separades.
 - Depèn: 0.2, D16.
-- Comprovació: captures idèntiques píxel a píxel a les de 0.2, la llista de proves manuals passa i
+- Comprovació: captures de la mateixa escena idèntiques a les de 0.2 (al mateix ordinador i en
+  les mateixes condicions), la llista de proves manuals passa i
   `diff -r` amb `repte4/basecode` no mostra canvis als originals.
 - Documentem: l'arbre i la responsabilitat de cada fitxer (O3).
 
@@ -563,7 +653,7 @@ Per a totes les tasques de la F2:
 | 3.5 Convergència UTM | Sol i Lluna girats −γ | `validar_model.py`: el nord geogràfic té azimut de quadrícula −γ a l'escena | `PENDENT` |
 | 3.6 Refracció del Sol | Substituir la correcció constant per una fórmula de refracció documentada (§6.5), només si l'explicació és defensable | Error tipus 1: elev. al màxim ≤ 0,02° del CNIG als 9 punts. Error tipus 2 (mateixa font): posta ≤ 1 min de la banda 5 | `PENDENT` |
 | 3.7 Contactes asimètrics | Primer: explicar la causa de l'asimetria. Després, només si aporta valor (§6.4.1), un model de la Lluna amb C1 i C4 correctes | Error tipus 1: C1–C4 ≤ 5 s als 9 punts | `PENDENT` |
-| 3.8 Comprovació independent (D20) | Consulta manual d'una font externa (P10) en uns quants punts (Picos, un punt de totalitat més, 2 punts catalans) i moments (C1, màxim, C4, posta). Taula amb les convencions de cada valor: hora (TU), coordenades i altitud, refracció inclosa o no, definició dels contactes | Error tipus 2 dins dels objectius de §6.4, o explicació de la diferència | `PENDENT` |
+| 3.8 Comprovació independent (D20, D23) | Consulta manual del calculador de la NASA (§6.3.1) en uns quants punts (Picos, un punt de totalitat més, 2 punts catalans) i moments (C1, màxim, C4, posta). Taula amb les convencions de cada valor: hora (TU), coordenades i altitud, refracció inclosa o no, definició dels contactes | Error tipus 2 dins dels objectius de §6.4, o explicació de la diferència | `PENDENT` |
 
 Per a la F3:
 - Aprenem: càmeres (orbital i de primera persona), geodèsia bàsica (convergència, curvatura,
@@ -590,8 +680,10 @@ Per a la F3:
 - Estructura, amb desplegables tipus Notion (`<details>`):
 
   ```
-  Objectiu (O1, O2, O3)            estat · % (criteris complerts / total)
+  Objectiu (O1, O2, O3)            estat · % (criteris validats / total)
     └ Subobjectiu                  estat · %
+        ▸ Què es vol aconseguir
+        ▸ Estat i criteris de comprovació
         ▸ Teoria apresa
         ▸ Implementació al projecte
         ▸ Fitxers relacionats      (enllaços al codi)
@@ -640,3 +732,7 @@ l'evidència corresponents.
 |---|---|
 | 22/10/2026 | Versió inicial. Creada la còpia `CLAUDE_ANTIC.md` (idèntica a `CLAUDE.md`, sha256 `e61f9986…4f33`). |
 | 22/10/2026 | Resoltes P1–P9 (D15–D22). Convenció de refracció (§7), tipus d'error i efecte visible (§6.4). Noves tasques 0.3 (coordenades) i 1.0 (seguir un punt fins a un píxel). Pas 0.1 executat: branca `reorganitzacio-projecte`, etiqueta `abans-reorganitzacio`, sense push. |
+| 22/10/2026 | D23 (NASA com a font externa, §6.3.1) i D24. Tasca 1.0 reformulada: vèrtex de la geometria dibuixada i tolerància calculada. Nova pendent P12 (`CLAUDE.md` nou de l'equip). 0.1 continua `FET`, no `VALIDAT`. |
+| 22/10/2026 | D25: `CLAUDE.md` substituït per la versió nova; `CLAUDE_ANTIC.md` sense canvis. P12 resolta. Retirades les instruccions transitòries que deien que `CLAUDE.md` estava desactualitzat. Definició de `FET`/`VALIDAT`, regla d'autoritzacions i criteri de comparació d'imatges alineats amb `CLAUDE.md`. Títol de §2 corregit (fotografia de l'etiqueta vs. canvis posteriors). 0.1 continua `FET`, pendent de la validació de l'equip. |
+| 22/10/2026 | 0.1 `VALIDAT` per l'equip. Tasca 1.0 `FET`: `scripts/exercici_fotograma.py` i `docs/exercici_1_0_vertex_a_pixel.md`. Sense commit. |
+| 22/10/2026 | 1.0 `VALIDAT`. Corregida la descripció de w (profunditat segons l'eix de visió, no distància euclidiana) a la documentació i al script. D26–D29. `CLAUDE.md` versionat (D27). Commit i push de la branca i l'etiqueta (D28). |
