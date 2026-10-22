@@ -8,7 +8,7 @@ posicio del Sol vindra mes endavant.
 """
 import glm
 
-from basecode.light import Light
+from .light import Light
 
 
 class Sol(Light):

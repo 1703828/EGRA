@@ -56,7 +56,7 @@ from camera_primera_persona import CameraPrimeraPersona
 from personatge import Personatge
 from astres import Esfera, Lluna, EMISSIVA, HALO, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
 from model_eclipsi import ModelEclipsi
-from sol import Sol
+from basecode.sol import Sol
 from data_io import TERRENYS
 from terrain import (Terrain, COLOR_CEL, OVERLAYS, ENFOSQUIMENT_MIN,
                      COLORS_ENFOSQUIMENT, COLOR_TOTALITAT, COLORS_DURADA, COLORS_OMBRES)
