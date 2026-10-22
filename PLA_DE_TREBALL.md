@@ -22,8 +22,11 @@ Darrera actualització: 2026-10-22 (`CLAUDE.md` nou; P12 resolta).
 
 ## 0. Regles de treball
 
-1. **Una tasca petita cada vegada.** En acabar: una explicació entenedora i una comprovació que
-   pugui fer l'equip. No es continua fins que l'equip ho prova i ho demana.
+1. **Treball autònom en passos petits** (D32). Claude implementa, executa les comprovacions,
+   inspecciona captures i corregeix; quan les comprovacions disponibles passen, continua amb la
+   tasca següent. La prova de l'equip no és una condició rutinària per avançar. A cada tasca es
+   diu com s'ha comprovat: **comprovat automàticament**, **inspeccionat visualment** o **provat per
+   l'equip**. Commits locals petits i recuperables.
 2. **Tres tipus de canvis, mai barrejats en una mateixa tasca:**
    - **R — reorganització:** mou fitxers o codi **sense canviar el comportament**. Es comprova
      amb captures de la mateixa escena, fetes al mateix ordinador i en les mateixes condicions
@@ -82,6 +85,13 @@ Darrera actualització: 2026-10-22 (`CLAUDE.md` nou; P12 resolta).
 | D29 | Web de seguiment: primera versió **local** a `docs/` (HTML, CSS i JavaScript mínim, sense frameworks ni WebGL) abans de la reorganització del codi. **No es publica encara** amb GitHub Pages. | 22/10 |
 | D30 | La web es basa en els objectius **1 i 2 de l'acta 3 final** (PDF del 15/10). L'antic O3 ("Del dada oficial a la GPU", de l'esborrany `acta3.md`, que ja no hi és a `actes/`) es mostra com a objectiu propi del pla, **marcat com a no inclòs a l'acta final**. Substituït per D31. | 22/10 |
 | D31 | (P13) **Es retira l'O3.** Els seus subobjectius es reparteixen: la reproduïbilitat de les dades va a **O1.1** (dades del terreny), la validació del model a un nou **O1.12** i l'organització del codi i del treball a un nou **O2.6**. | 22/10 |
+| D32 | **Treball autònom** (substitueix l'aturada després de cada tasca): implementar, comprovar, inspeccionar captures, corregir i continuar. Distingir comprovat automàticament / inspeccionat visualment / provat per l'equip. | 22/10 |
+| D33 | **Cap marcador permanent** (fora l'esfera taronja). La selecció d'un punt s'indica de manera discreta i temporal. | 22/10 |
+| D34 | **Observació:** ulls fixos, la mirada conserva l'orientació, ratolí i fletxes giren el cap, **sense seguir el Sol**. **Exploració:** càmera lliure (WASD desplacen, ratolí i fletxes giren, allunyar-se mou la càmera de debò) amb velocitat adaptada a l'escala, del terreny a l'espai. | 22/10 |
+| D35 | **P = només reproduir/pausar.** El temps de simulació és independent de la càmera; el punt d'observació i la càmera són dades independents. Substitueix el comportament anterior de P (canviar de vista, mirar el Sol i reiniciar). | 22/10 |
+| D36 | **Escena espacial coherent com a objectiu principal:** Terra, Sol i Lluna en un sol sistema de coordenades amb posicions reals (efemèrides), terreny de la península (Picos com a detall) posat sobre la Terra, ombra de la Lluna calculada per a cada punt de la superfície. Substitueix la Lluna a distància artificial (D22 queda superada per a la vista espacial). | 22/10 |
+| D37 | **Interfície senzilla:** reproduir/pausar, hora i velocitat; explorar / observar; escollir ubicació; tornar al punt; ajuda curta. Capes tècniques i depuració en un apartat avançat tancat. | 22/10 |
+| D38 | Autoritzades descàrregues de dades i textures de fonts fiables amb llicència compatible (documentant-ne la procedència i sense pujar fitxers grans al Git). | 22/10 |
 
 ### 1.2 Pendents
 
@@ -790,6 +800,21 @@ l'evidència corresponents.
 ### F6 — Resta del projecte final (mínim segons l'acta 3; es detallarà després de la F4)
 - 6.1 Ombres del relleu (shadow mapping) i comparació amb `terrain_shadows` del CNIG.
 - 6.2 Menú de meteorologia (clar, boira, núvols).
+
+### F9 — Escena coherent i interacció nova (mínim; D32–D38)
+
+Substitueix l'ordre anterior: es comença pels problemes visibles i després es construeix l'escena
+espacial, integrant-hi les correccions astronòmiques i geogràfiques (3.4–3.8).
+
+| Tasca | Canvia | Estat |
+|---|---|---|
+| 9.1 | P només reproduir/pausar; sense seguir el Sol; fora el marcador permanent; panell senzill | `EN CURS` |
+| 9.2 | Efemèrides reals del Sol i la Lluna (JPL Horizons) i geodèsia (WGS84) a `dades/` | `PENDENT` |
+| 9.3 | Món en coordenades terrestres (ECEF): Terra, península + Picos posats sobre el globus, profunditat logarítmica, coordenades relatives a la càmera | `PENDENT` |
+| 9.4 | Càmeres noves: exploració lliure del terreny a l'espai i observació amb la mirada fixa | `PENDENT` |
+| 9.5 | Ombra de la Lluna per a cada punt de la superfície; Sol treballat; Lluna amb textura | `PENDENT` |
+| 9.6 | Model de l'observador a partir de la geometria; comprovació contra el CNIG i la NASA (substitueix 3.5–3.8) | `PENDENT` |
+| 9.7 | README, web i pla | `PENDENT` |
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).

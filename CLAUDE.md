@@ -11,8 +11,8 @@ La prioritat és que l’equip entengui el codi, aprengui els conceptes gràfics
 - `CLAUDE.md`: instruccions estables sobre com treballar.
 - `PLA_DE_TREBALL.md`: tasques, decisions, dependències, comprovacions i estat actual.
 - `README.md`: instal·lació, execució i ús real del programa.
-- `data/FONTS.md`, quan es creï: procedència i reproducció de les dades.
-- `docs/`, quan es creï: seguiment i explicació de l’aprenentatge.
+- `data/FONTS.md`: procedència i reproducció de les dades (quan es creï).
+- `docs/`: web de seguiment i explicació de l’aprenentatge.
 
 Llegeix el pla abans de començar una tasca i contrasta’l amb el codi actual. Una funcionalitat planificada no s’ha de descriure com si ja estigués implementada.
 
@@ -22,50 +22,62 @@ Les instruccions explícites més recents de l’equip prevalen sobre aquests do
 
 ## Manera de treballar
 
-Treballa en una tasca petita cada vegada.
+Treballa de manera autònoma dins de l’abast autoritzat, en passos petits i comprovables:
 
-Abans d’implementar, explica breument:
-- Quin problema resol.
-- Quin concepte aprendrem.
-- Quins fitxers tocaràs.
-- Com comprovarem el resultat.
+- Implementa, executa les comprovacions disponibles, inspecciona captures i corregeix els problemes que trobis.
+- Quan les comprovacions disponibles passin, continua amb la tasca següent sense esperar la validació manual de l’equip.
+- La validació manual de l’equip no és una condició rutinària per avançar; és una informació addicional.
+- Mantén commits locals petits, recuperables i amb una finalitat clara.
+- Dona actualitzacions breus sobre resultats i decisions. Sense exercicis intermedis ni preguntes per detalls menors.
+- Demana intervenció només davant d’un bloqueig real, un cost, credencials o una decisió que ampliï l’abast.
 
-Un cop autoritzada la tasca, completa els passos necessaris i les comprovacions sense demanar permís repetidament per accions ja incloses en aquella autorització. Si apareix una decisió que amplia l’abast o canvia el disseny acordat, consulta-la.
+Explica primer què canvia i per què, i després només els detalls necessaris per entendre-ho. Defineix
+els termes tècnics quan apareguin.
 
-En acabar:
-- Explica què ha canviat i per què.
-- Indica què has comprovat tu i què ha de provar l’equip.
-- Dona una comprovació curta, concreta i entenedora.
-- Actualitza el pla i la documentació corresponent.
-- Atura’t abans de començar la tasca següent.
+Distingeix sempre com s’ha comprovat una cosa:
+- **Comprovat automàticament**: un script o una prova l’ha verificat.
+- **Inspeccionat visualment**: Claude ha mirat captures del programa.
+- **Provat per l’equip**: l’equip ho ha fet amb la finestra.
+
+No atribueixis proves que no s’han fet.
 
 Estats del pla:
 - PENDENT: sense començar.
 - EN CURS: s’hi està treballant.
-- FET: implementat i amb les comprovacions de Claude descrites; pendent de revisió de l’equip.
-- VALIDAT: l’equip ha fet i confirmat la comprovació indicada.
-
-No marquis una tasca com a VALIDAT perquè l’equip hagi executat una ordre sense entendre’n el resultat.
+- FET: implementat i comprovat automàticament o visualment per Claude.
+- VALIDAT: l’equip l’ha provat i confirmat.
 
 ## Abast i disseny acordats
 
-No volem un videojoc ni un personatge de dues esferes. La retirada del personatge i dels salts està planificada; no s’ha de barrejar amb una reorganització que promet conservar el comportament.
+No volem un videojoc, ni personatge, ni cap marcador permanent que tapi el paisatge. Si cal indicar la
+selecció d’un punt, es fa de manera discreta i temporal.
 
-Volem:
-- Explorar l’escena amb una càmera sense personatge.
-- Seleccionar un punt d’observació.
-- Observar l’eclipsi a l’altura dels ulls, inicialment 1,7 m sobre el terreny.
-- Bloquejar la ubicació durant la reproducció des del terreny, permetent girar la mirada i fer zoom.
-- Poder explorar una vista il·lustrativa des de la Lluna.
-- Incorporar una representació visual del Sol amb textura i, eventualment, animació.
+**Observació des del terra:** els ulls queden fixos a 1,7 m sobre el terreny; la mirada conserva
+l’orientació que deixa l’usuari (ratolí i fletxes giren el cap) i el Sol **no** se segueix automàticament.
 
-La ubicació de l’observador és una dada independent de qualsevol marcador o objecte dibuixat.
+**Exploració:** càmera lliure. W A S D la desplacen, el ratolí i les fletxes controlen la mirada, i
+allunyar-se mou realment la càmera (no és un zoom de camp de visió). La velocitat s’adapta a l’escala
+per poder explorar tant el terreny com l’espai.
 
-La vista astronòmicament coherent des de la Lluna és una ampliació diferent de la vista il·lustrativa. El model actual, ajustat a l’observació terrestre i amb distàncies artificials, no la garanteix.
+**Temps independent de la càmera:** P només reprodueix o pausa. No reinicia l’eclipsi, no canvia de
+vista ni orienta la càmera. En pausa i en reproducció, la càmera es pot moure lliurement. El temps de
+simulació, el punt d’observació i la càmera són dades independents.
 
-Ubicacions objectiu: Vic, l’Escala, Cerdanyola, Montmeló i la UAB. Picos es conserva provisionalment com a cas de totalitat. Els punts concrets i les seves fonts es documenten al pla.
+**Territori i escena espacial:** vista de la península (Picos com a zona de detall) i transició fins a la
+Terra vista des de l’espai. La Terra, el Sol i la Lluna formen part d’un **model geomètric coherent**
+(posicions reals en un mateix sistema de coordenades), que permet canviar de punt de vista. Es vol
+veure el Sol amb una superfície treballada, la Lluna amb textura, la cara il·luminada de la Terra i
+l’ombra de la Lluna movent-se sobre la Terra. L’ombra de la Lluna es distingeix de les ombres de les
+muntanyes, i la resta de la cara diürna no s’enfosqueix uniformement. Les aproximacions s’identifiquen
+i cap animació es presenta com una reproducció validada si no s’ha comprovat.
 
-No introdueixis funcionalitats noves per iniciativa pròpia sense relacionar-les amb una tasca acordada.
+**Interfície senzilla:** reproduir/pausar, hora i velocitat; explorar o observar des del terra; escollir
+ubicació; tornar al punt d’observació; ajuda curta dels controls. Les capes tècniques (línies de
+totalitat, overlays) i els paràmetres de depuració van a un apartat avançat tancat per defecte. Noms
+comprensibles per a algú que no conegui OpenGL ni astronomia.
+
+Ubicacions objectiu: Vic, l’Escala, Cerdanyola, Montmeló i la UAB. Picos es conserva com a cas de
+totalitat i zona de detall. Els punts concrets i les seves fonts es documenten al pla.
 
 ## Organització del codi
 
@@ -79,7 +91,7 @@ Segueix l’estructura acceptada a PLA_DE_TREBALL.md i la referència real de re
 - `scripts/` conté eines de preparació, captura i comprovació.
 - `models/` conté els models externs.
 
-Aquesta és l’estructura de destinació. No pressuposis que els moviments ja s’han fet.
+Contrasta sempre l’estructura amb el codi real (secció 4 del pla).
 
 No afegeixis capes, gestors o abstraccions sense una necessitat concreta. Evita dependències circulars i duplicació de constants.
 
