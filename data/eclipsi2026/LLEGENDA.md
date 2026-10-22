@@ -59,6 +59,6 @@ El document parla de fitxers GeoJSON, però al GeoPackage són capes. Els noms r
   Per exemple, Luarca (43,54 °N, 6,54 °O) cau a la franja de 100–110 s.
 - **Atenció:** el polígon 0–10 s (756 graus²) inclou també tota la zona sense totalitat (durada 0).
   Per tant, la capa no dona la vora exacta de la franja. Al programa, la franja i les corbes de durada
-  es calculen a partir de les bandes 9, 10 i 5 del GeoTIFF (`eclipse_data.py`), que són les dades amb
+  es calculen a partir de les bandes 9, 10 i 5 del GeoTIFF (`dades/eclipse_data.py`), que són les dades amb
   què es va fer la capa.
 - Es pot llegir amb fiona + shapely o amb geopandas (a `egra` ja hi ha geopandas 1.2).

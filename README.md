@@ -79,10 +79,11 @@ càmera, deixa de seguir el Sol.
 - **Avançat**: FPS, exageració vertical, boira, distància de la Lluna, filferros, curvatura, eixos,
   zoom i el botó *Mirar des de darrere la Lluna*.
 
-### Com es calcula el cel (`model_eclipsi.py`)
+### Com es calcula el cel (`dades/model_eclipsi.py`)
 
 - **Sol**: algorisme de la NOAA per a la data i el punt, corregit perquè al màxim coincideixi amb
-  l'azimut i l'elevació del CNIG (la correcció és de menys de 0,1°).
+  l'azimut i l'elevació del CNIG. La correcció d'elevació va d'uns 0,09° a 0,26° segons el punt i és
+  compatible amb la refracció atmosfèrica, que el CNIG inclou (veure `PLA_DE_TREBALL.md`, §6).
 - **Lluna** (primera aproximació): es mou en línia recta respecte del Sol, en la direcció de
   l'eclíptica, i passa a la distància mínima a l'hora del màxim. La velocitat i la distància mínima
   s'ajusten amb les hores de contacte del CNIG en aquell punt; fora de la franja, amb l'enfosquiment
@@ -97,28 +98,36 @@ càmera, deixa de seguir el Sol.
 ## 3. Què hi ha a cada carpeta
 
 ```
-main.py              Programa principal: el joc (teclat, temps, llum), el panell i la barra de temps
-sol.py               El Sol: la llum de l'escena (Light del basecode amb azimut i elevació)
-model_eclipsi.py     On són el Sol i la Lluna a cada hora, vistos des d'un punt
-camera.py            Càmera orbital enganxada al terreny (tercera persona)
-camera_primera_persona.py  Càmera dels ulls del personatge (primera persona)
-personatge.py        El personatge: camina i salta
-astres.py            Esferes de la Lluna, el Sol i la seva resplendor (halo i corona)
-terrain.py           El terreny: textures, graella de vèrtexs, faldilles i capes de l'eclipsi
-data_io.py           Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
-eclipse_data.py      Lectura de les dades de l'eclipsi del CNIG
-scripts/             Scripts per preparar dades i fer captures (veure secció 5)
-basecode/            Codi base de l'assignatura (el del repte 4), amb tots els shaders a
-                     basecode/shaders/ (gouraud, phong, terrain i esfera)
-models/              Models .obj, cadascun a la seva carpeta (com al repte 4)
-data/                Dades (veure secció 4)
-requirements.txt     Llibreries de Python
+main.py                  Programa principal: coordina l'escena (crea els objectes, temps, llum i teclat)
+ui.py                    Interfície: el panell "Opcions" i la barra de temps (slimgui)
+basecode/                Codi base de l'assignatura (el del repte 4, sense canvis) i els nostres objectes:
+  engine.py, window.py, ui_panel.py, objects.py, camera.py, light.py, axis.py,
+  meshloader.py, shaders.py       fitxers originals del professor (no es modifiquen)
+  sol.py                 El Sol: la llum de l'escena (Light del basecode amb azimut i elevació)
+  terrain.py             El terreny: textures, graella de vèrtexs, faldilles i capes de l'eclipsi
+  astres.py              Esferes de la Lluna, el Sol i la seva resplendor (halo i corona)
+  personatge.py          El personatge: camina i salta (es retirarà en una tasca a part)
+  camera_exploracio.py   Càmera orbital enganxada al terreny (tercera persona)
+  camera_observador.py   Càmera dels ulls del personatge (primera persona)
+  shaders/               gouraud i phong (originals) i terrain i esfera (nostres)
+dades/                   Lectura i càlcul de dades, sense OpenGL:
+  data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
+  eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
+  model_eclipsi.py       On són el Sol i la Lluna a cada hora, vistos des d'un punt
+scripts/                 Scripts per preparar dades, fer captures i l'exercici 1.0 (veure secció 5)
+models/                  Models .obj, cadascun a la seva carpeta (com al repte 4)
+data/                    Dades (veure secció 4)
+docs/                    Web de seguiment (obrir docs/index.html al navegador)
+PLA_DE_TREBALL.md        Pla de treball: tasques, decisions i comprovacions
+CLAUDE.md                Instruccions de treball de l'equip
+requirements.txt         Llibreries de Python
 ```
 
 Com al repte 4, `main.py` defineix un `GraphicsEngine` que hereta del `GraphicsEngineBase` de
 `basecode/`: `on_init` crea la llum (el Sol, `self.light`), la càmera, els eixos i el terreny;
 `drawables()` són els objectes als quals la càmera escriu `m_proj` i `m_view`; `render()` els dibuixa i
-`build_ui()` fa el panell. Cada objecte té `get_vbo`, `get_vao`, `get_shader_program`, `on_init`,
+`build_ui()` crida el panell de `ui.py`. Els objectes gràfics propis són fitxers nous dins de
+`basecode/` (els originals del professor no es toquen) i el que no depèn d'OpenGL és a `dades/`. Cada objecte té `get_vbo`, `get_vao`, `get_shader_program`, `on_init`,
 `render` i `destroy`. Els shaders són fitxers de `basecode/shaders/` i es carreguen amb
 `basecode.shaders.load_program(ctx, nom)`.
 
@@ -165,6 +174,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `preparar_dades.py` | Calcula els fitxers auxiliars de tots els terrenys (`data/cache/`) |
 | `descarregar_mdt.py` | Torna a descarregar un MDT del WCS de l'IGN, o en descarrega un de nou |
 | `captura.py` | Desa una imatge del terreny en PNG sense obrir cap finestra |
+| `exercici_fotograma.py` | Exercici 1.0: segueix un vèrtex del terreny fins al píxel de la pantalla (`docs/exercici_1_0_vertex_a_pixel.md`) |
 
 Descàrrega d'MDT (els de `data/mdt/` ja hi són; només cal per refer-los o per a zones noves):
 

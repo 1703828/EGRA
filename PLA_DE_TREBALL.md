@@ -89,32 +89,30 @@ Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 
 
 ---
 
-## 2. Funcionalitats existents (fotografia guardada a l'etiqueta `abans-reorganitzacio`)
+## 2. Funcionalitats existents (codi actual, després de la F2)
 
-Aquesta llista descriu el codi tal com està guardat al commit de l'etiqueta
-`abans-reorganitzacio` (branca `reorganitzacio-projecte`; consulteu l'identificador amb
-`git rev-parse --short abans-reorganitzacio`). Des d'aquella fotografia **no s'ha modificat cap
-fitxer de codi**: els únics canvis posteriors són de documentació (`PLA_DE_TREBALL.md`, encara
-sense commit, i `CLAUDE.md`, que el Git ignora). Es pot comprovar amb `git status`.
+El **comportament** és el mateix que el de la fotografia guardada a l'etiqueta
+`abans-reorganitzacio`: la fase F2 només ha mogut fitxers i codi (veure F2 a §11). Les rutes
+d'aquesta taula són les **actuals**; a l'etiqueta els fitxers eren a l'arrel del projecte.
 
 Res d'aquesta llista no està validat formalment per l'equip.
 
 | Funcionalitat | On és | Estat / observacions |
 |---|---|---|
-| Terreny 3D d'un MDT (heightmap a textura, graella de 1024² vèrtexs, faldilles, colors per altitud, mar, boira) | `terrain.py`, `basecode/shaders/terrain.*`, `data_io.py` | Funciona (captura sense finestra comprovada) |
-| Overlays del CNIG (enfosquiment, durada, ombres del relleu, límits de la totalitat) | `eclipse_data.py`, `terrain.frag` | Funciona |
-| Una sola regió carregada (Picos, 5 m, 20×20 km) | `main.py:66` | Sense relleu fora dels 20 km |
-| Càmera orbital (arrossegar, roda, doble clic) | `camera.py` | Funciona. Ara segueix el personatge |
-| **Personatge** de dues esferes que camina (WASD) i salta | `personatge.py`, `main.py` | **Es retirarà (D3)** |
-| Primera persona als ulls del personatge (zoom de prismàtics, seguir el Sol) | `camera_primera_persona.py` | Es convertirà en la vista d'observació |
-| Tecla P: primera persona mirant el Sol i reproducció des de C1 | `main.py:175` | Es mantindrà amb un altre nom/flux |
-| Barra de temps (play, ±5 min, velocitats, Auto) | `main.py:454` | Funciona |
-| Model del Sol (NOAA + correcció constant al màxim del CNIG) i de la Lluna (recta ajustada als contactes del CNIG) | `model_eclipsi.py` | Errors coneguts (§6) |
-| Llum del terreny i del cel segons el Sol visible i el crepuscle; halo i corona | `main.py:227`, `astres.py`, `esfera.frag` | Il·lustratiu (no és un model físic del cel) |
-| Lluna a distància artificial (per defecte, 2 × la mida del terreny), amb la mida aparent real | `main.py:118`, `astres.py` | **Il·lustratiu** (§8) |
-| Botó "Mirar des de darrere la Lluna" | `main.py:447` | **Il·lustratiu**: no és una vista des de la Lluna real |
-| Curvatura (desactivada per defecte) i exageració (slider de 1 a 20) | `terrain.py`, `terrain.vert` | Per defecte, la curvatura està **desactivada** (contradiu D6) |
-| Scripts: descàrrega WCS, caches, captura | `scripts/` | Funcionen (captura i caches comprovats) |
+| Terreny 3D d'un MDT (heightmap a textura, graella de 1024² vèrtexs, faldilles, colors per altitud, mar, boira) | `basecode/terrain.py`, `basecode/shaders/terrain.*`, `dades/data_io.py` | Funciona (captura sense finestra comprovada) |
+| Overlays del CNIG (enfosquiment, durada, ombres del relleu, límits de la totalitat) | `dades/eclipse_data.py`, `terrain.frag` | Funciona |
+| Una sola regió carregada (Picos, 5 m, 20×20 km) | `main.py` (`REGIO`) | Sense relleu fora dels 20 km |
+| Càmera orbital (arrossegar, roda, doble clic) | `basecode/camera_exploracio.py` | Funciona. Ara segueix el personatge |
+| **Personatge** de dues esferes que camina (WASD) i salta | `basecode/personatge.py`, `main.py` | **Es retirarà (D3)** |
+| Primera persona als ulls del personatge (zoom de prismàtics, seguir el Sol) | `basecode/camera_observador.py` | Es convertirà en la vista d'observació |
+| Tecla P: primera persona mirant el Sol i reproducció des de C1 | `main.py` (`eclipsi_des_d_aqui`) | Es mantindrà amb un altre nom/flux |
+| Barra de temps (play, ±5 min, velocitats, Auto) | `ui.py` (`barra_temps`) | Funciona |
+| Model del Sol (NOAA + correcció constant al màxim del CNIG) i de la Lluna (recta ajustada als contactes del CNIG) | `dades/model_eclipsi.py` | Errors coneguts (§6) |
+| Llum del terreny i del cel segons el Sol visible i el crepuscle; halo i corona | `main.py` (`actualitzar_llum`), `basecode/astres.py`, `esfera.frag` | Il·lustratiu (no és un model físic del cel) |
+| Lluna a distància artificial (per defecte, 2 × la mida del terreny), amb la mida aparent real | `main.py` (`distancia_lluna`), `basecode/astres.py` | **Il·lustratiu** (§8) |
+| Botó "Mirar des de darrere la Lluna" | `ui.py` (`panell_avancat`) | **Il·lustratiu**: no és una vista des de la Lluna real |
+| Curvatura (desactivada per defecte) i exageració (slider de 1 a 20) | `basecode/terrain.py`, `terrain.vert` | Per defecte, la curvatura està **desactivada** (contradiu D6) |
+| Scripts: descàrrega WCS, caches, captura, exercici 1.0 | `scripts/` | Funcionen (captura, caches i exercici comprovats després de la F2; la descàrrega no s'ha tornat a executar) |
 
 ---
 
@@ -139,7 +137,7 @@ Res d'aquesta llista no està validat formalment per l'equip.
 
 ---
 
-## 4. Estructura de fitxers (acceptada: D16)
+## 4. Estructura de fitxers (acceptada: D16; feta a la F2)
 
 **Conservar el basecode** vol dir que aquests fitxers queden **idèntics byte a byte** als de
 `repte4/basecode/` (es comprova amb `diff -r`): `__init__.py`, `engine.py`, `window.py`,
@@ -150,25 +148,37 @@ Al repte 4 real, les classes pròpies (`Sphere`, `MeshObject`...) són dins de `
 el nostre projecte en té moltes, les posem en fitxers propis **afegits** a `basecode/`, tal com
 demanàveu inicialment, sense tocar-ne cap d'original.
 
+Estructura **actual** (després de la F2):
+
 ```
-main.py                         GraphicsEngine: on_init, drawables, render (temps, llum, vistes)
-ui.py                           build_ui: panell "Opcions" i barra de temps
+main.py                         GraphicsEngine: on_init, drawables, render (temps, llum, teclat)
+ui.py                           build_ui(app): panell "Opcions" i barra de temps
 basecode/                       ORIGINALS sense canvis, més els nostres objectes:
-  terrain.py                      objecte Terrain
-  astres.py                       Esfera, Lluna, Sol visible i halo
-  sol.py                          Light amb azimut i elevacio
-  camera_exploracio.py            l'actual camera.py (basecode/camera.py ja existeix)
-  camera_observador.py            l'actual camera_primera_persona.py, sense personatge
+  sol.py                          Sol (Light amb azimut i elevacio)
+  terrain.py                      Terrain
+  astres.py                       Esfera, Lluna (Sol visible i halo)
+  personatge.py                   Personatge (es retirara a la tasca 3.1)
+  camera_exploracio.py            CameraExploracio (abans camera.py, classe Camera)
+  camera_observador.py            CameraObservador (abans camera_primera_persona.py; encara va
+                                  lligada al personatge)
   shaders/                        gouraud, phong (originals) + terrain, esfera (nostres)
-dades/                          sense GPU: data_io.py, eclipse_data.py, model_eclipsi.py,
-                                observador.py (ubicacio: lat, lon, x, z, altitud; sense dibuix)
-scripts/                        descarregar_mdt.py, preparar_dades.py, captura.py, validar_model.py
+dades/                          sense OpenGL: data_io.py, eclipse_data.py, model_eclipsi.py
+scripts/                        descarregar_mdt.py, preparar_dades.py, captura.py, exercici_fotograma.py
 models/                         .obj, com al repte 4
 data/                           MDT, dataset del CNIG, cache (veure §10)
 docs/                           web de seguiment
 ```
 
-`personatge.py` desapareix a la tasca de retirada del personatge (C, F3), no a la reorganització.
+Previstos més endavant: `dades/observador.py` (ubicació de l'observador, sense dibuix; tasca 3.1)
+i `scripts/validar_model.py` (tasca 0.2).
+
+**Constants compartides:** les mides aparents del Sol i la Lluna (`RADI_*`, `DIST_*`) les fa servir
+tant el model de l'eclipsi com el dibuix. Abans eren a `astres.py` i `model_eclipsi.py` les
+importava d'allà, és a dir, les dades depenien d'un mòdul gràfic. Ara es defineixen una sola vegada
+a `dades/model_eclipsi.py` i `basecode/astres.py` i `main.py` les importen d'allà. Les dependències
+van en un sol sentit (gràfics → dades) i no hi ha cap import circular.
+
+`basecode/personatge.py` desapareix a la tasca de retirada del personatge (C, F3), no a la reorganització.
 
 ---
 
@@ -366,7 +376,7 @@ refracció canvia amb l'altura del Sol (≈0,09° a 10°, ≈0,57° a l'horitzó
 - Si es camina durant la reproducció, el model queda congelat al punt antic i el panell barreja
   coordenades noves amb dades velles (`main.py:262`). Es resol amb D5.
 - La direcció de la Lluna també està girada γ graus (mateix marc geogràfic).
-- `centre_curvatura` només l'actualitza la càmera orbital (`camera.py:92`). A la vista de primera
+- `centre_curvatura` només l'actualitza la càmera orbital (`basecode/camera_exploracio.py`, `update()`). A la vista de primera
   persona, la curvatura es mesura des de l'últim objectiu de la càmera orbital, no des de
   l'observador.
 - El renderitzat fa servir la curvatura **geomètrica** (d²/2R, sense refracció). El script
@@ -491,7 +501,7 @@ mida aparent. Des de l'observador es veu bé; des de qualsevol altre lloc, la ge
 | `data/mdt/asturias_25m.tif` | 32 MB | Sí | Ídem | Retirar a la 4.2 |
 | `data/mdt05/…HU30_0011_LID.tif` | 32 MB | Sí | Només el README | Retirar a la 4.2 |
 | `data/mdt05/altres/` | 101 MB | No (ignorat) | Ningú | Esborrar a la 4.2 |
-| `data/eclipsi2026/` | 67 MB | Sí | `eclipse_data.py` | Mantenir |
+| `data/eclipsi2026/` | 67 MB | Sí | `dades/eclipse_data.py` | Mantenir |
 | `data/cache/` | 1,5 GB | No | Es regenera sola | Es pot esborrar sencera |
 
 Retirar un fitxer del git (`git rm --cached`) atura el creixement, però **no** fa més petit
@@ -633,24 +643,44 @@ Per a totes les tasques de la F2:
   `diff -r` amb `repte4/basecode` no mostra canvis als originals.
 - Documentem: l'arbre i la responsabilitat de cada fitxer (O2.6).
 
+Ordre executat (un commit local per pas; l'ordre es va canviar perquè `dades/` havia d'existir abans
+de moure `astres.py`, per la qüestió de les constants):
+
 | Tasca | Canvia | Estat |
 |---|---|---|
-| 2.1 | `sol.py` → `basecode/sol.py` (i els imports) | `PENDENT` |
-| 2.2 | `astres.py` → `basecode/` | `PENDENT` |
-| 2.3 | `terrain.py` → `basecode/` (i els imports dels scripts) | `PENDENT` |
-| 2.4 | `camera.py` → `basecode/camera_exploracio.py`; `camera_primera_persona.py` → `basecode/camera_observador.py` (de moment, el mateix codi) | `PENDENT` |
-| 2.5 | `data_io.py`, `eclipse_data.py`, `model_eclipsi.py` → `dades/` | `PENDENT` |
-| 2.6 | Treure `build_ui` i les funcions del panell de `main.py` a `ui.py` | `PENDENT` |
+| 2.1 | `sol.py` → `basecode/sol.py` | `FET` |
+| 2.2 | `data_io.py`, `eclipse_data.py`, `model_eclipsi.py` → `dades/`; constants del Sol i la Lluna a `dades/model_eclipsi.py` | `FET` |
+| 2.3 | `astres.py` i `personatge.py` → `basecode/` | `FET` |
+| 2.4 | `terrain.py` → `basecode/` (i els imports dels scripts) | `FET` |
+| 2.5 | `camera.py` → `basecode/camera_exploracio.py` (`CameraExploracio`); `camera_primera_persona.py` → `basecode/camera_observador.py` (`CameraObservador`); el codi de dins no canvia | `FET` |
+| 2.6 | `build_ui` i les funcions del panell de `main.py` → funcions de `ui.py` | `FET` |
+| 2.7 | README, pla i web amb les rutes noves | `FET` |
 
-`personatge.py` **no** es toca a la F2 (D7).
+`personatge.py` s'ha **mogut** a `basecode/` però **no** s'ha retirat (D7): la retirada és la tasca 3.1.
+
+**Com s'ha comprovat cada pas (Claude, 22/10/2026):**
+- Un script de prova (fora del repositori) executa el `GraphicsEngine` real amb una finestra
+  amagada en 5 escenaris fixos: l'inici, prop de la totalitat, la capa d'enfosquiment, la tecla P
+  (120 fotogrames reproduint l'eclipsi) i la tornada a la tercera persona amb zoom. Desa una
+  captura i l'estat (hora, Sol, % tapat, càmera, personatge, Lluna, color del cel, fase). Al pas
+  2.6, també amb totes les seccions del panell obertes, comparat amb el codi del pas anterior.
+- També s'executen `captura.py` (Picos i península amb zones), `exercici_fotograma.py` i
+  `preparar_dades.py`, i es compara la sortida de text (sense els temps).
+- **Criteri:** l'estat i els textos han de ser **idèntics**. Les imatges poden diferir pel soroll de
+  la GPU: amb el **mateix codi**, dues execucions de `captura.py` (antialiasing 4x) difereixen de 0 a
+  503 píxels d'1,6 milions, i el primer fotograma del programa varia 39 píxels entre sessions. Es
+  van acceptar com a iguals les imatges amb ≤ 1000 píxels diferents.
+- `diff -r basecode repte4/basecode`: els originals del professor, idèntics.
+- El bucle real `run()` (90 fotogrames, amb el panell dibuixat) funciona sense errors.
+- **No s'ha provat:** la finestra visible, el teclat ni el ratolí (ho ha de fer l'equip).
 
 ### F3 — Canvis de comportament i correccions (C; mínim)
 
 | Tasca | Canvia | Comprovació | Estat |
 |---|---|---|---|
-| 3.1 Retirar el personatge | Fora `personatge.py`, salts i WASD del ninot. Nou `dades/observador.py` (lat, lon, x, z, altitud del MDT, sense dibuix). La càmera d'exploració es mou lliurement; un marcador senzill indica el punt triat. | Llista de proves: es pot explorar, triar un punt i passar a la vista d'observació; les coordenades del panell = les del punt triat | `PENDENT` |
+| 3.1 Retirar el personatge | Fora `basecode/personatge.py`, salts i WASD del ninot. Nou `dades/observador.py` (lat, lon, x, z, altitud del MDT, sense dibuix). La càmera d'exploració es mou lliurement; un marcador senzill indica el punt triat. | Llista de proves: es pot explorar, triar un punt i passar a la vista d'observació; les coordenades del panell = les del punt triat | `PENDENT` |
 | 3.2 Bloquejar l'observador durant la reproducció (D5) | Durant la reproducció no es pot canviar el punt; es pot girar i fer zoom | Prova: amb la reproducció en marxa, intentar canviar de punt no fa res; coordenades, CNIG i model són del mateix punt | `PENDENT` |
-| 3.3 `durada = None` sense dades vàlides | `model_eclipsi.py` | `validar_model.py`: el punt (55, 0) no dona error en accedir a `durada` | `PENDENT` |
+| 3.3 `durada = None` sense dades vàlides | `dades/model_eclipsi.py` | `validar_model.py`: el punt (55, 0) no dona error en accedir a `durada` | `PENDENT` |
 | 3.4 Curvatura i horitzó coherents (D6, D18, §7) | Mode normal amb curvatura geomètrica activa (centrada a l'observador, k = 0) i exageració 1; controls de depuració etiquetats; ull a altitud del MDT complet + 1,7 m | Horitzó del script = horitzó del depth buffer (≤ 0,05°), tots dos amb k = 0 | `PENDENT` |
 | 3.5 Convergència UTM | Sol i Lluna girats −γ | `validar_model.py`: el nord geogràfic té azimut de quadrícula −γ a l'escena | `PENDENT` |
 | 3.6 Refracció del Sol | Substituir la correcció constant per una fórmula de refracció documentada (§6.5), només si l'explicació és defensable | Error tipus 1: elev. al màxim ≤ 0,02° del CNIG als 9 punts. Error tipus 2 (mateixa font): posta ≤ 1 min de la banda 5 | `PENDENT` |
@@ -751,3 +781,4 @@ l'evidència corresponents.
 | 22/10/2026 | 1.0 `VALIDAT`. Corregida la descripció de w (profunditat segons l'eix de visió, no distància euclidiana) a la documentació i al script. D26–D29. `CLAUDE.md` versionat (D27). Commit `6bca321` i push de la branca i l'etiqueta (D28); `main` sense canvis. |
 | 22/10/2026 | 5.1 `FET`: primera versió local de la web a `docs/`. D30 i pendent P13 (O3 no és a l'acta 3 final). |
 | 22/10/2026 | D31: O3 retirat i repartit (O1.1, O1.12, O2.6). Commit i push de la web i del pla. |
+| 22/10/2026 | F2 `FET` (tasques 2.1–2.7): reorganització en commits locals separats, sense push. Estructura actual a §4. |
