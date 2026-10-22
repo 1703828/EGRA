@@ -67,8 +67,7 @@
   <tr><th>Funcionalitat</th><th>Estat</th><th>Observacions</th></tr>
   <tr><td>Terreny 3D de Picos de Europa (5 m, 20 × 20 km) amb les capes del CNIG</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Una sola regió; fora dels 20 km no hi ha relleu.</td></tr>
   <tr><td>Sol i Lluna que es mouen amb l'hora, i barra de temps</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Model aproximat amb errors coneguts (O1.6, O1.7).</td></tr>
-  <tr><td>Personatge de dues esferes, salts i vista "de joc"</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Es retira a la tasca 3.1 (no és el que volem).</td></tr>
-  <tr><td>Càmera d'exploració lliure i observador a 1,7 m, bloquejat durant la reproducció</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 3.1 i 3.2.</td></tr>
+  <tr><td>Càmera d'exploració lliure i observador a 1,7 m, bloquejat durant la reproducció</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Tasques 3.1 i 3.2, comprovades per Claude i pendents de la prova de l'equip. El personatge s'ha retirat.</td></tr>
   <tr><td>Curvatura de la Terra activa en el mode normal</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 3.4 (ara és opcional i està desactivada).</td></tr>
   <tr><td>Ubicacions catalanes (Vic, l'Escala, Cerdanyola, Montmeló, UAB)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 0.3, 4.3 i 4.4.</td></tr>
   <tr><td>Ombres del relleu i condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 6.1 i 6.2.</td></tr>
@@ -211,21 +210,27 @@
 <summary><span class="cap"><span class="titol">O1.4 · Exploració de l'escena</span></span>
   <span class="frase">Moure's lliurement per sobre del terreny per inspeccionar-lo i triar un punt d'observació.</span></summary>
 <div class="cos">
-  <p>La càmera d'exploració és <dfn>orbital</dfn>: gira al voltant d'un punt del terreny, com si
-    aquest punt estigués clavat i la càmera hi donés voltes. Amb el ratolí es gira i es desplaça, i amb
-    la roda s'acosta cap al punt que hi ha sota el cursor. Mai no pot quedar sota terra.</p>
-  <p>Per saber quin punt del terreny hi ha sota el cursor (quan fem doble clic o zoom), no calculem cap
-    intersecció amb les muntanyes: aprofitem que la GPU ja guarda, per a cada píxel, a quina profunditat
-    és el que s'hi ha dibuixat, i desfem el camí fins al món (<a href="#o2-2">O2.2</a>).</p>
-  <p>Ara mateix, però, la càmera segueix el personatge de dues esferes: el que es mou és el ninot, i la
-    càmera el va darrere. La tasca 3.1 en farà una càmera lliure, sense personatge.</p>
+  <figure class="costat"><img src="img/exploracio_marcador.jpg" alt="Vista d'exploració amb l'esfera taronja al punt d'observació" loading="lazy">
+    <figcaption>Vista d'exploració a 3 km del punt triat. L'esfera taronja marca on és l'observador; es
+      dibuixa més gran com més lluny és la càmera, perquè es vegi, però només és un dibuix.</figcaption></figure>
+  <p>La càmera d'exploració és <dfn>orbital</dfn>: gira al voltant d'un punt del terreny, com si aquest
+    punt estigués clavat i la càmera hi donés voltes. Amb el ratolí es gira i, amb el botó dret o les
+    tecles W A S D, el punt es desplaça per sobre del terreny. Amb la roda, la càmera s'acosta cap al
+    punt que hi ha sota el cursor, i mai no pot quedar sota terra.</p>
+  <p>Amb un doble clic sobre el terreny es tria el <dfn>punt d'observació</dfn>. Per saber quin punt hi
+    ha sota el cursor no calculem cap intersecció amb les muntanyes: aprofitem que la GPU ja guarda, per a
+    cada píxel, a quina profunditat és el que s'hi ha dibuixat, i desfem el camí fins al món
+    (<a href="#o2-2">O2.2</a>).</p>
+  <p>Abans, la càmera seguia un personatge de dues esferes que caminava i saltava, com en un videojoc.
+    Ara la càmera és independent: moure-la no canvia el punt d'observació, i el punt només canvia amb el
+    doble clic.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>
-      i <code>punt_sota_cursor()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>,
+      <code>teclat()</code>, <code>punt_sota_cursor()</code> i <code>situar_marcador()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="validat">Gir, desplaçament, zoom i doble clic funcionen amb la finestra (prova de l'equip després de la reorganització).</li>
-      <li data-estat="pendent">La càmera es mou sense personatge i un marcador senzill indica el punt triat (tasca 3.1).</li>
+      <li data-estat="fet">La càmera es mou sense personatge (ratolí i WASD) i el punt triat es marca amb una esfera; moure la càmera no mou l'observador (tasca 3.1, prova automàtica).</li>
     </ul>
   </div>
 </div></details>
@@ -234,25 +239,34 @@
 <summary><span class="cap"><span class="titol">O1.5 · Observació des del terra</span></span>
   <span class="frase">Mirar el cel des d'un punt concret, a 1,7 m sobre el terra, on el relleu pot tapar el Sol.</span></summary>
 <div class="cos">
+  <figure class="costat"><img src="img/observador_totalitat.jpg" alt="Vista d'observador a la totalitat: cel fosc i corona" loading="lazy">
+    <figcaption>Vista d'observador al centre de Picos en el moment del màxim, amb zoom. La Lluna tapa el
+      Sol i es veu la corona; el cel i la corona són una representació il·lustrativa.</figcaption></figure>
   <p>Aquesta és la vista que dona sentit al projecte: posar-nos en un lloc, mirar cap al Sol i veure
-    l'eclipsi com el veuria una persona. Per això la càmera ha d'estar als ulls (1,7 m sobre el terreny),
-    es pot girar per mirar al voltant i té un zoom com uns prismàtics, perquè el Sol només fa mig grau.</p>
-  <p>La idea clau és que la <dfn>ubicació de l'observador</dfn> és una dada (latitud, longitud i
-    altitud), separada de qualsevol cosa que es dibuixi. D'aquesta dada surten les dades del CNIG del
-    panell i el model del Sol i la Lluna. Per això, mentre es reprodueix l'eclipsi, la ubicació queda
-    bloquejada: si es pogués canviar, el panell podria mostrar les dades d'un punt i el cel d'un altre.</p>
-  <p>Ara hi ha una primera persona als ulls del personatge, i la tecla P ja hi posa la càmera mirant el
-    Sol i reprodueix l'eclipsi des de l'inici. Amb la tasca 3.1 deixarà de dependre del personatge, i la
-    3.2 bloquejarà la ubicació durant la reproducció.</p>
+    l'eclipsi com el veuria una persona. La càmera d'observador és als ulls, 1,7 m sobre el terreny. Es
+    pot girar per mirar al voltant i té un zoom com uns prismàtics, perquè el Sol només fa mig grau.</p>
+  <p>La idea clau és que la <dfn>ubicació de l'observador</dfn> és una dada: el punt del terreny, la seva
+    latitud i longitud i la seva altitud. No té res a veure amb el que es dibuixa; l'esfera taronja de la
+    vista d'exploració només la mostra. Quan triem un punt, el programa crea alhora l'observador, el
+    model del Sol i la Lluna i les dades del CNIG del panell, tots tres a partir del mateix punt. Així no
+    poden quedar desajustats.</p>
+  <p>Per la mateixa raó, mentre es reprodueix l'eclipsi el punt queda <dfn>bloquejat</dfn>: es pot mirar
+    al voltant, fer zoom i fins i tot moure la càmera d'exploració, però el doble clic no canvia el punt.
+    Si es pogués canviar a mitja reproducció, el cel seria d'un lloc i les hores del panell d'un altre. Per
+    triar-ne un altre cal posar la barra de temps en pausa.</p>
+  <p>La tecla P passa a aquesta vista, gira la càmera cap al Sol i reprodueix l'eclipsi des de l'inici al
+    punt triat.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>
-      i <code>eclipsi_des_d_aqui()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../dades/observador.py"><code>dades/observador.py</code></a> (la dada),
+      <code>triar_punt()</code>, <code>ulls()</code> i <code>eclipsi_des_d_aqui()</code> a <a href="../main.py"><code>main.py</code></a>,
+      <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="pendent">La ubicació de l'observador és una dada separada del dibuix (tasca 3.1).</li>
-      <li data-estat="pendent">Durant la reproducció no es pot canviar el punt, i les coordenades, el CNIG i el model són del mateix punt (tasca 3.2).</li>
+      <li data-estat="fet">La ubicació de l'observador és una dada separada del dibuix; les coordenades, el model i les dades del CNIG són sempre del mateix punt (tasca 3.1, prova automàtica en 4 moments).</li>
+      <li data-estat="fet">Durant la reproducció no es pot canviar el punt, però es pot mirar al voltant i fer zoom (tasca 3.2, prova automàtica).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> fora dels 10 km del centre no hi ha relleu, i per tant
+    <p><span class="rotul">Limitacions:</span> els ulls són 1,7 m sobre la superfície dibuixada (la mitjana
+      cada ~20 m), no sobre el MDT de 5 m; fora dels 10 km del centre no hi ha relleu, i per tant
       l'horitzó llunyà no és real.</p>
   </div>
 </div></details>
@@ -554,8 +568,8 @@
       <li data-estat="fet">Els fitxers originals de <code>basecode/</code> són idèntics als de <code>repte4/</code>.</li>
       <li data-estat="validat">Reorganització sense canvis de comportament (fase F2): comprovada amb captures i l'estat del programa, i provada per l'equip amb la finestra.</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> <code>main.py</code> encara barreja la lògica del personatge,
-      el temps i la llum; es revisarà en retirar el personatge.</p>
+    <p><span class="rotul">Limitacions:</span> <code>main.py</code> encara reuneix el temps, la llum i les
+      vistes; de moment és prou curt (unes 330 línies) per llegir-lo sencer.</p>
   </div>
 </div></details>
 </section>
