@@ -1,4 +1,4 @@
-/* Web de seguiment del projecte EGRA. Estil senzill, tipus Notion: text, desplegables i taules. */
+/* Web de seguiment del projecte EGRA: text seguit, un desplegable per subobjectiu. */
 
 :root {
   --fons: #ffffff;
@@ -11,6 +11,7 @@
   --fet: #9a6700;
   --pendent: #8c959f;
   --no-compleix: #cf222e;
+  --en-curs: #0969da;
   --actual: #0969da;
   --planificat: #8250df;
 }
@@ -27,6 +28,7 @@
     --fet: #d29922;
     --pendent: #6e7681;
     --no-compleix: #f85149;
+    --en-curs: #4493f8;
     --actual: #4493f8;
     --planificat: #ab7df8;
   }
@@ -38,83 +40,95 @@ body {
   margin: 0;
   background: var(--fons);
   color: var(--text);
-  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-main { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+main { max-width: 900px; margin: 0 auto; padding: 32px 16px 80px; }
 
-h1 { font-size: 2rem; margin: 0 0 4px; }
-h2 { font-size: 1.4rem; margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--vora); }
-h3 { font-size: 1.05rem; margin: 18px 0 6px; }
-p, li { max-width: 75ch; }
+h1 { font-size: 2rem; line-height: 1.25; margin: 0 0 6px; }
+h2 { font-size: 1.45rem; margin: 48px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--vora); }
+p { margin: 0 0 14px; }
 a { color: var(--actual); }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em;
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em;
        background: var(--fons-bloc); padding: 1px 5px; border-radius: 4px; }
+dfn { font-style: normal; font-weight: 600; }
 
-.subtitol { color: var(--suau); margin: 0 0 20px; }
+.subtitol { color: var(--suau); margin: 0 0 22px; }
 .nota { color: var(--suau); font-size: 0.92rem; }
-.avis { border-left: 4px solid var(--accent); background: var(--fons-bloc); padding: 10px 14px;
-        border-radius: 4px; margin: 14px 0; }
+.intro-objectiu { font-size: 1.02rem; }
 
-/* --- taules --- */
-.taula { width: 100%; overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 0.93rem; margin: 8px 0 14px; }
-th, td { border: 1px solid var(--vora); padding: 6px 9px; text-align: left; vertical-align: top; }
-th { background: var(--fons-bloc); }
-
-/* --- etiquetes d'estat --- */
-.etiqueta { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 1px 8px;
-            border-radius: 10px; border: 1px solid currentColor; white-space: nowrap; }
+/* --- etiquetes --- */
+.etiqueta { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0 8px;
+            border-radius: 10px; border: 1px solid currentColor; white-space: nowrap; line-height: 1.6; }
 .validat { color: var(--validat); }
 .fet { color: var(--fet); }
 .pendent { color: var(--pendent); }
 .no-compleix { color: var(--no-compleix); }
+.en-curs { color: var(--en-curs); }
 .actual { color: var(--actual); }
 .planificat { color: var(--planificat); }
 
-/* --- desplegables --- */
-details { border: 1px solid var(--vora); border-radius: 6px; margin: 8px 0; background: var(--fons); }
-details > summary { cursor: pointer; list-style: none; padding: 10px 14px; display: flex;
-                    align-items: center; gap: 10px; flex-wrap: wrap; }
-details > summary::-webkit-details-marker { display: none; }
-details > summary::before { content: "▸"; color: var(--suau); transition: transform 0.15s; }
-details[open] > summary::before { transform: rotate(90deg); }
-details > .contingut { padding: 0 16px 12px 34px; }
+/* --- index --- */
+nav.index { border: 1px solid var(--vora); border-radius: 8px; padding: 12px 16px; background: var(--fons-bloc); }
+nav.index h3 { margin: 10px 0 4px; font-size: 0.95rem; }
+nav.index h3:first-child { margin-top: 0; }
+nav.index ol { margin: 0; padding-left: 0; list-style: none; columns: 2 260px; column-gap: 24px; }
+nav.index li { font-size: 0.9rem; padding: 2px 0; break-inside: avoid; display: flex; gap: 6px;
+               align-items: baseline; }
+nav.index li a { text-decoration: none; }
+nav.index li a:hover { text-decoration: underline; }
 
-details.objectiu > summary { font-size: 1.15rem; font-weight: 700; }
-details.objectiu > .contingut { padding-left: 16px; }
-details.sub > summary { font-weight: 600; }
-details.apartat { border: none; margin: 2px 0; }
-details.apartat > summary { padding: 4px 0; font-weight: 500; color: var(--suau); }
-details.apartat > .contingut { padding: 0 0 6px 22px; }
+/* --- subobjectius: un sol desplegable --- */
+details.sub { border: 1px solid var(--vora); border-radius: 8px; margin: 10px 0; background: var(--fons);
+              scroll-margin-top: 12px; }
+details.sub > summary { cursor: pointer; list-style: none; padding: 12px 16px; }
+details.sub > summary::-webkit-details-marker { display: none; }
+.cap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cap::before { content: "▸"; color: var(--suau); transition: transform 0.15s; }
+details.sub[open] .cap::before { transform: rotate(90deg); }
+.cap .titol { font-weight: 650; font-size: 1.05rem; flex: 1 1 240px; }
+.frase { display: block; margin: 4px 0 0 22px; color: var(--suau); font-size: 0.95rem; }
+.cos { padding: 4px 22px 16px 38px; }
 
-.titol { flex: 1 1 260px; }
-
-/* --- barra de progrés --- */
-.progres { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--suau);
-           font-weight: 500; }
-.barra { width: 120px; height: 8px; background: var(--fons-bloc); border: 1px solid var(--vora);
+/* --- progres --- */
+.progres { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--suau); }
+.barra { width: 100px; height: 8px; background: var(--fons-bloc); border: 1px solid var(--vora);
          border-radius: 4px; overflow: hidden; display: flex; }
 .barra .b-validat { background: var(--validat); }
-.barra .b-fet { background: var(--fet); opacity: 0.6; }
+.barra .b-fet { background: var(--fet); opacity: 0.55; }
 
-/* --- llista de criteris --- */
-ul.criteris { list-style: none; padding: 0; margin: 6px 0; }
-ul.criteris li { padding: 4px 0 4px 0; display: flex; gap: 8px; align-items: baseline; }
+/* --- figures al costat del text --- */
+figure { margin: 4px 0 14px; }
+figure img { width: 100%; height: auto; border: 1px solid var(--vora); border-radius: 6px; display: block; }
+figcaption { font-size: 0.84rem; color: var(--suau); margin-top: 4px; line-height: 1.45; }
+figure.costat { float: right; width: 44%; margin: 4px 0 12px 20px; }
+.cos::after { content: ""; display: block; clear: both; }
+
+/* --- bloc secundari compacte --- */
+.fitxa { clear: both; margin-top: 16px; padding: 10px 14px; border-radius: 6px; background: var(--fons-bloc);
+         font-size: 0.86rem; line-height: 1.5; }
+.fitxa p { margin: 0 0 6px; }
+.fitxa .rotul { font-weight: 600; color: var(--suau); }
+ul.criteris { list-style: none; padding: 0; margin: 4px 0 8px; }
+ul.criteris li { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; }
 ul.criteris li .etiqueta { flex: 0 0 auto; }
 
-figure { margin: 10px 0; }
-figure img { max-width: 100%; height: auto; border: 1px solid var(--vora); border-radius: 4px; }
-figcaption { font-size: 0.85rem; color: var(--suau); }
+/* --- taula d'estat --- */
+.taula { width: 100%; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin: 8px 0 14px; }
+th, td { border: 1px solid var(--vora); padding: 5px 9px; text-align: left; vertical-align: top; }
+th { background: var(--fons-bloc); }
 
-.botons { margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap; }
-button { font: inherit; font-size: 0.88rem; padding: 4px 12px; border: 1px solid var(--vora);
+.botons { margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: inherit; font-size: 0.85rem; padding: 3px 12px; border: 1px solid var(--vora);
          border-radius: 6px; background: var(--fons-bloc); color: var(--text); cursor: pointer; }
 
-footer { margin-top: 48px; color: var(--suau); font-size: 0.85rem; border-top: 1px solid var(--vora);
+footer { margin-top: 48px; color: var(--suau); font-size: 0.82rem; border-top: 1px solid var(--vora);
          padding-top: 12px; }
 
-@media (max-width: 600px) {
-  details > .contingut { padding-left: 16px; }
-  .barra { width: 80px; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .cos { padding: 4px 16px 14px 16px; }
+  .frase { margin-left: 0; }
+  figure.costat { float: none; width: 100%; margin: 6px 0 12px; }
 }
