@@ -59,6 +59,24 @@ def angle_entre(a, b):
     return 2 * math.asin(min(1.0, np.linalg.norm(a - b) / 2))
 
 
+def centre_ombra(hora_tu, ef=None):
+    """On talla l'eix de l'ombra de la Lluna (la recta del Sol a la Lluna) la superficie de la Terra
+    (el·lipsoide WGS84): (lat, lon) en graus, o None si l'eix no toca la Terra en aquell instant."""
+    ef = ef or efemerides()
+    sol, lluna = ef.posicions(hora_tu)
+    u = (lluna - sol) / np.linalg.norm(lluna - sol)
+    # escalem z perque l'el·lipsoide sigui una esfera de radi a i resolem |l + t u| = a
+    k = np.array([1.0, 1.0, geodesia.A_KM / geodesia.B_KM])
+    l, d = lluna * k, u * k
+    a, b, c = d @ d, 2 * (l @ d), l @ l - geodesia.A_KM ** 2
+    disc = b * b - 4 * a * c
+    if disc < 0:
+        return None
+    t = (-b - math.sqrt(disc)) / (2 * a)          # el primer punt on toca (la cara que mira la Lluna)
+    lat, lon, _ = geodesia.geodesiques(lluna + t * u)
+    return float(lat), float(lon)
+
+
 class ModelEclipsi:
     def __init__(self, lat, lon, alt_km=0.0):
         self.lat, self.lon, self.alt_km = lat, lon, alt_km

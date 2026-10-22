@@ -1,180 +1,127 @@
 """
-Camera d'exploracio: orbital al voltant d'un punt objectiu enganxat al terreny. Serveix per
-inspeccionar el terreny i triar el punt d'observacio; no esta lligada a cap personatge ni observador.
+Camera d'exploracio: una camera lliure que es pot moure del terreny fins a l'espai.
 
-Controls (es llegeixen de l'io d'imgui, que ja rep tots els esdeveniments de glfw):
-  - arrossegar amb el boto esquerre:              gir i inclinacio
-  - arrossegar amb el boto dret (o Maj + esquerre): desplacar l'objectiu sobre el terreny
-  - roda:                                          zoom exponencial cap al punt del cursor
-  - doble clic sobre el terreny:                   centrar l'objectiu en aquell punt (i el retorna,
-                                                   perque main.py hi pugui posar l'observador)
-Quan el cursor es sobre el panell (want_capture_mouse) la camera no reacciona.
-
-Unitats en km. X = est, Y = altitud, Z = sud. Gir 0 = camera al sud mirant al nord.
-Inclinacio negativa: la camera queda per sota de l'objectiu i mira amunt (si el terra ho permet).
+- Posicio en coordenades terrestres (ECEF, km, float64). La GPU la rep sempre com a origen: tots els
+  objectes es dibuixen relatius a la camera, perque el float32 de la GPU no perdi precisio.
+- Orientacio: rumb (graus des del nord, sentit horari) i inclinacio (graus sobre l'horitzo del lloc
+  on es la camera). "Amunt" es la vertical d'aquell lloc.
+- Ratoli (arrossegar) i fletxes: girar la mirada. W A S D: moure's endavant, enrere i als costats
+  (en horitzontal). E i Q: pujar i baixar. Roda: avancar o retrocedir en la direccio en que es mira.
+- La velocitat es proporcional a l'altura sobre el terra: a 1 km d'altura es va a ~1 km/s i a
+  10.000 km, a ~10.000 km/s. Aixi es pot explorar tant una vall com la Terra des de l'espai.
+Quan el cursor es sobre el panell (want_capture_mouse) la camera no reacciona al ratoli.
 """
 import math
 
 import glm
+import numpy as np
 from slimgui import imgui
 
-FOV = 50.0              # angle de visio vertical (graus)
-VELOCITAT_GIR = 0.3     # graus per pixel arrossegat
-FACTOR_ZOOM = 0.85      # distancia x 0.85 per cada pas de roda
-PITCH_MIN, PITCH_MAX = -30.0, 89.0
+from dades import geodesia
+
+FOV = 50.0                  # angle de visio vertical (graus)
+VELOCITAT_GIR = 0.2         # graus per pixel arrossegat
+FAR_KM = 1e9                # pla llunya: mes enlla del Sol (150 milions de km)
+ALCADA_MINIMA_KM = 0.002    # 2 m sobre el terra
+COEF_LOG = 2.0 / math.log2(FAR_KM + 1.0)   # per a la profunditat logaritmica dels shaders
+
+
+def direccio_mirada(lat, lon, rumb, inclinacio):
+    """Vector unitari (ECEF) cap on es mira des de (lat, lon) amb el rumb i la inclinacio donats."""
+    est, nord, amunt = geodesia.base_local(lat, lon)
+    r, i = math.radians(rumb), math.radians(inclinacio)
+    return math.cos(i) * (math.sin(r) * est + math.cos(r) * nord) + math.sin(i) * amunt
+
+
+def matrius(posicio, rumb, inclinacio, fov, aspecte):
+    """m_view (nomes gir: la camera es a l'origen) i m_proj per a una camera a posicio (ECEF, km)."""
+    lat, lon, _ = geodesia.geodesiques(np.asarray(posicio))
+    _, _, amunt = geodesia.base_local(float(lat), float(lon))
+    davant = direccio_mirada(float(lat), float(lon), rumb, inclinacio)
+    m_view = glm.lookAt(glm.vec3(0.0), glm.vec3(*davant), glm.vec3(*amunt))
+    # near molt petit: amb la profunditat logaritmica no cal un near gran per tenir precisio
+    m_proj = glm.perspective(glm.radians(fov), aspecte, 1e-6, FAR_KM)
+    return m_view, m_proj
 
 
 class CameraExploracio:
-    def __init__(self, app, terrain):
+    def __init__(self, app, posicio, rumb=0.0, inclinacio=-20.0):
         self.app = app
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]
-        self.near, self.far = 0.01, 10.0
-        self.dist_sol = 10.0           # on es dibuixa el Sol (darrere de tot)
-        self.canviar_terreny(terrain)
-
-    def canviar_terreny(self, terrain, punt=None):
-        """Adapta la camera a un terreny nou. Si punt = (x, z) (el mateix lloc geografic que
-        l'objectiu d'abans, en coordenades del terreny nou), es mante la vista al voltant d'aquest punt;
-        si no, es posa la vista inicial del terreny."""
-        self.terrain = terrain
-        mida_km = max(terrain.mida)
-        self.dist_min, self.dist_max = max(0.01, mida_km / 2000), 3.0 * mida_km
-        self.inicial = (30.0, 35.0, 1.0 * mida_km)  # gir, inclinacio, distancia
-        if punt is None:
-            self.reset()
-        else:
-            self.target = glm.vec3(punt[0], 0.0, punt[1])  # gir, inclinacio i distancia es mantenen
-            self.update()
-
-    def reset(self):
-        self.yaw, self.pitch, self.distance = self.inicial
-        self.target = glm.vec3(0.0)  # centre del terreny (la Y es posa a update)
+        self.posicio = np.asarray(posicio, dtype=float)
+        self.rumb, self.inclinacio = rumb, inclinacio
+        self.fov = FOV
         self.update()
 
-    # ------------------------------------------------------------ matrius
+    def geodesiques(self):
+        lat, lon, alt = geodesia.geodesiques(self.posicio)
+        return float(lat), float(lon), float(alt)
 
-    def direccio(self):
-        """Vector unitari de l'objectiu cap a la camera."""
-        yaw, pitch = glm.radians(self.yaw), glm.radians(self.pitch)
-        return glm.vec3(glm.cos(pitch) * glm.sin(yaw), glm.sin(pitch), glm.cos(pitch) * glm.cos(yaw))
+    def alcada_sobre_terra(self):
+        """km per sobre del terra (del terreny dibuixat si n'hi ha; si no, de l'el·lipsoide)."""
+        lat, lon, alt = self.geodesiques()
+        return alt - self.app.altitud_terra_km(lat, lon)
 
-    def endavant(self):
-        """Direccio horitzontal en que mira la camera (de la camera cap a l'objectiu)."""
-        yaw = glm.radians(self.yaw)
-        return -glm.vec3(glm.sin(yaw), 0, glm.cos(yaw))
+    def velocitat(self):
+        """km/s: proporcional a l'altura, amb un minim de 20 m/s."""
+        return max(0.02, 0.8 * self.alcada_sobre_terra())
 
-    def dreta(self):
-        yaw = glm.radians(self.yaw)
-        return glm.vec3(glm.cos(yaw), 0, -glm.sin(yaw))
+    def davant(self):
+        lat, lon, _ = self.geodesiques()
+        return direccio_mirada(lat, lon, self.rumb, self.inclinacio)
 
-    def girar(self, d_gir, d_inclinacio):
-        """Fletxes: girar al voltant de l'objectiu (graus). d_gir > 0 gira la vista a la dreta i
-        d_inclinacio > 0 mira mes amunt (la camera baixa)."""
-        self.yaw = (self.yaw - d_gir + 180.0) % 360.0 - 180.0
-        self.pitch -= d_inclinacio
+    def moure(self, endavant, dreta, amunt, dt):
+        """Desplacament amb el teclat: endavant i dreta en horitzontal, amunt en vertical (-1, 0 o 1)."""
+        lat, lon, _ = self.geodesiques()
+        est, nord, vertical = geodesia.base_local(lat, lon)
+        r = math.radians(self.rumb)
+        horitzontal = math.sin(r) * est + math.cos(r) * nord
+        costat = math.cos(r) * est - math.sin(r) * nord
+        pas = (endavant * horitzontal + dreta * costat + amunt * vertical) * self.velocitat() * dt
+        self.posicio = self.posicio + pas
+        self.no_sota_terra()
 
-    def azimut_vista(self):
-        """Azimut (graus des del nord) cap on mira la camera."""
-        return (-self.yaw) % 360.0
+    def avancar(self, quantitat):
+        """Roda: avanca (o retrocedeix) en la direccio de la mirada una fraccio de l'altura."""
+        self.posicio = self.posicio + self.davant() * quantitat * max(0.01, 0.25 * self.alcada_sobre_terra())
+        self.no_sota_terra()
 
-    def mirar_azimut(self, azimut):
-        self.yaw = (-azimut + 180.0) % 360.0 - 180.0
+    def no_sota_terra(self):
+        lat, lon, alt = self.geodesiques()
+        minim = self.app.altitud_terra_km(lat, lon) + ALCADA_MINIMA_KM
+        if alt < minim:
+            self.posicio = geodesia.ecef(lat, lon, minim)
+
+    def girar(self, d_rumb, d_inclinacio):
+        self.rumb = (self.rumb + d_rumb) % 360.0
+        self.inclinacio = min(max(self.inclinacio + d_inclinacio, -89.9), 89.9)
+
+    def processar_ratoli(self, punt_sota_cursor):
+        """Arrossegar: girar. Roda: avancar. Doble clic: retorna el punt del terreny (o None)."""
+        io = imgui.get_io()
+        if io.want_capture_mouse:
+            return None
+        if imgui.is_mouse_dragging(imgui.MouseButton.LEFT, 0.0):
+            dx, dy = io.mouse_delta
+            if dx or dy:
+                self.girar(dx * VELOCITAT_GIR * self.fov / FOV, -dy * VELOCITAT_GIR * self.fov / FOV)
+        if io.mouse_wheel != 0:
+            self.avancar(io.mouse_wheel)
+        if imgui.is_mouse_double_clicked(imgui.MouseButton.LEFT):
+            return punt_sota_cursor()
+        return None
 
     def update(self):
-        t = self.terrain
-        self.distance = min(max(self.distance, self.dist_min), self.dist_max)
-        self.pitch = min(max(self.pitch, PITCH_MIN), PITCH_MAX)
-
-        # objectiu dins del terreny i enganxat a la seva altitud (amb l'exageracio actual)
-        mx, mz = t.mida.x / 2, t.mida.y / 2
-        self.target.x = min(max(self.target.x, -mx), mx)
-        self.target.z = min(max(self.target.z, -mz), mz)
-        t.centre_curvatura = glm.vec2(self.target.x, self.target.z)  # la curvatura es mesura des d'aqui
-        self.target.y = t.altitud_mon(self.target.x, self.target.z)
-
-        # la camera no pot quedar sota el terra: si cal, pugem la inclinacio grau a grau
-        marge = 0.02 * self.distance
-        self.position = self.target + self.distance * self.direccio()
-        while self.pitch < 89.0 and self.position.y < t.altitud_mon(self.position.x, self.position.z) + marge:
-            self.pitch = min(self.pitch + 1.0, 89.0)
-            self.position = self.target + self.distance * self.direccio()
-
-        # near/far adaptatius: near segons el que tenim mes a prop, far fins a la cantonada mes llunyana
-        altura_lliure = self.position.y - t.altitud_mon(self.position.x, self.position.z)
-        self.near = max(self.distance / 1000, 0.2 * min(altura_lliure, self.distance))
-        lluny = 0.0
-        for cx in (-mx, mx):
-            for cz in (-mz, mz):
-                for cy in (t.cota_base - t.caiguda(cx, cz), t.altitud_max_mon()):
-                    lluny = max(lluny, glm.length(glm.vec3(cx, cy, cz) - self.position))
-        # la Lluna (si n'hi ha) tambe ha de cabre; el Sol es dibuixa encara mes lluny
-        lluna = getattr(self.app, 'lluna', None)
-        marge_far = 1.2
-        if lluna is not None and lluna.visible:
-            lluny = max(lluny, glm.length(lluna.centre - self.position) + lluna.escala.x)
-            marge_far = 1.6
-        self.dist_sol = 1.4 * lluny
-        self.far = max(lluny * marge_far, self.near * 10)
-
-        self.m_view = glm.lookAt(self.position, self.target, glm.vec3(0, 1, 0))
-        self.m_proj = glm.perspective(glm.radians(FOV), self.aspect_ratio, self.near, self.far)
-        # com set_camera del repte 4: totes les matrius noves a tots els objectes de l'escena
+        self.m_view, self.m_proj = matrius(self.posicio, self.rumb, self.inclinacio, self.fov, self.aspect_ratio)
         for obj in self.app.drawables():
             obj.shader_program['m_proj'].write(self.m_proj)
             obj.shader_program['m_view'].write(self.m_view)
 
     def desprojectar(self, px, py, profunditat, amplada, alcada):
-        """Pixel del framebuffer (origen a baix a l'esquerra) + profunditat (0..1) -> punt del mon."""
-        ndc = glm.vec4(2 * px / amplada - 1, 2 * py / alcada - 1, 2 * profunditat - 1, 1)
-        p = glm.inverse(self.m_proj * self.m_view) * ndc
-        return glm.vec3(p) / p.w
-
-    # ------------------------------------------------------------ ratoli
-
-    def processar_ratoli(self, punt_sota_cursor):
-        """Es crida un cop per frame. punt_sota_cursor(): funcio que torna el punt del terreny
-        sota el cursor (o None si es el cel); nomes es crida quan cal (zoom i doble clic).
-        Retorna el punt del doble clic (o None)."""
-        io = imgui.get_io()
-        if io.want_capture_mouse:  # el cursor es sobre el panell
-            return None
-        dx, dy = io.mouse_delta
-        esquerre = imgui.is_mouse_down(imgui.MouseButton.LEFT)
-        dret = imgui.is_mouse_down(imgui.MouseButton.RIGHT)
-        punt_doble_clic = None
-
-        if imgui.is_mouse_double_clicked(imgui.MouseButton.LEFT):
-            punt = punt_sota_cursor()
-            if punt is not None:
-                self.target = glm.vec3(punt)
-                punt_doble_clic = punt
-        elif dret or (esquerre and io.key_shift):
-            self.desplacar(dx, dy)
-        elif esquerre:
-            self.yaw -= dx * VELOCITAT_GIR
-            self.pitch += dy * VELOCITAT_GIR
-            self.yaw = (self.yaw + 180.0) % 360.0 - 180.0
-
-        if io.mouse_wheel != 0:
-            self.zoom(FACTOR_ZOOM ** io.mouse_wheel, punt_sota_cursor())
-        self.update()
-        return punt_doble_clic
-
-    def desplacar(self, dx, dy):
-        """Moure l'objectiu sobre el terreny com si "agafessim" el terra amb el cursor."""
-        alcada_pantalla = self.app.ctx.viewport[3] / imgui.get_io().display_framebuffer_scale[1]
-        km_per_pixel = 2 * self.distance * math.tan(math.radians(FOV / 2)) / max(alcada_pantalla, 1)
-        yaw = glm.radians(self.yaw)
-        dreta = glm.vec3(glm.cos(yaw), 0, -glm.sin(yaw))     # cap a la dreta de la pantalla
-        endavant = -glm.vec3(glm.sin(yaw), 0, glm.cos(yaw))  # de la camera cap a l'objectiu (horitzontal)
-        escorc = max(math.sin(math.radians(self.pitch)), 0.2)  # el terra es veu escurcat si la camera es baixa
-        self.target += km_per_pixel * (-dx * dreta + dy / escorc * endavant)
-
-    def zoom(self, factor, punt=None):
-        """Zoom exponencial. Si hi ha un punt sota el cursor, escalem camera i objectiu respecte
-        d'aquest punt (el punt es queda quiet a la pantalla); si no, cap a l'objectiu."""
-        nova = min(max(self.distance * factor, self.dist_min), self.dist_max)
-        factor = nova / self.distance
-        if punt is not None:
-            self.target = punt + (self.target - punt) * factor
-        self.distance = nova
+        """Pixel del framebuffer (origen a baix a l'esquerra) + profunditat logaritmica (0..1) ->
+        punt del mon (ECEF, km). Desfa la profunditat logaritmica: w = 2^(d · log2(far + 1)) - 1."""
+        w = 2.0 ** (profunditat * 2.0 / COEF_LOG) - 1.0
+        x_ndc, y_ndc = 2 * px / amplada - 1, 2 * py / alcada - 1
+        ull = glm.vec4(x_ndc * w / self.m_proj[0][0], y_ndc * w / self.m_proj[1][1], -w, 1.0)
+        rel = glm.inverse(self.m_view) * ull
+        return self.posicio + np.array([rel.x, rel.y, rel.z], dtype=float)

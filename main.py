@@ -1,36 +1,36 @@
 """
 Projecte EGRA -- Simulacio de l'eclipsi total del 12/08/2026 sobre terreny real.
 Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode de classe), que
-coordina l'escena: crea els objectes, fa avancar el temps i la llum i els dibuixa.
+coordina l'escena: crea els objectes, fa avancar el temps i els dibuixa.
 
-Segueix l'estructura del repte 4: on_init crea la llum (el Sol), les cameres, els eixos i l'escena
-(el terreny, la Lluna i el Sol); drawables() son els objectes als
-quals la camera escriu m_proj i m_view; render() els dibuixa i build_ui() crida el panell de ui.py.
+L'escena es un model geometric coherent en coordenades terrestres (ECEF, km): la Terra (el·lipsoide
+WGS84 amb textura), el relleu de la peninsula (MDT de 200 m) amb Picos de Europa com a zona de detall
+(MDT de 5 m), i el Sol i la Lluna a les seves posicions reals (efemerides de JPL Horizons). L'ombra
+de la Lluna sobre la Terra es calcula per a cada punt de la superficie.
 
-Dues vistes:
-  Exploracio   camera lliure per inspeccionar el terreny; doble clic: triar el punt d'observacio
-  Observador   els ulls de l'observador, 1,7 m sobre el terra: mirar al voltant i zoom
-  Tecla P      nomes reproduir o pausar el temps (no toca la camera ni la vista)
-La ubicacio de l'observador (dades/observador.py) es una dada; en triar-la, un marcador apareix uns
-segons i desapareix. Durant la
-reproduccio esta bloquejada, perque el model, el panell i la vista siguin sempre del mateix punt.
+Tres coses independents:
+  - el temps de simulacio (self.hora, TU): nomes canvia quan es reprodueix (tecla P);
+  - el punt d'observacio (self.observador): nomes canvia quan se'n tria un (i no durant la reproduccio);
+  - la camera: la d'exploracio (lliure) o la d'observacio (als ulls, 1,7 m sobre el terra).
+
+Segueix l'estructura del repte 4: on_init crea la llum, les cameres i l'escena; drawables() son els
+objectes als quals la camera escriu m_proj i m_view; render() els dibuixa i build_ui() crida ui.py.
 
 On es cada cosa:
-  ui.py                            panell "Opcions" i barra de temps (slimgui)
+  ui.py                            panell i barra de temps (slimgui)
   basecode/                        codi de classe (sense canvis) + els nostres objectes grafics:
-    sol.py                           el Sol: Light del basecode amb azimut i elevacio (self.light)
-    terrain.py                       terreny (textures, graella, faldilles) + shaders/terrain.*
-    astres.py                        esferes de la Lluna, el Sol i el halo + shaders/esfera.*
-    camera_exploracio.py             camera orbital per explorar el terreny
+    terra.py                         la Terra (globus)
+    terrain.py                       relleu d'un MDT (mode globus: posat sobre la Terra)
+    astres.py                        el Sol, el seu halo i la Lluna
+    sol.py                           la llum (Light del basecode)
+    camera_exploracio.py             camera lliure (del terreny a l'espai)
     camera_observador.py             camera als ulls de l'observador
-  dades/                           sense OpenGL:
-    observador.py                    la ubicacio de l'observador (nomes dades)
-    model_eclipsi.py                 on son el Sol i la Lluna a cada hora, vistos des d'un punt
-    data_io.py                       lectura dels MDT (data/mdt/), mascares, derivats i cache (data/cache/)
-    eclipse_data.py                  dataset de l'eclipsi del CNIG (overlays i valors en un punt)
+    camera_orbital.py                camera del mode pla (nomes per als scripts)
+    programes.py                     carrega shaders amb opcions (#define)
+  dades/                           sense OpenGL: efemerides, geodesia, model de l'eclipsi, observador,
+                                   lectura dels MDT i dades del CNIG
 
-Executa:  python main.py                    (Picos de Europa, data/mdt/picos_5m.tif)
-          python main.py data/mdt/xxx.tif   (un altre MDT en EPSG:25830)
+Executa:  python main.py
 """
 import os
 import sys
@@ -57,26 +57,24 @@ import moderngl as mgl
 from slimgui import imgui
 
 from basecode.engine import GraphicsEngineBase
-from basecode.axis import Axis
-from basecode.camera_exploracio import CameraExploracio
+from basecode.camera_exploracio import CameraExploracio, COEF_LOG, direccio_mirada
 from basecode.camera_observador import CameraObservador
-from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
-from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
-from dades.observador import Observador, ALCADA_ULLS_KM
+from basecode.astres import Esfera, Lluna, SOL, HALO
 from basecode.sol import Sol
-from dades.data_io import TERRENYS
+from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
-from dades import eclipse_data
+from dades.data_io import TERRENYS
+from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, centre_ombra
+from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
+from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
+from dades import eclipse_data, geodesia
 import ui
 
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
-REGIO = 'Picos'           # de moment, una sola regio (data_io.TERRENYS)
-
 COLOR_NIT = (0.02, 0.03, 0.08)     # cel a la totalitat / de nit
 COLOR_POSTA = (0.93, 0.70, 0.55)   # to del cel amb el Sol baix
-VELOCITAT_DESPLACAMENT = 0.02      # km/s minims de la camera d'exploracio amb WASD (de lluny va mes rapid)
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
-COLOR_MARCADOR = (0.95, 0.35, 0.15)
+ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
 
 
 def suau(a, b, x):
@@ -89,47 +87,60 @@ def barreja(c1, c2, t):
     return tuple(a + (b - a) * t for a, b in zip(c1, c2))
 
 
+def v3(a):
+    return glm.vec3(float(a[0]), float(a[1]), float(a[2]))
+
+
 class GraphicsEngine(GraphicsEngineBase):
     def on_init(self):
         self.ctx.enable_only(mgl.DEPTH_TEST)  # sense CULL_FACE: el terreny es veu per sota tambe
         self.light = Sol()
-        self.axis = self.lluna = self.sol_visible = self.halo = self.marcador = None
+        self.coef_log = COEF_LOG
+        self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
+        self.terra = self.peninsula = self.picos = self.sol_visible = self.halo = self.lluna = None
 
-        cami = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else next(c for n, c, _ in TERRENYS if n == REGIO)
-        self.nom_regio = os.path.basename(cami) if len(sys.argv) > 1 else 'Picos de Europa (MDT 5 m)'
+        # --- territori: la peninsula sencera i Picos com a zona de detall, posats sobre la Terra
         t0 = time.time()
-        self.terrain = Terrain(self, cami)
-        self.terrain.exaggeration = 1.0   # relleu real
-        print(f"Terreny carregat en {time.time() - t0:.1f} s")
+        cami = {n: c for n, c, _ in TERRENYS}
+        self.peninsula = Terrain(self, cami['Peninsula'], globus=True)
+        self.picos = Terrain(self, cami['Picos'], globus=True)
+        for t in (self.peninsula, self.picos):
+            t.exaggeration = 1.0
+            t.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
+        # la peninsula no es dibuixa on hi ha Picos (el dibuixa el terreny de 5 m)
+        u0, v0 = self.peninsula.uv_de_utm(*self.picos.utm_de_uv(0.0, 0.0))
+        u1, v1 = self.peninsula.uv_de_utm(*self.picos.utm_de_uv(1.0, 1.0))
+        self.peninsula.forat = (u0, v0, u1, v1)
+        self.terra = Terra(self)
+        print(f"Escena carregada en {time.time() - t0:.1f} s")
 
-        # temps de l'eclipsi (hores TU)
+        # --- temps de l'eclipsi (hores TU): independent de la camera
+        self.ef = efemerides()
         self.reproduint = False
         self.velocitat = 60
-        self.velocitat_auto = True   # lent a la totalitat, rapid a les fases parcials
-        self.marcador_fins = -1.0    # temps real (s) fins al qual es veu el marcador del punt triat
+        self.velocitat_auto = True    # lent a la totalitat, rapid a les fases parcials
         self.tapada = 0.0
+        self.marcador_fins = -1.0     # temps real (s) fins al qual es veu l'avis del punt triat
 
-        # l'observador comenca al centre del terreny; d'alla surten el model i les dades del CNIG
-        self.triar_punt(0.0, 0.0)
-        self.hora = self.model.interval()[0]   # una mica abans de l'inici de l'eclipsi
-        self.light.azimut, self.light.elevacio = self.model.sol(self.hora)
-        self.camera_exploracio = CameraExploracio(self, self.terrain)
-        self.camera_exploracio.inicial = (0.0, 6.0, 0.6)   # gir, inclinacio, distancia (km)
-        self.camera_exploracio.reset()
-        self.camera_exploracio.mirar_azimut(self.light.azimut)
+        # --- punt d'observacio (dada independent): Picos de Europa
+        nom, lat, lon = UBICACIONS[0]
+        self.triar_punt(lat, lon, nom)
+        self.hora = self.model.hores['maxim'] - 5 / 60 if self.model.valid else self.ef.inici
+        self.actualitzar_astres()
+
+        # --- cameres: comencem mirant cap al Sol des del terra
+        az, el = self.model.sol(self.hora)
         self.camera_observador = CameraObservador(self)
-        self.camera_observador.mirar(self.light.azimut, 5.0)   # orientacio inicial; despres no se segueix el Sol
-        self.camera = self.camera_exploracio
-        self.vista = 0   # index a ui.VISTES: 0 exploracio, 1 observador
+        self.camera_observador.mirar(az, el)
+        self.camera_exploracio = CameraExploracio(self, self.ulls())
+        self.posar_exploracio_sobre_el_punt()
+        self.camera = self.camera_observador
+        self.vista = 1   # index a ui.VISTES: 0 exploracio, 1 observador
 
-        self.axis = Axis(self, length=1.0)
-        self.axis.visible = False
-        self.marcador = Esfera(self, color=COLOR_MARCADOR)   # indica uns segons el punt triat (nomes dibuix)
-        self.marcador.ambient = 4.0                          # que no quedi negre a contrallum
         self.lluna = Lluna(self)
-        self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=EMISSIVA)
+        self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=SOL)
         self.halo = Esfera(self, color=(1.0, 0.95, 0.85), mode=HALO)
-        self.distancia_lluna = 2.0 * max(self.terrain.mida)  # km (la real, ~364000, no cap a l'escena)
+        self.color_cel, self.densitat_boira = COLOR_CEL, 0.0
 
         # resize: el nostre callback crida tambe l'anterior (si n'hi ha) per no trencar res
         self.resize_anterior = glfw.set_framebuffer_size_callback(self.window, self.on_resize)
@@ -137,8 +148,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.fps, self.frames, self.temps_fps = 0.0, 0, 0.0
 
     def drawables(self):
-        # els objectes que encara no existeixen (mentre es creen les cameres) son None
-        objectes = [self.axis, self.terrain, self.marcador, self.lluna, self.sol_visible, self.halo]
+        objectes = [self.terra, self.peninsula, self.picos, self.lluna, self.sol_visible, self.halo]
         return [obj for obj in objectes if obj is not None]
 
     def on_resize(self, window, amplada, alcada):
@@ -150,42 +160,93 @@ class GraphicsEngine(GraphicsEngineBase):
         self.camera_exploracio.aspect_ratio = self.camera_observador.aspect_ratio = amplada / alcada
         self.camera.update()
 
-    # ------------------------------------------------------------ observador i vistes
+    # ------------------------------------------------------------ territori i observador
 
-    def triar_punt(self, x, z):
-        """Posa l'observador al punt (x, z) del terreny (km) i hi calcula, tot alhora, el model del Sol
-        i la Lluna i les dades del CNIG: aixi sempre corresponen al mateix punt.
+    def altitud_terra_km(self, lat, lon):
+        """Altura de la superficie dibuixada (km): Picos si hi es, si no la peninsula, si no 0."""
+        for t in (self.picos, self.peninsula):
+            if t is not None:
+                h = t.altitud_latlon(lat, lon)
+                if h is not None:
+                    return h / 1000.0 * t.exaggeration
+        return 0.0
+
+    def triar_punt(self, lat, lon, nom=''):
+        """Posa l'observador al punt (lat, lon) i hi calcula, tot alhora, el model del Sol i la Lluna
+        i les dades del CNIG: aixi sempre corresponen al mateix punt.
         Durant la reproduccio la ubicacio esta bloquejada: no canvia res i retorna False."""
         if self.reproduint:
             return False
-        mx, mz = 0.499 * self.terrain.mida.x, 0.499 * self.terrain.mida.y
-        x, z = min(max(x, -mx), mx), min(max(z, -mz), mz)
-        i = self.terrain.info_punt(x, z)
-        self.observador = Observador(x, z, i['lat'], i['lon'], i['altitud'])
-        self.model = ModelEclipsi(i['lat'], i['lon'])
-        self.cnig = eclipse_data.punt(i['lat'], i['lon']) if eclipse_data.disponible() else None
-        self.marcador_fins = glfw.get_time() + 2.0   # el marcador es veu 2 segons
+        alt_km = self.altitud_terra_km(lat, lon)
+        self.observador = Observador(lat, lon, alt_km * 1000.0, nom)
+        self.model = ModelEclipsi(lat, lon, alt_km)
+        self.cnig = eclipse_data.punt(lat, lon) if eclipse_data.disponible() else None
+        self.marcador_fins = glfw.get_time() + 2.5   # avis discret al panell durant uns segons
         return True
 
     def ulls(self):
-        """Posicio dels ulls de l'observador al mon (km): 1,7 m sobre la superficie dibuixada."""
+        """Posicio dels ulls de l'observador (ECEF, km): 1,7 m sobre la superficie dibuixada."""
         o = self.observador
-        return glm.vec3(o.x, self.terrain.altitud_mon(o.x, o.z) + ALCADA_ULLS_KM, o.z)
+        return geodesia.ecef(o.lat, o.lon, o.altitud_m / 1000.0 + ALCADA_ULLS_KM)
+
+    # ------------------------------------------------------------ vistes i temps
 
     def canviar_vista(self, vista):
         """Cada camera conserva la seva posicio i orientacio: canviar de vista no les modifica."""
         self.vista = vista
         self.camera = self.camera_observador if vista == 1 else self.camera_exploracio
 
+    def tornar_al_punt(self):
+        """Vista d'observacio al punt triat (amb la mirada que tenia)."""
+        self.canviar_vista(1)
+
+    def posar_exploracio_sobre_el_punt(self):
+        """Camera d'exploracio a 6 km del punt d'observacio, d'esquena al Sol i mirant cap al punt."""
+        o = self.observador
+        az, _ = self.model.sol(self.hora)
+        darrere = direccio_mirada(o.lat, o.lon, az + 180.0, 0.0)
+        _, _, amunt = geodesia.base_local(o.lat, o.lon)
+        self.camera_exploracio.posicio = self.ulls() + 6.0 * darrere + 3.0 * amunt
+        self.camera_exploracio.rumb, self.camera_exploracio.inclinacio = az, -25.0
+
+    def veure_terra_des_de_lespai(self):
+        """Camera d'exploracio a uns 9.000 km, entre la vertical del lloc i el Sol, mirant el centre de
+        l'ombra de la Lluna (o el punt d'observacio, si l'ombra no toca la Terra en aquest moment)."""
+        o = self.observador
+        centre = centre_ombra(self.hora, self.ef) or (o.lat, o.lon)
+        cap_al_sol = self.sol_ecef / np.linalg.norm(self.sol_ecef)
+        _, _, amunt = geodesia.base_local(*centre)
+        punt = geodesia.ecef(centre[0], centre[1], 0.0)
+        cam = self.camera_exploracio
+        direccio = amunt + cap_al_sol
+        cam.posicio = punt + 9000.0 * direccio / np.linalg.norm(direccio)
+        lat, lon, _ = cam.geodesiques()
+        az, el = geodesia.azimut_elevacio(punt - cam.posicio, lat, lon)
+        cam.rumb, cam.inclinacio = az, el
+        self.canviar_vista(0)
+
     def reproduir_pausar(self):
         """Tecla P: nomes posa en marxa o atura el temps. Si ja s'ha arribat al final, no fa res."""
-        if not self.reproduint and self.hora >= self.model.interval()[1]:
+        if not self.reproduint and self.hora >= self.ef.final:
             return
         self.reproduint = not self.reproduint
 
+    def avancar_temps(self, dt):
+        if not self.reproduint:
+            return
+        v = self.velocitat
+        if self.velocitat_auto:  # lent a prop de la totalitat del punt d'observacio
+            m = self.model
+            a_prop = (m.valid and m.durada is not None
+                      and abs(self.hora - m.hores['maxim']) * 3600 < m.durada / 2 + 45)
+            v = 5 if a_prop else 60
+        self.hora += dt * v / 3600.0
+        if self.hora >= self.ef.final:
+            self.hora, self.reproduint = self.ef.final, False
+
     def teclat(self, dt):
-        """Exploracio: WASD desplacen la camera (Ctrl, mes rapid). Les dues vistes: fletxes per
-        mirar, V per canviar de vista i P per reproduir o pausar."""
+        """P reproduir/pausar, V canviar de vista, fletxes girar la mirada; a l'exploracio, W A S D
+        desplacen la camera i E / Q la pugen o baixen (Ctrl: mes rapid)."""
         if imgui.get_io().want_capture_keyboard:
             return
         tecla = lambda k: glfw.get_key(self.window, k) == glfw.PRESS
@@ -193,100 +254,95 @@ class GraphicsEngine(GraphicsEngineBase):
             self.canviar_vista(1 - self.vista)
         if imgui.is_key_pressed(imgui.Key.KEY_P, False):
             self.reproduir_pausar()
-
         cam = self.camera
-        if self.vista == 0:
-            moviment = cam.endavant() * (tecla(glfw.KEY_W) - tecla(glfw.KEY_S)) \
-                + cam.dreta() * (tecla(glfw.KEY_D) - tecla(glfw.KEY_A))
-            if glm.length(moviment) > 0:
-                v = max(VELOCITAT_DESPLACAMENT, 0.5 * cam.distance)   # de lluny es va mes rapid
-                if tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL):
-                    v *= 5
-                cam.target += glm.normalize(moviment) * v * dt   # update() el mante dins del terreny
         dreta, amunt = tecla(glfw.KEY_RIGHT) - tecla(glfw.KEY_LEFT), tecla(glfw.KEY_UP) - tecla(glfw.KEY_DOWN)
         if dreta or amunt:
-            cam.girar(VELOCITAT_GIR * dt * dreta, VELOCITAT_GIR * dt * amunt)
+            cam.girar(VELOCITAT_GIR * dt * dreta * cam.fov / 60.0, VELOCITAT_GIR * dt * amunt * cam.fov / 60.0)
+        if self.vista == 0:
+            endavant = tecla(glfw.KEY_W) - tecla(glfw.KEY_S)
+            costat = tecla(glfw.KEY_D) - tecla(glfw.KEY_A)
+            vertical = tecla(glfw.KEY_E) - tecla(glfw.KEY_Q)
+            if endavant or costat or vertical:
+                rapid = 5.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
+                cam.moure(endavant, costat, vertical, dt * rapid)
 
-    def avancar_temps(self, dt):
-        if not self.reproduint:
-            return
-        v = self.velocitat
-        if self.velocitat_auto:  # lent a prop de la totalitat, rapid a les fases parcials
-            m = self.model
-            a_prop = m.valid and abs(self.hora - m.hores['maxim']) * 3600 < (m.durada or 0) / 2 + 45
-            v = 5 if a_prop else 150
-        self.hora += dt * v / 3600.0
-        final = self.model.interval()[1]
-        if self.hora >= final:
-            self.hora, self.reproduint = final, False
+    # ------------------------------------------------------------ escena a cada instant
 
-    def actualitzar_llum(self):
-        """Sol a l'hora actual, i la llum del terreny i del cel segons l'eclipsi."""
-        m, h = self.model, self.hora
-        self.light.azimut, self.light.elevacio = m.sol(h)
-        el = self.light.elevacio
-        self.tapada = m.fraccio_tapada(h)
-        visible = 1.0 - self.tapada
-        sol_sobre = suau(-1.0, 1.0, el)     # el Sol per sobre de l'horitzo
+    def actualitzar_astres(self):
+        """Posicions del Sol i la Lluna (ECEF) a l'hora de simulacio, i el Sol vist des del punt
+        d'observacio (per al panell)."""
+        self.sol_ecef, self.lluna_ecef = self.ef.posicions(self.hora)
+        self.light.azimut, self.light.elevacio = self.model.sol(self.hora)
+        self.tapada = self.model.fraccio_tapada(self.hora)
+
+    def actualitzar_cel(self):
+        """Color del cel i boira segons on es la camera: el Sol que hi veu (altura i part tapada) i
+        l'altura de la camera (per sobre de l'atmosfera el cel es negre). Aproximacio visual."""
+        cam = self.camera
+        lat, lon, alt = geodesia.geodesiques(cam.posicio)
+        lat, lon, alt = float(lat), float(lon), float(alt)
+        s, l = self.sol_ecef - cam.posicio, self.lluna_ecef - cam.posicio
+        _, el = geodesia.azimut_elevacio(s, lat, lon)
+        rs = float(np.arcsin(RADI_SOL_KM / np.linalg.norm(s)))
+        rl = float(np.arcsin(RADI_LLUNA_KM / np.linalg.norm(l)))
+        self.tapada_camera = area_tapada(angle_entre(s, l), rs, rl)
+        self.radi_sol_camera = rs
+        visible = 1.0 - self.tapada_camera
         dia = suau(-6.0, 4.0, el)           # crepuscle: el cel s'apaga quan el Sol baixa de -6 graus
         llum_cel = max(0.03, dia * (0.04 + 0.96 * visible ** 0.4))
         color_dia = barreja(COLOR_CEL, COLOR_POSTA, 0.45 * (1.0 - suau(0.0, 15.0, el)))
-        self.color_cel = barreja(COLOR_NIT, color_dia, llum_cel)
-
-        t = self.terrain
-        t.llum_sol, t.llum_cel, t.color_cel = visible * sol_sobre, llum_cel, self.color_cel
-        self.lluna.atmosfera = self.vista == 1
-        self.sol_visible.visible = self.halo.visible = el > -0.6
-        # halo: enlluernament de dia i corona a la totalitat
+        cel = barreja(COLOR_NIT, color_dia, llum_cel)
+        self.atmosfera = (1.0 - suau(0.0, ALCADA_ATMOSFERA_KM, max(alt, 0.0))) ** 2
+        self.color_cel = tuple(c * self.atmosfera for c in cel)
+        self.densitat_boira = self.atmosfera / 250.0     # visibilitat d'uns 250 km a nivell del terra
+        # halo: enlluernament de dia i corona a la totalitat (il·lustratiu)
         corona = 1.0 - suau(0.0, 0.004, visible)
-        self.halo.intensitat = max(0.35 * visible, 0.9 * corona)
+        self.halo.intensitat = max(0.35 * visible, 0.9 * corona) * (0.4 + 0.6 * self.atmosfera)
+        self.sol_visible.visible = self.halo.visible = el > -1.0 or alt > 50.0
 
-    def situar_lluna(self):
-        """La Lluna a la seva direccio vista des dels ulls de l'observador."""
-        d = self.distancia_lluna
-        self.lluna.situar(self.ulls() + d * self.model.direccio_lluna(self.hora), d * RADI_ANGULAR_LLUNA)
-
-    def situar_marcador(self):
-        """Petita esfera al punt triat, nomes durant 2 segons i nomes a la vista d'exploracio."""
-        o = self.observador
-        self.marcador.visible = self.vista == 0 and glfw.get_time() < self.marcador_fins
-        radi = min(max(0.01 * self.camera_exploracio.distance, ALCADA_ULLS_KM), 0.1)
-        terra = glm.vec3(o.x, self.terrain.altitud_mon(o.x, o.z), o.z)
-        self.marcador.situar(terra + glm.vec3(0, radi, 0), radi)
+    def situar_astres(self):
+        """El Sol, el halo i la Lluna a la seva posicio i mida reals, relatives a la camera."""
+        rel = self.camera.posicio
+        sol_rel, lluna_rel = self.sol_ecef - rel, self.lluna_ecef - rel
+        self.sol_visible.situar(v3(sol_rel), RADI_SOL_KM)
+        self.halo.situar(v3(sol_rel), 4 * RADI_SOL_KM)
+        # la Lluna, amb la cara de la textura (longitud 0) cap a la Terra i el nord cap amunt (aprox.)
+        x = -self.lluna_ecef / np.linalg.norm(self.lluna_ecef)
+        y = np.array([0.0, 0.0, 1.0]) - x[2] * x
+        y /= np.linalg.norm(y)
+        z = np.cross(x, y)
+        rot = glm.mat4(glm.vec4(*x, 0), glm.vec4(*y, 0), glm.vec4(*z, 0), glm.vec4(0, 0, 0, 1))
+        self.lluna.situar(v3(lluna_rel), RADI_LLUNA_KM, rot)
+        self.lluna.sun_dir = v3((self.sol_ecef - self.lluna_ecef) / np.linalg.norm(self.sol_ecef - self.lluna_ecef))
+        self.lluna.atmosfera = self.atmosfera > 0.3
+        self.lluna.radi_sol = float(self.radi_sol_camera)
 
     def render(self):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
         self.avancar_temps(dt)
-        self.actualitzar_llum()
+        self.actualitzar_astres()
         if self.vista == 1:
             self.camera.processar_ratoli()
-        self.situar_lluna()   # abans de la camera: el far l'ha d'incloure
         self.camera.update()
-        cam = self.camera
-        self.situar_marcador()
-        # el Sol i el halo "a l'infinit": a la direccio del Sol des de la camera, darrere de tot
-        s = self.light.direccio()
-        self.sol_visible.situar(cam.position + cam.dist_sol * s, cam.dist_sol * RADI_ANGULAR_SOL)
-        self.halo.situar(self.sol_visible.centre, 4 * cam.dist_sol * RADI_ANGULAR_SOL)
+        self.actualitzar_cel()
+        self.situar_astres()
 
-        self.ctx.clear(color=self.color_cel)
-        self.terrain.render()
-        self.marcador.render()
-        self.lluna.render()
+        self.ctx.clear(*self.color_cel)
         self.sol_visible.render()
-        # eixos a l'objectiu de la camera, amb una llargada proporcional al terreny
-        self.axis.m_model = glm.translate(cam.target) * glm.scale(glm.vec3(0.1 * max(self.terrain.mida)))
-        self.axis.shader_program['m_model'].write(self.axis.m_model)
-        self.axis.render()
+        self.lluna.render()
+        self.terra.render()
+        self.peninsula.render()
+        self.picos.render()
         self.halo.render()   # l'ultim: es transparent
 
         if self.vista == 0:
             # el ratoli es processa just despres de dibuixar: el depth buffer ja es ple.
-            # doble clic: la camera s'hi centra i, si no s'esta reproduint, l'observador hi va
-            punt = cam.processar_ratoli(self.punt_sota_cursor)
+            # doble clic: si no s'esta reproduint, l'observador va al punt clicat
+            punt = self.camera.processar_ratoli(self.punt_sota_cursor)
             if punt is not None:
-                self.triar_punt(punt.x, punt.z)
+                lat, lon, _ = geodesia.geodesiques(punt)
+                self.triar_punt(float(lat), float(lon))
         # FPS: mitjana de cada mig segon (self.dt el calcula GraphicsEngineBase)
         self.frames += 1
         self.temps_fps += self.dt
@@ -296,7 +352,7 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def punt_sota_cursor(self):
         """Picking: llegeix la profunditat del pixel sota el cursor i la desprojecta.
-        Retorna el punt del mon (glm.vec3, km) o None si el cursor apunta al cel."""
+        Retorna el punt del mon (ECEF, km) o None si el cursor apunta al cel."""
         io = imgui.get_io()
         escala_x, escala_y = io.display_framebuffer_scale       # retina: 2 pixels per punt
         _, _, amplada, alcada = self.ctx.viewport

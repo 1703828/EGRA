@@ -1,114 +1,173 @@
 """
-Interficie del programa (slimgui): el panell "Opcions" i la barra de temps.
+Interficie del programa (slimgui): el panell principal i la barra de temps.
 
 GraphicsEngineBase (basecode/engine.py) obre la finestra "Opcions" a cada fotograma i crida
-GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. Cada funcio rep l'app (el
-GraphicsEngine de main.py) i en llegeix o en canvia l'estat: imgui es una interficie "immediata",
-que es torna a dibuixar sencera a cada fotograma a partir de les variables del programa.
+GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. imgui es una interficie
+"immediata": es torna a dibuixar sencera a cada fotograma a partir de les variables del programa.
+
+El panell nomes te el necessari: el temps (reproduir/pausar, hora, velocitat), la vista (explorar o
+observar des del terra), el punt d'observacio i una ajuda curta. Les capes tecniques i les opcions
+de depuracio son a l'apartat "Avancat", tancat per defecte.
 Textos sense accents: la font de slimgui no els mostra be.
 """
+import glfw
 from slimgui import imgui
 
 from basecode.terrain import (OVERLAYS, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
                               COLORS_DURADA, COLORS_OMBRES)
 from dades import eclipse_data
+from dades.observador import UBICACIONS
 
-VISTES = ['Exploracio', 'Observador']
-VELOCITATS = [1, 10, 60, 300]      # x temps real ('Auto' a mes: lent a la totalitat)
+VISTES = ['Explorar', 'Observar des del terra']
+VELOCITATS = [1, 10, 60, 300, 1000]   # x temps real ('Auto' a mes: lent a la totalitat)
 COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
+COLOR_SUAU = (0.65, 0.68, 0.72, 1.0)
 
 
 def build_ui(app):
     """El panell "Opcions" (el crida GraphicsEngine.build_ui) i la finestra de la barra de temps."""
-    imgui.set_window_size((340, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
-    imgui.text_colored((1.0, 0.85, 0.4, 1.0), 'ECLIPSI TOTAL - 12/08/2026')
-    imgui.text_disabled(app.nom_regio)
+    imgui.set_window_size((330, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
+    imgui.text_colored((1.0, 0.85, 0.4, 1.0), 'ECLIPSI DEL 12 D\'AGOST DE 2026')
 
+    panell_temps(app)
     imgui.separator_text('Vista  (tecla V)')
     for i, nom in enumerate(VISTES):
         if i > 0:
             imgui.same_line()
         if imgui.radio_button(nom, app.vista == i):
             app.canviar_vista(i)
-    if imgui.collapsing_header('Controls', None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]:
-        panell_controls(app)
+    if imgui.button("Veure la Terra des de l'espai", (-1.0, 0.0)):
+        app.veure_terra_des_de_lespai()
 
-    imgui.separator_text('Ara mateix')
-    panell_ara(app)
+    imgui.separator_text("Punt d'observacio")
+    panell_punt(app)
 
-    if imgui.collapsing_header("Punt d'observacio (dades del CNIG)")[0]:
-        panell_punt(app)
-    if imgui.collapsing_header('Capes sobre el terreny')[0]:
-        panell_overlays(app)
+    if imgui.collapsing_header('Ajuda', None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]:
+        panell_ajuda(app)
     if imgui.collapsing_header('Avancat')[0]:
         panell_avancat(app)
     imgui.spacing()
-    imgui.text_disabled('MDT i eclipsi (c) IGN / CNIG (CC BY 4.0)')
+    imgui.text_disabled('Relleu i eclipsi: IGN / CNIG (CC BY 4.0)')
+    imgui.text_disabled('Posicions del Sol i la Lluna: NASA/JPL')
+    imgui.text_disabled('Textures: NASA')
 
     barra_temps(app)
 
 
-def panell_controls(app):
-    if app.vista == 0:
-        linies = ['Arrossegar o fletxes: girar', 'Boto dret o W A S D: desplacar (Ctrl: rapid)',
-                  "Roda: zoom   Doble clic: triar el punt d'observacio"]
+def panell_temps(app):
+    m = app.model
+    fase = m.fase(app.hora)
+    if imgui.button('Pausa  (P)' if app.reproduint else 'Reproduir  (P)', (-1.0, 0.0)):
+        app.reproduir_pausar()
+    imgui.text(f'{eclipse_data.hora_local(app.hora)}  hora d\'estiu')
+    imgui.same_line()
+    imgui.text_colored(COLOR_FASE.get(fase, (0.8, 0.8, 0.8, 1.0)), fase)
+    imgui.progress_bar(app.tapada, (-1.0, 0.0), f'Sol tapat al punt triat: {app.tapada * 100:.1f} %')
+    imgui.text('Velocitat:')
+    for v in VELOCITATS:
+        imgui.same_line()
+        if imgui.radio_button(f'x{v}', not app.velocitat_auto and app.velocitat == v):
+            app.velocitat, app.velocitat_auto = v, False
+    if imgui.radio_button('Auto (lent a la totalitat)', app.velocitat_auto):
+        app.velocitat_auto = True
+
+
+def panell_punt(app):
+    o = app.observador
+    imgui.text(o.nom if o.nom else 'Punt triat al mapa')
+    imgui.text_colored(COLOR_SUAU, f'{o.lat:.4f}, {o.lon:.4f}   {o.altitud_m:.0f} m')
+    noms = [n for n, _, _ in UBICACIONS]
+    actual = noms.index(o.nom) if o.nom in noms else -1
+    if imgui.begin_combo('##ubicacio', o.nom if actual >= 0 else 'Escull una ubicacio...'):
+        for i, (nom, lat, lon) in enumerate(UBICACIONS):
+            clicat, _ = imgui.selectable(nom, i == actual)
+            if clicat:
+                app.triar_punt(lat, lon, nom)
+        imgui.end_combo()
+    if app.reproduint:
+        imgui.text_colored(COLOR_SUAU, 'Bloquejat mentre es reprodueix (pausa amb P)')
+    elif glfw.get_time() < app.marcador_fins:
+        imgui.text_colored((0.5, 0.9, 0.6, 1.0), 'Punt d\'observacio canviat')
     else:
-        linies = ['Arrossegar o fletxes: mirar', f'Roda: zoom (ara x{app.camera.zoom():.1f})',
-                  "Per canviar de punt: vista d'exploracio (V)"]
-    linies += ['P: reproduir / pausar el temps']
+        imgui.text_colored(COLOR_SUAU, 'O fes doble clic sobre el terreny (Explorar)')
+    if imgui.button("Tornar al punt d'observacio", (-1.0, 0.0)):
+        app.tornar_al_punt()
+
+
+def panell_ajuda(app):
+    linies = ['P: reproduir o pausar el temps', 'V: explorar / observar des del terra',
+              'Arrossegar o fletxes: girar la mirada']
+    if app.vista == 0:
+        linies += ['W A S D: moure\'s   E / Q: pujar / baixar', 'Roda: endavant / enrere   Ctrl: rapid',
+                   "Doble clic: triar el punt d'observacio"]
+    else:
+        linies += [f'Roda: zoom (ara x{app.camera.zoom():.1f})']
     for linia in linies:
         imgui.bullet_text(linia)
 
 
-def panell_ara(app):
-    m = app.model
-    fase = m.fase(app.hora)
-    imgui.text(f'{eclipse_data.hora_local(app.hora)} CEST')
-    imgui.same_line()
-    imgui.text_colored(COLOR_FASE.get(fase, (0.8, 0.8, 0.8, 1.0)), fase)
-    imgui.progress_bar(app.tapada, (-1.0, 0.0), f'Sol tapat: {app.tapada * 100:.1f} %')
-    el = app.light.elevacio
-    estat = "sota l'horitzo" if el < 0 else f'a {el:.1f} graus'
-    imgui.text(f'Sol: azimut {app.light.azimut:.0f}, {estat}')
-    if app.reproduint:
-        imgui.text_disabled('Punt bloquejat mentre es reprodueix')
-        imgui.text_disabled('(pausa per triar-ne un altre)')
-    if imgui.button('Pausa (P)' if app.reproduint else 'Reproduir (P)', (-1.0, 0.0)):
-        app.reproduir_pausar()
+def panell_avancat(app):
+    imgui.text(f'FPS: {app.fps:.0f}')
+    if app.vista == 0:
+        lat, lon, alt = app.camera.geodesiques()
+        imgui.text_colored(COLOR_SUAU, f'Camera: {lat:.3f}, {lon:.3f}, {alt:,.1f} km')
+    if imgui.tree_node('Dades del CNIG en aquest punt'):
+        panell_cnig(app)
+        imgui.tree_pop()
+    if imgui.tree_node('Capes sobre el terreny'):
+        panell_capes(app)
+        imgui.tree_pop()
+    if imgui.tree_node('Depuracio'):
+        t = app.peninsula
+        canviat, exag = imgui.slider_float('Exageracio', t.exaggeration, 1, 20)
+        if canviat:
+            app.peninsula.exaggeration = app.picos.exaggeration = exag
+        imgui.text_colored(COLOR_SUAU, '(eina de visualitzacio: 1 = relleu real)')
+        canviat, filferros = imgui.checkbox('Filferros', t.wireframe)
+        if canviat:
+            app.peninsula.wireframe = app.picos.wireframe = filferros
+        imgui.tree_pop()
 
 
-def panell_punt(app):
-    o = app.observador   # el model i aquestes dades (app.cnig) son d'aquest mateix punt
-    imgui.text(f"{o.lat:.4f}, {o.lon:.4f}   {o.altitud_m:.0f} m")
-    e = app.cnig
+def panell_cnig(app):
+    m, e = app.model, app.cnig
     if e is None:
-        imgui.text_disabled("Sense dades de l'eclipsi en aquest punt")
+        imgui.text_disabled("Sense dades del CNIG en aquest punt")
         return
-    if imgui.begin_table('fases', 2, imgui.TableFlags.ROW_BG | imgui.TableFlags.BORDERS_INNER_H):
-        files = [(nom, hora if visible else f'{hora} (Sol post)') for nom, hora, visible in e['fases']]
-        files += [('Posta del Sol', e['posta']),
-                  ('Durada totalitat', f"{e['durada']:.1f} s" if e['durada'] else 'no n\'hi ha'),
-                  ('Enfosquiment max.', f"{e['enfosquiment'] * 100:.2f} %")]
-        for nom, valor in files:
+    imgui.text_colored(COLOR_SUAU, "Hores d'estiu: CNIG i el nostre model")
+    if imgui.begin_table('fases', 3, imgui.TableFlags.ROW_BG | imgui.TableFlags.BORDERS_INNER_H):
+        hl = eclipse_data.hora_local
+        for nom, k in (('Inici', 'c1'), ('Inici totalitat', 'c2'), ('Maxim', 'maxim'),
+                       ('Final totalitat', 'c3'), ('Final', 'c4'), ('Posta del Sol', 'posta')):
+            hc, hm = e['hores_tu'].get(k), m.hores.get(k)
+            if hc is None and hm is None:
+                continue
             imgui.table_next_row()
             imgui.table_next_column()
             imgui.text(nom)
             imgui.table_next_column()
-            imgui.text(valor)
+            imgui.text(hl(hc) if hc is not None else '-')
+            imgui.table_next_column()
+            imgui.text(hl(hm) if hm is not None else '-')
         imgui.end_table()
+    imgui.text(f"Durada totalitat: {e['durada']:.1f} s" if e['durada'] else 'Sense totalitat')
+    imgui.text(f"Enfosquiment maxim: {e['enfosquiment'] * 100:.2f} %")
     imgui.text_wrapped(f"Relleu (CNIG): {e['text_ombres']}")
-    imgui.text_disabled('Hores en CEST (TU + 2)')
 
 
-def panell_overlays(app):
-    """Overlays de l'eclipsi (un de cada vegada), opacitat i llegenda dels colors."""
-    t = app.terrain
+def panell_capes(app):
+    """Capes del CNIG sobre el terreny (una de cada vegada), opacitat i llegenda dels colors."""
+    t = app.peninsula
     for i, nom in enumerate(OVERLAYS):
         if imgui.radio_button(nom, t.overlay == i):
-            t.overlay = i
+            app.peninsula.overlay = app.picos.overlay = i
     if t.overlay:
-        _, t.opacitat = imgui.slider_float('Opacitat', t.opacitat, 0, 1)
-    _, t.limits_totalitat = imgui.checkbox('Limits de la totalitat', t.limits_totalitat)
+        canviat, op = imgui.slider_float('Opacitat', t.opacitat, 0, 1)
+        if canviat:
+            app.peninsula.opacitat = app.picos.opacitat = op
+    canviat, lim = imgui.checkbox('Limits de la totalitat', t.limits_totalitat)
+    if canviat:
+        app.peninsula.limits_totalitat = app.picos.limits_totalitat = lim
 
     def llegenda(color, text):
         imgui.color_button(f'##{text}', (*color, 1.0), imgui.ColorEditFlags.NO_TOOLTIP, (14, 14))
@@ -123,41 +182,13 @@ def panell_overlays(app):
     elif t.overlay == 2:
         for k, color in enumerate(COLORS_DURADA):
             llegenda(color, f'{t.durada_min + (t.durada_max - t.durada_min) * k / 4:.0f} s')
-        imgui.text_disabled('  linies cada 10 s; nomes dins la franja')
     elif t.overlay == 3:
         for classe, color in enumerate(COLORS_OMBRES):
             llegenda(color, f'{classe}: {eclipse_data.CLASSES_OMBRES[classe]}')
-        imgui.text_disabled('  sense color: sense dades')
-
-
-def panell_avancat(app):
-    t, cam = app.terrain, app.camera
-    imgui.text(f'FPS: {app.fps:.0f} ({1000 / max(app.fps, 1e-6):.1f} ms)   '
-               f'triangles: {t.n_triangles / 1e6:.2f} M')
-    _, t.exaggeration = imgui.slider_float('Exageracio Y', t.exaggeration, 1, 20)
-    _, t.boira = imgui.slider_float('Boira', t.boira, 0, 1)
-    mida = max(t.mida)
-    _, app.distancia_lluna = imgui.slider_float('Distancia Lluna (km)', app.distancia_lluna,
-                                                 0.5 * mida, 364200, '%.0f', imgui.SliderFlags.LOGARITHMIC)
-    imgui.text_disabled('  real ~364200 km (la mida aparent\n  sempre es la real)')
-    _, t.wireframe = imgui.checkbox('Filferros', t.wireframe)
-    imgui.same_line()
-    _, t.curvatura = imgui.checkbox('Curvatura', t.curvatura)
-    imgui.same_line()
-    _, app.axis.visible = imgui.checkbox('Eixos', app.axis.visible)
-    if app.vista == 0:
-        _, cam.distance = imgui.slider_float('Zoom (km)', cam.distance, cam.dist_min, cam.dist_max,
-                                             '%.2f', imgui.SliderFlags.LOGARITHMIC)
-        if imgui.button('Mirar des de darrere la Lluna', (-1.0, 0.0)):
-            # la camera a la banda del Sol, mes lluny que la Lluna i una mica mes amunt
-            cam.yaw = (180.0 - app.light.azimut + 180.0) % 360.0 - 180.0
-            cam.pitch = app.light.elevacio + 3.0
-            cam.distance = min(1.3 * app.distancia_lluna, cam.dist_max)
-    imgui.text(f'near {cam.near * 1000:.1f} m  far {cam.far:.0f} km')
 
 
 def barra_temps(app):
-    """Finestra de la barra de temps, a baix al mig (com un reproductor de video)."""
+    """Finestra de la barra de temps, a baix al mig: l'hora es pot arrossegar (en pausa o no)."""
     m = app.model
     io = imgui.get_io()
     w, h = io.display_size
@@ -167,7 +198,7 @@ def barra_temps(app):
     flags = (imgui.WindowFlags.NO_TITLE_BAR | imgui.WindowFlags.NO_RESIZE | imgui.WindowFlags.NO_MOVE
              | imgui.WindowFlags.NO_COLLAPSE | imgui.WindowFlags.NO_SAVED_SETTINGS)
     imgui.begin('Temps', False, flags)
-    inici, final = m.interval()
+    inici, final = app.ef.inici, app.ef.final
     if imgui.button('Pausa (P)' if app.reproduint else 'Reproduir (P)', (110, 0)):
         app.reproduir_pausar()
     imgui.same_line()
@@ -176,19 +207,10 @@ def barra_temps(app):
     imgui.same_line()
     if imgui.button('+5 min'):
         app.hora += 5 / 60
-    imgui.same_line()
-    imgui.text('   Velocitat:')
-    for v in VELOCITATS:
-        imgui.same_line()
-        if imgui.radio_button(f'x{v}', not app.velocitat_auto and app.velocitat == v):
-            app.velocitat, app.velocitat_auto = v, False
-    imgui.same_line()
-    if imgui.radio_button('Auto', app.velocitat_auto):
-        app.velocitat_auto = True
-
     app.hora = min(max(app.hora, inici), final)
+    imgui.same_line()
     imgui.push_item_width(-1.0)
-    text = f'{eclipse_data.hora_local(app.hora)} CEST  -  {m.fase(app.hora)}'
+    text = f"{eclipse_data.hora_local(app.hora)}  -  {m.fase(app.hora)}"
     canviat, minuts = imgui.slider_float('##hora', (app.hora - inici) * 60, 0, (final - inici) * 60,
                                          text.replace('%', '%%'))
     imgui.pop_item_width()
@@ -196,11 +218,12 @@ def barra_temps(app):
         app.hora = inici + minuts / 60
     if m.valid:
         hh, hl = m.hores, eclipse_data.hora_local
-        text = f"Inici {hl(hh['c1'])[:5]}"
+        text = f"Al punt triat:  inici {hl(hh['c1'])[:5]}"
         if hh['c2'] is not None:
-            text += f"   |   Totalitat {hl(hh['c2'])} - {hl(hh['c3'])}"
-        text += f"   |   Final {hl(hh['c4'])[:5]}"
+            text += f"   |   totalitat {hl(hh['c2'])} - {hl(hh['c3'])}"
+        if hh['c4'] is not None:
+            text += f"   |   final {hl(hh['c4'])[:5]}"
         if hh['posta'] is not None:
-            text += f"   |   Posta {hl(hh['posta'])[:5]}"
+            text += f"   |   posta {hl(hh['posta'])[:5]}"
         imgui.text_disabled(text)
     imgui.end()
