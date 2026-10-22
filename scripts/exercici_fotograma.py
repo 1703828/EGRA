@@ -29,7 +29,7 @@ sys.path.insert(0, ARREL)
 sys.path.insert(0, os.path.join(ARREL, 'scripts'))
 from captura import AppSenseFinestra  # noqa: E402  (el mateix "app" minim que fa servir captura.py)
 from camera import Camera  # noqa: E402
-from terrain import Terrain, COLOR_CEL  # noqa: E402
+from basecode.terrain import Terrain, COLOR_CEL  # noqa: E402
 from basecode.shaders import SHADERS_DIR  # noqa: E402
 
 MDT = os.path.join(ARREL, 'data', 'mdt', 'picos_5m.tif')

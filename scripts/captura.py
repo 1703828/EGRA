@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from camera import Camera  # noqa: E402
 from basecode.sol import Sol  # noqa: E402
 from dades.data_io import TERRENYS  # noqa: E402
-from terrain import Terrain, COLOR_CEL, limits_utm, zones_de_detall  # noqa: E402
+from basecode.terrain import Terrain, COLOR_CEL, limits_utm, zones_de_detall  # noqa: E402
 from dades import eclipse_data  # noqa: E402
 
 

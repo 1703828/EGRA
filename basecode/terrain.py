@@ -18,7 +18,7 @@ import moderngl as mgl
 import rasterio
 from pyproj import Transformer
 
-from basecode import shaders
+from . import shaders
 from dades import data_io, eclipse_data
 
 MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella

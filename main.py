@@ -58,7 +58,7 @@ from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
 from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
 from basecode.sol import Sol
 from dades.data_io import TERRENYS
-from terrain import (Terrain, COLOR_CEL, OVERLAYS, ENFOSQUIMENT_MIN,
+from basecode.terrain import (Terrain, COLOR_CEL, OVERLAYS, ENFOSQUIMENT_MIN,
                      COLORS_ENFOSQUIMENT, COLOR_TOTALITAT, COLORS_DURADA, COLORS_OMBRES)
 from dades import eclipse_data
 
