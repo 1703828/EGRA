@@ -12,7 +12,7 @@
 
 <h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
 <p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
-  Web de seguiment, versió local 2 (22/10/2026)</p>
+  Web de seguiment, versió local 3 (22/10/2026)</p>
 
 <p>Volem veure l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya: explorar
   el terreny des de fora i, després, situar-nos en un punt concret, a l'altura dels ulls, per veure com
@@ -40,11 +40,12 @@
     <li><a href="#o1-5">O1.5 Observació des del terra</a></li>
     <li><a href="#o1-6">O1.6 El Sol</a></li>
     <li><a href="#o1-7">O1.7 La Lluna</a></li>
-    <li><a href="#o1-8">O1.8 La llum durant l'eclipsi</a></li>
+    <li><a href="#o1-8">O1.8 La llum i l'ombra de la Lluna</a></li>
     <li><a href="#o1-9">O1.9 Ombres del relleu</a></li>
     <li><a href="#o1-10">O1.10 Interfície i barra de temps</a></li>
     <li><a href="#o1-11">O1.11 Condicions meteorològiques</a></li>
     <li><a href="#o1-12">O1.12 Validació del model</a></li>
+    <li><a href="#o1-13">O1.13 La Terra vista des de l'espai</a></li>
   </ol>
   <h3>O2 · Conceptes d'informàtica gràfica</h3>
   <ol>
@@ -65,13 +66,12 @@
 <h2>Què hi ha ara i què està planificat</h2>
 <div class="taula"><table>
   <tr><th>Funcionalitat</th><th>Estat</th><th>Observacions</th></tr>
-  <tr><td>Terreny 3D de Picos de Europa (5 m, 20 × 20 km) amb les capes del CNIG</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Una sola regió; fora dels 20 km no hi ha relleu.</td></tr>
-  <tr><td>Sol i Lluna que es mouen amb l'hora, i barra de temps</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Model aproximat amb errors coneguts (O1.6, O1.7).</td></tr>
-  <tr><td>Càmera d'exploració lliure i observador a 1,7 m, bloquejat durant la reproducció</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Tasques 3.1 i 3.2, comprovades per Claude i pendents de la prova de l'equip. El personatge s'ha retirat.</td></tr>
-  <tr><td>Curvatura de la Terra activa en el mode normal</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 3.4 (ara és opcional i està desactivada).</td></tr>
-  <tr><td>Ubicacions catalanes (Vic, l'Escala, Cerdanyola, Montmeló, UAB)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 0.3, 4.3 i 4.4.</td></tr>
-  <tr><td>Ombres del relleu i condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 6.1 i 6.2.</td></tr>
-  <tr><td>Vista il·lustrativa des de la Lluna; Sol amb textura</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Opcional (tasques 7.1–7.3).</td></tr>
+  <tr><td>La Terra, el Sol i la Lluna en un sol model geomètric, amb posicions reals</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Comprovat contra el CNIG; falta la prova de l'equip.</td></tr>
+  <tr><td>Relleu de la península (200 m) i Picos (5 m) posats sobre la Terra</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Fora d'Espanya, només la textura del globus.</td></tr>
+  <tr><td>Ombra de la Lluna movent-se sobre la Terra i el terreny</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Calculada per a cada punt; dins de la umbra del CNIG.</td></tr>
+  <tr><td>Observar des del terra (ulls fixos, mirada lliure) i explorar fins a l'espai</td><td><span class="etiqueta actual">ACTUAL</span></td><td>P només reprodueix o pausa el temps.</td></tr>
+  <tr><td>Ubicacions catalanes amb relleu de 5 m</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara es poden triar, però amb el relleu de 200 m (tasques 0.3, 4.3, 4.4).</td></tr>
+  <tr><td>Ombres de les muntanyes (shadow mapping) i condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 6.1 i 6.2.</td></tr>
 </table></div>
 
 <!-- ======================================================================= O1 -->
@@ -105,17 +105,17 @@
     rius i platges a 0 m que són terra. Per distingir-los, considerem mar només les zones a 0 m que
     toquen la vora del mapa; els forats que queden dins de terra s'omplen amb la mitjana dels punts del
     voltant.</p>
-  <p>Ara el programa carrega una sola zona, Picos de Europa (20 × 20 km), perquè és dins de la franja
-    de totalitat. El següent pas és portar-hi les ubicacions catalanes amb prou terreny al voltant: amb
-    el Sol a 4° sobre l'horitzó, una serra a 30 km pot decidir si es veu o no.</p>
+  <p>Ara el programa carrega tota la península (200 m) i, com a zona de detall, Picos de Europa
+    (20 × 20 km a 5 m), que és dins de la franja de totalitat. El següent pas és afegir zones de 5 m a
+    les ubicacions catalanes: amb el Sol a 4° sobre l'horitzó, una serra a 30 km pot decidir si es veu o no.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../scripts/descarregar_mdt.py"><code>scripts/descarregar_mdt.py</code></a> (descàrrega),
       <a href="../dades/data_io.py"><code>dades/data_io.py</code></a> (lectura, neteja i memòria cau),
       <a href="../scripts/preparar_dades.py"><code>scripts/preparar_dades.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">El MDT de Picos (5 m, EPSG:25830) es carrega i es dibuixa (captura sense finestra).</li>
-      <li data-estat="pendent">Cada fitxer de <code>data/</code> té font, zona, resolució, CRS, llicència, comanda, data i sha256 a <code>data/FONTS.md</code> (tasca 4.1).</li>
+      <li data-estat="fet">La península (200 m) i Picos (5 m) es carreguen i es dibuixen sobre la Terra (prova automàtica i captures).</li>
+      <li data-estat="fet">Cada font de <code>data/</code> (MDT, CNIG, efemèrides, textures) té la procedència, la llicència i la comanda a <a href="../data/FONTS.md"><code>data/FONTS.md</code></a> (falten les sumes sha256).</li>
       <li data-estat="pendent">Els MDT nous van a una carpeta que el Git ignora; Picos continua versionat (tasca 4.1).</li>
       <li data-estat="pendent">Zona del Vallès (Cerdanyola, UAB, Montmeló) a 5 m, amb un anell de 25 m al voltant (tasca 4.3).</li>
       <li data-estat="pendent">Zones de Vic i de l'Escala (tasca 4.4).</li>
@@ -174,63 +174,54 @@
 
 <details class="sub" id="o1-3">
 <summary><span class="cap"><span class="titol">O1.3 · Terreny 3D i aspecte visual</span></span>
-  <span class="frase">Dibuixar el relleu a escala real, de manera clara i amb la forma corba de la Terra.</span></summary>
+  <span class="frase">Dibuixar el relleu a escala real, sobre la forma real de la Terra.</span></summary>
 <div class="cos">
-  <p>El terreny es dibuixa a partir d'una graella plana que la GPU aixeca fins a l'altura de cada punt
-    (com funciona per dins s'explica a <a href="#o2-3">O2.3</a>). Damunt d'aquesta forma, el programa
-    hi decideix el color de cada píxel.</p>
-  <p>Els colors depenen de l'altitud en metres: verd a baix, marró més amunt, roca i neu a partir dels
-    3.000 m. Fem servir metres i no "el punt més alt del mapa" perquè la mateixa altitud tingui el
-    mateix color a Picos i a la península.</p>
-  <p>El mar es pinta més fosc com més lluny és de la costa. Per aconseguir-ho, guardem per a cada punt
-    la distància a la costa, i això també fa que la línia de costa surti suau, sense esglaons. A les
-    quatre vores del mapa hi ha unes parets verticals, les <dfn>faldilles</dfn>, perquè el terreny no
-    sembli un llençol penjat, i una boira lleugera que augmenta amb la distància.</p>
-  <p>Volem que, en el mode normal, el relleu sigui a escala real (sense exagerar-lo) i que la Terra
-    sigui corba. La <dfn>curvatura</dfn> fa que un punt a distància d baixi d²/2R, on R és el radi de la
-    Terra: 8 m a 10 km i 196 m a 50 km. Des d'un punt d'observació, això canvia l'horitzó. Ara la
-    curvatura és opcional i està desactivada; activar-la és la tasca 3.4.</p>
+  <figure class="costat"><img src="img/exploracio_50km.jpg" alt="Picos i la costa cantàbrica des de 50 km" loading="lazy">
+    <figcaption>Picos de Europa (5 m) i el relleu del voltant (200 m) des de 50 km d'altura, uns minuts
+      abans del màxim: el terra ja s'ha enfosquit per l'eclipsi.</figcaption></figure>
+  <p>El relleu es dibuixa a partir d'una graella que la GPU aixeca fins a l'altura de cada punt
+    (<a href="#o2-3">O2.3</a>). Ara la graella no és plana: cada vèrtex es col·loca a la seva latitud i
+    longitud reals sobre l'<dfn>el·lipsoide</dfn>, la forma lleugerament aixafada amb què es mesura la
+    Terra. Per tant, la curvatura és la real i no cal cap correcció a part.</p>
+  <p>Hi ha dos terrenys. Tota la península, amb un punt cada 200 m, i Picos de Europa, amb un punt cada
+    5 m, que s'hi encaixa com a zona de detall (la península no es dibuixa on hi ha Picos). On el mapa de
+    l'IGN no té dades (el mar, Portugal, França) no es dibuixa relleu i es veu la Terra de sota.</p>
+  <p>Els colors depenen de l'altitud en metres (verd a baix, roca i neu a dalt) i la boira augmenta amb
+    la distància. Quan la Lluna tapa el Sol, la llum de cada punt baixa segons la part del Sol que es
+    veu des d'aquell punt (<a href="#o1-8">O1.8</a>).</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a>,
-      <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>,
-      <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a> (mode globus), <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>, <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">El terreny es dibuixa amb colors per altitud, mar, faldilles i boira (captura sense finestra).</li>
-      <li data-estat="pendent">Curvatura activa i relleu a escala real en el mode normal; els controls per canviar-ho, marcats com a eines de depuració (tasca 3.4).</li>
-      <li data-estat="pendent">L'horitzó que es veu coincideix (≤ 0,05°) amb el que calcula un script amb les mateixes convencions (tasca 3.4).</li>
+      <li data-estat="fet">El relleu de la península i de Picos es posa sobre l'el·lipsoide; el picking cau a 0,3 m de la superfície dibuixada (prova automàtica).</li>
+      <li data-estat="fet">Picos encaixa dins la península sense línies ni salts visibles (inspecció de captures).</li>
+      <li data-estat="pendent">L'horitzó que es veu coincideix amb el que calcula un script (tasca 3.4).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> la forma dibuixada fa la mitjana cada ~20 m. Des del
-      centre de Picos, l'horitzó cap al Sol és a 5,8° amb el MDT de 5 m, a 5,6° amb la forma dibuixada
-      i a 2,7° amb el de 200 m.</p>
+    <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); la península té un vèrtex cada ~1 km; fora d'Espanya no hi ha relleu.</p>
   </div>
 </div></details>
 
 <details class="sub" id="o1-4">
 <summary><span class="cap"><span class="titol">O1.4 · Exploració de l'escena</span></span>
-  <span class="frase">Moure's lliurement per sobre del terreny per inspeccionar-lo i triar un punt d'observació.</span></summary>
+  <span class="frase">Moure's lliurement del terreny fins a l'espai.</span></summary>
 <div class="cos">
-  <figure class="costat"><img src="img/exploracio_marcador.jpg" alt="Vista d'exploració amb l'esfera taronja al punt d'observació" loading="lazy">
-    <figcaption>Vista d'exploració a 3 km del punt triat. L'esfera taronja marca on és l'observador; es
-      dibuixa més gran com més lluny és la càmera, perquè es vegi, però només és un dibuix.</figcaption></figure>
-  <p>La càmera d'exploració és <dfn>orbital</dfn>: gira al voltant d'un punt del terreny, com si aquest
-    punt estigués clavat i la càmera hi donés voltes. Amb el ratolí es gira i, amb el botó dret o les
-    tecles W A S D, el punt es desplaça per sobre del terreny. Amb la roda, la càmera s'acosta cap al
-    punt que hi ha sota el cursor, i mai no pot quedar sota terra.</p>
-  <p>Amb un doble clic sobre el terreny es tria el <dfn>punt d'observació</dfn>. Per saber quin punt hi
-    ha sota el cursor no calculem cap intersecció amb les muntanyes: aprofitem que la GPU ja guarda, per a
-    cada píxel, a quina profunditat és el que s'hi ha dibuixat, i desfem el camí fins al món
-    (<a href="#o2-2">O2.2</a>).</p>
-  <p>Abans, la càmera seguia un personatge de dues esferes que caminava i saltava, com en un videojoc.
-    Ara la càmera és independent: moure-la no canvia el punt d'observació, i el punt només canvia amb el
-    doble clic.</p>
+  <p>La càmera d'exploració és lliure. Amb el ratolí o les fletxes es gira la mirada; amb W A S D es
+    mou endavant, enrere i als costats; amb E i Q puja o baixa; i la roda l'acosta o l'allunya en la
+    direcció en què mira. Allunyar-se mou la càmera de debò: no és un zoom.</p>
+  <p>Perquè es pugui explorar tant una vall com la Terra sencera, la <dfn>velocitat</dfn> és
+    proporcional a l'altura sobre el terra: a 3,5 km d'altura es va a uns 2,6 km/s, i a 27.000 km, a
+    més de 20.000 km/s.</p>
+  <p>Amb un doble clic sobre el terreny es tria el punt d'observació. Per saber quin punt hi ha sota el
+    cursor, es llegeix la profunditat d'aquell píxel i es desfà el camí fins al món
+    (<a href="#o2-2">O2.2</a>). La càmera i el punt d'observació són independents: explorar no mou
+    l'observador.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>,
-      <code>teclat()</code>, <code>punt_sota_cursor()</code> i <code>situar_marcador()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>, <code>teclat()</code> i <code>punt_sota_cursor()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="validat">Gir, desplaçament, zoom i doble clic funcionen amb la finestra (prova de l'equip després de la reorganització).</li>
-      <li data-estat="fet">La càmera es mou sense personatge (ratolí i WASD) i el punt triat es marca amb una esfera; moure la càmera no mou l'observador (tasca 3.1, prova automàtica).</li>
+      <li data-estat="fet">La roda allunya la càmera de 3,5 km a ~27.000 km sense canviar el camp de visió (prova automàtica).</li>
+      <li data-estat="fet">La velocitat s'adapta a l'altura: ~2,6 km/s a 3,5 km i ~21.000 km/s a 27.000 km (prova automàtica).</li>
+      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
   </div>
 </div></details>
@@ -239,35 +230,28 @@
 <summary><span class="cap"><span class="titol">O1.5 · Observació des del terra</span></span>
   <span class="frase">Mirar el cel des d'un punt concret, a 1,7 m sobre el terra, on el relleu pot tapar el Sol.</span></summary>
 <div class="cos">
-  <figure class="costat"><img src="img/observador_totalitat.jpg" alt="Vista d'observador a la totalitat: cel fosc i corona" loading="lazy">
-    <figcaption>Vista d'observador al centre de Picos en el moment del màxim, amb zoom. La Lluna tapa el
-      Sol i es veu la corona; el cel i la corona són una representació il·lustrativa.</figcaption></figure>
-  <p>Aquesta és la vista que dona sentit al projecte: posar-nos en un lloc, mirar cap al Sol i veure
-    l'eclipsi com el veuria una persona. La càmera d'observador és als ulls, 1,7 m sobre el terreny. Es
-    pot girar per mirar al voltant i té un zoom com uns prismàtics, perquè el Sol només fa mig grau.</p>
-  <p>La idea clau és que la <dfn>ubicació de l'observador</dfn> és una dada: el punt del terreny, la seva
-    latitud i longitud i la seva altitud. No té res a veure amb el que es dibuixa; l'esfera taronja de la
-    vista d'exploració només la mostra. Quan triem un punt, el programa crea alhora l'observador, el
-    model del Sol i la Lluna i les dades del CNIG del panell, tots tres a partir del mateix punt. Així no
-    poden quedar desajustats.</p>
-  <p>Per la mateixa raó, mentre es reprodueix l'eclipsi el punt queda <dfn>bloquejat</dfn>: es pot mirar
-    al voltant, fer zoom i fins i tot moure la càmera d'exploració, però el doble clic no canvia el punt.
-    Si es pogués canviar a mitja reproducció, el cel seria d'un lloc i les hores del panell d'un altre. Per
-    triar-ne un altre cal posar la barra de temps en pausa.</p>
-  <p>La tecla P passa a aquesta vista, gira la càmera cap al Sol i reprodueix l'eclipsi des de l'inici al
-    punt triat.</p>
+  <figure class="costat"><img src="img/observador_parcial.jpg" alt="Vista des del terra durant l'eclipsi parcial" loading="lazy">
+    <figcaption>Des de Picos, 20 minuts després de l'inici: el Sol, petit, ja té un mos (es veu millor
+      amb el zoom de la roda).</figcaption></figure>
+  <p>La càmera d'observació és als ulls d'una persona, 1,7 m sobre el terra. Els ulls no es mouen: només
+    es gira el cap, amb el ratolí o les fletxes, i la mirada es queda on la deixem. El Sol no se segueix
+    sol: si surt de la vista, cal tornar-lo a buscar. La roda fa de prismàtics.</p>
+  <p>La <dfn>ubicació de l'observador</dfn> és una dada (latitud, longitud i altitud), separada de la
+    càmera i de qualsevol dibuix. Es tria de la llista del panell o amb un doble clic a l'exploració, i en
+    aquell moment es calculen alhora el model del Sol i la Lluna i les dades del CNIG del panell. Mentre
+    es reprodueix l'eclipsi, el punt queda bloquejat.</p>
+  <p>El <dfn>temps</dfn> també és independent: P només el congela o el torna a posar en marxa. Es pot
+    observar, prémer P, sortir a l'espai, i prémer P de nou: l'eclipsi continua des del mateix instant.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../dades/observador.py"><code>dades/observador.py</code></a> (la dada),
-      <code>triar_punt()</code>, <code>ulls()</code> i <code>eclipsi_des_d_aqui()</code> a <a href="../main.py"><code>main.py</code></a>,
-      <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../dades/observador.py"><code>dades/observador.py</code></a>, <code>triar_punt()</code>, <code>ulls()</code> i <code>reproduir_pausar()</code> a <a href="../main.py"><code>main.py</code></a>, <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">La ubicació de l'observador és una dada separada del dibuix; les coordenades, el model i les dades del CNIG són sempre del mateix punt (tasca 3.1, prova automàtica en 4 moments).</li>
-      <li data-estat="fet">Durant la reproducció no es pot canviar el punt, però es pot mirar al voltant i fer zoom (tasca 3.2, prova automàtica).</li>
+      <li data-estat="fet">Els ulls i la mirada no canvien en reproduir; els ulls són a 1,7 m del terra dibuixat (prova automàtica).</li>
+      <li data-estat="fet">P congela el temps i el reprèn des del mateix instant sense moure cap càmera (prova automàtica).</li>
+      <li data-estat="fet">Durant la reproducció no es pot canviar el punt; en pausa sí, i el model i el panell són del punt nou (prova automàtica).</li>
+      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> els ulls són 1,7 m sobre la superfície dibuixada (la mitjana
-      cada ~20 m), no sobre el MDT de 5 m; fora dels 10 km del centre no hi ha relleu, i per tant
-      l'horitzó llunyà no és real.</p>
+    <p><span class="rotul">Limitacions:</span> els ulls van sobre la superfície dibuixada (mitjana de la malla), no sobre el MDT de 5 m.</p>
   </div>
 </div></details>
 
@@ -275,33 +259,29 @@
 <summary><span class="cap"><span class="titol">O1.6 · El Sol</span></span>
   <span class="frase">Saber on és el Sol a cada moment i dibuixar-lo al seu lloc del cel.</span></summary>
 <div class="cos">
-  <p>La posició del Sol al cel es diu amb dos angles: l'<dfn>azimut</dfn>, la direcció en què el veiem,
-    comptada en graus des del nord en sentit horari (90° és l'est i 270° l'oest), i l'<dfn>elevació</dfn>,
-    quants graus és per sobre de l'horitzó. Els calculem per a cada hora i cada punt amb l'algorisme de la
-    NOAA, i al moment del màxim els corregim perquè coincideixin amb els del CNIG.</p>
-  <p>Ara sabem que hi ha dos errors, i tots dos tenen una explicació senzilla.</p>
-  <p>El primer és el <dfn>nord</dfn>. L'escena està construïda sobre la quadrícula UTM, i el nord
-    d'aquesta quadrícula no és exactament el nord geogràfic: la diferència creix com més lluny som del
-    centre de la franja UTM. Als Picos és d'1,3°, però a l'Escala és de 4,1°, que són uns vuit diàmetres
-    del Sol. Si no ho corregim, el Sol es pon darrere d'una muntanya que no toca.</p>
-  <p>El segon és la <dfn>refracció</dfn>: la llum del Sol es corba en travessar l'atmosfera i el Sol
-    sembla més alt del que és, uns 0,09° quan és a 10° d'altura i uns 0,57° quan toca l'horitzó. El
-    CNIG ja la inclou. Nosaltres hi sumem una correcció fixa, la del màxim, i per això el nostre Sol
-    va bé al màxim però queda massa baix a prop de la posta.</p>
-  <p>Per dibuixar-lo, el Sol fa la seva mida aparent real, d'uns 0,53°, i es posa "a l'infinit": a la
-    seva direcció des de la càmera, darrere de tot.</p>
+  <figure class="costat"><img src="img/totalitat_corona.jpg" alt="La totalitat vista des de Picos amb zoom" loading="lazy">
+    <figcaption>Totalitat a Picos amb el zoom màxim: la Lluna tapa el Sol i es veu la corona
+      (il·lustrativa).</figcaption></figure>
+  <p>La posició del Sol surt de les <dfn>efemèrides</dfn> de JPL Horizons (NASA): una taula amb la posició
+    del Sol i la Lluna cada minut. Aquestes posicions es donen en un sistema fix respecte de les estrelles,
+    i el programa les fa girar amb la Terra (precessió, nutació i rotació) per tenir-les en el sistema dels
+    mapes. Des de qualsevol punt, la direcció cap al Sol dona l'<dfn>azimut</dfn> (des del nord) i
+    l'<dfn>elevació</dfn> (sobre l'horitzó).</p>
+  <p>Per a l'elevació que es mostra s'afegeix la <dfn>refracció</dfn>: l'atmosfera corba la llum i el Sol
+    sembla més alt (uns 0,57° a l'horitzó). El resultat queda a menys de 0,02° de l'elevació del CNIG
+    als 9 punts provats.</p>
+  <p>El Sol es dibuixa a la seva distància i mida reals. La vora és més fosca que el centre
+    (<dfn>enfosquiment del limbe</dfn>, un efecte real) i la superfície té una granulació animada, que és
+    il·lustrativa.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a> (càlcul),
-      <a href="../basecode/sol.py"><code>basecode/sol.py</code></a> (la llum),
-      <a href="../basecode/astres.py"><code>basecode/astres.py</code></a> (l'esfera visible).</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../dades/efemerides.py"><code>dades/efemerides.py</code></a>, <a href="../dades/geodesia.py"><code>dades/geodesia.py</code></a>, <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>, <a href="../basecode/shaders/esfera.frag"><code>esfera.frag</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">Al màxim, l'elevació i l'azimut coincideixen amb el CNIG als 9 punts provats. És un ajust (el model s'hi corregeix), no una validació.</li>
-      <li data-estat="no-compleix">Azimut a l'escena: ara està girat d'1,3° (Picos) a 4,1° (l'Escala) per la diferència de nord. Correcció: tasca 3.5.</li>
-      <li data-estat="pendent">Refracció que depèn de l'altura del Sol, en lloc d'una correcció fixa (tasca 3.6).</li>
-      <li data-estat="pendent">Comparació amb la NASA en uns quants punts i moments (tasca 3.8).</li>
-      <li data-estat="pendent">Sol amb textura (enfosquiment de la vora del disc), opcional (tasca 7.1).</li>
+      <li data-estat="fet">Elevació del Sol al màxim a ≤ 0,017° del CNIG als 9 punts, sense ajustar-s'hi (scripts/validar_model.py).</li>
+      <li data-estat="fet">El nord és el geogràfic: l'escena és en coordenades terrestres (resolt el gir de 1,3°–4,1° de la quadrícula UTM).</li>
+      <li data-estat="pendent">Comparació amb el calculador de la NASA (tasca 3.8).</li>
     </ul>
+    <p><span class="rotul">Limitacions:</span> la granulació del Sol, el halo i la corona són il·lustratius.</p>
   </div>
 </div></details>
 
@@ -309,45 +289,53 @@
 <summary><span class="cap"><span class="titol">O1.7 · La Lluna</span></span>
   <span class="frase">Fer passar la Lluna per davant del Sol al ritme real de l'eclipsi.</span></summary>
 <div class="cos">
-  <p>Vist des del terra, l'eclipsi és la Lluna lliscant per davant del disc del Sol. El nostre model en
-    fa una primera aproximació: la Lluna es mou en línia recta i a velocitat constant respecte del Sol,
-    i la seva velocitat i la seva distància mínima al centre del Sol s'ajusten amb les hores del
-    CNIG.</p>
-  <p>Amb això, l'inici i el final de la totalitat (C2 i C3) surten a menys d'una dècima de segon del
-    CNIG. En canvi, el principi i el final de l'eclipsi (C1 i C4) surten uns 100 segons tard. El motiu és
-    que el model suposa que el màxim és just al mig de l'eclipsi, i no ho és: als Picos, de C1 al màxim
-    hi ha 56 min 23 s, i del màxim a C4, 52 min 53 s. Com que la totalitat dura menys de dos minuts,
-    en aquest interval tan curt la recta sí que és una bona aproximació.</p>
-  <p>Al dibuix, la Lluna té la seva mida aparent real, però és a una distància artificial (per
-    defecte, el doble de la mida del terreny), perquè la real (364.000 km) no cap a l'escena. Des de
-    l'observador es veu bé; des de qualsevol altre lloc, la geometria seria falsa. Per això una vista
-    des de la Lluna només pot ser il·lustrativa amb aquest model.</p>
+  <figure class="costat"><img src="img/lluna.jpg" alt="La Lluna vista de prop des de l'espai" loading="lazy">
+    <figcaption>La Lluna vista des de 12.000 km, de costat: la meitat que mira al Sol està il·luminada.
+      Textura de la NASA (LRO).</figcaption></figure>
+  <p>La Lluna també surt de les efemèrides de JPL, al seu lloc i a la seva mida reals. Des de cada punt de
+    la Terra, el Sol i la Lluna es veuen com dos discs, i la part del Sol tapada és l'àrea on se
+    solapen. Les hores de l'eclipsi (<dfn>C1</dfn> inici, <dfn>C2</dfn> i <dfn>C3</dfn> totalitat,
+    <dfn>C4</dfn> final) surten d'aquesta geometria.</p>
+  <p>Abans, la Lluna feia una recta ajustada a les hores del CNIG i l'inici i el final sortien 100 segons
+    tard. Ara, sense fer servir cap hora del CNIG, totes les hores queden a menys de 1,2 segons de les
+    seves als 9 punts provats. Com que el model no s'ajusta al CNIG, això és una comprovació
+    independent.</p>
+  <p>Des de terra, la Lluna nova només es veu on tapa el Sol (la resta del cel és més brillant que ella).
+    Des de l'espai es veu sencera, amb la cara de dia il·luminada.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a>,
-      <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a>, <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">C2 i C3 a ≤ 0,1 s del CNIG als punts de totalitat provats (ajust).</li>
-      <li data-estat="no-compleix">C1 i C4 a ≤ 5 s del CNIG: ara surten de 93 a 105 s tard (tasca 3.7).</li>
+      <li data-estat="fet">C1, C2, màxim, C3 i C4 a ≤ 1,2 s del CNIG als 9 punts; part tapada a ≤ 0,05 punts (scripts/validar_model.py).</li>
       <li data-estat="pendent">Comparació amb la NASA (tasca 3.8).</li>
-      <li data-estat="pendent">Vista il·lustrativa des de la Lluna, marcada "distàncies no reals" (tasca 7.3).</li>
     </ul>
+    <p><span class="rotul">Limitacions:</span> la vora de la Lluna és un cercle (sense muntanyes, ~1–3 s als contactes); l'orientació de la textura és aproximada.</p>
   </div>
 </div></details>
 
 <details class="sub" id="o1-8">
-<summary><span class="cap"><span class="titol">O1.8 · La llum durant l'eclipsi</span></span>
-  <span class="frase">Que el terreny i el cel s'enfosqueixin segons la part del Sol que queda visible.</span></summary>
+<summary><span class="cap"><span class="titol">O1.8 · La llum i l'ombra de la Lluna</span></span>
+  <span class="frase">Que cada punt de la Terra s'enfosqueixi segons la part del Sol que hi tapa la Lluna.</span></summary>
 <div class="cos">
-  <p>La llum directa sobre el terreny es multiplica per la part del Sol que no tapa la Lluna, i el color
-    del cel es fa més fosc amb ella i amb la posta. A la totalitat el cel queda gairebé negre i es dibuixa
-    una corona al voltant del Sol. Aquest cel i la corona són una representació il·lustrativa, no un model
-    físic de l'atmosfera. Falta definir com comprovarem aquesta part.</p>
+  <figure class="costat"><img src="img/ombra_des_de_lespai.jpg" alt="L'ombra de la Lluna sobre el nord de la península" loading="lazy">
+    <figcaption>La península des de 3.000 km a les 20:28 (hora d'estiu): l'ombra de la Lluna és sobre la
+      costa d'Astúries, a prop del terminador (és el vespre).</figcaption></figure>
+  <p>L'<dfn>ombra de la Lluna</dfn> no s'enganxa a la Terra: per a cada punt del terreny i del globus, el
+    shader calcula quina part del Sol tapa la Lluna vista des d'aquell punt, amb la mateixa fórmula que el
+    model. On la tapa del tot (la <dfn>umbra</dfn>) és fosc; al voltant (la <dfn>penombra</dfn>), la llum
+    baixa a poc a poc; i la resta de la cara de dia continua il·luminada. És diferent de les ombres de les
+    muntanyes, que encara no hi són (<a href="#o1-9">O1.9</a>).</p>
+  <p>Hem comprovat que l'eix de l'ombra cau dins de la umbra que publica el CNIG en tots els instants
+    comparats. El color del cel depèn de la posició de la càmera (altura del Sol i part tapada) i es fa
+    negre per sobre de l'atmosfera; aquest cel és una aproximació visual.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <code>actualitzar_llum()</code> a <a href="../main.py"><code>main.py</code></a>,
-      <a href="../basecode/shaders/esfera.frag"><code>esfera.frag</code></a> (halo i corona).</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a> i <a href="../basecode/shaders/terra.frag"><code>terra.frag</code></a> (<code>tapat_des_de</code>), <code>actualitzar_cel()</code> a <a href="../main.py"><code>main.py</code></a>, <a href="../scripts/validar_ombra.py"><code>scripts/validar_ombra.py</code></a>.</p>
     <p class="rotul">Criteris</p>
-    <ul class="criteris"><li data-estat="pendent">Comprovació de la llum segons la part visible del Sol (criteri per definir).</li></ul>
+    <ul class="criteris">
+      <li data-estat="fet">L'eix de l'ombra cau dins de la umbra del CNIG de 18,338 a 18,518 h TU (scripts/validar_ombra.py).</li>
+      <li data-estat="fet">A la totalitat, el terra s'enfosqueix (brillantor de 84 a 1 a la prova automàtica).</li>
+    </ul>
+    <p><span class="rotul">Limitacions:</span> el cel, el halo, la corona i el contorn blau de l'atmosfera són il·lustratius.</p>
   </div>
 </div></details>
 
@@ -362,19 +350,23 @@
 
 <details class="sub" id="o1-10">
 <summary><span class="cap"><span class="titol">O1.10 · Interfície i barra de temps</span></span>
-  <span class="frase">Controlar el temps de l'eclipsi i consultar les dades del punt.</span></summary>
+  <span class="frase">Controlar el temps i triar què es mira, amb un panell senzill.</span></summary>
 <div class="cos">
-  <p>El panell d'opcions i la barra de temps estan fets amb slimgui, com als reptes. És una interfície
-    "immediata": a cada fotograma es torna a construir sencera a partir de les variables del programa, de
-    manera que no cal guardar-ne cap estat a part. La barra permet reproduir, pausar, avançar o retrocedir
-    5 minuts i triar la velocitat. Les hores es calculen en temps universal (TU) i es mostren en hora d'estiu
+  <p>El panell només té el necessari: reproduir o pausar, l'hora i la velocitat; explorar o observar des
+    del terra; el punt d'observació (una llista d'ubicacions i <em>Tornar al punt d'observació</em>) i
+    una ajuda curta. Les capes tècniques del CNIG i les eines de depuració són a <em>Avançat</em>, tancat
+    per defecte. La barra de temps, a baix, permet arrossegar l'hora de 16:00 a 23:30 (hora d'estiu).</p>
+  <p>És una interfície "immediata" (slimgui): a cada fotograma es torna a construir a partir de les
+    variables del programa. Les hores es calculen en temps universal (TU) i es mostren en hora d'estiu
     (CEST = TU + 2).</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../ui.py"><code>ui.py</code></a> (<code>build_ui</code>, <code>barra_temps</code>).</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../ui.py"><code>ui.py</code></a>.</p>
     <p class="rotul">Criteris</p>
-    <ul class="criteris"><li data-estat="validat">Panell i barra de temps funcionen amb la finestra (prova de l'equip després de la reorganització).</li></ul>
-    <p><span class="rotul">Limitacions:</span> la font de slimgui no mostra bé els accents, i per això els
-      textos de la interfície van sense accents.</p>
+    <ul class="criteris">
+      <li data-estat="validat">Panell i barra de temps funcionen amb la finestra (prova de l'equip, versió anterior).</li>
+      <li data-estat="pendent">Prova de l'equip del panell nou.</li>
+    </ul>
+    <p><span class="rotul">Limitacions:</span> la font de slimgui no mostra bé els accents.</p>
   </div>
 </div></details>
 
@@ -390,27 +382,52 @@
 <summary><span class="cap"><span class="titol">O1.12 · Validació del model</span></span>
   <span class="frase">Saber quant s'equivoca el model de l'eclipsi, i per què.</span></summary>
 <div class="cos">
-  <p>Que el nostre model coincideixi amb el CNIG no demostra gaire si hem fet servir aquestes mateixes dades
-    per construir-lo. Fer un <dfn>ajust</dfn> és triar els paràmetres del model perquè reprodueixi unes
-    dades; una <dfn>comprovació independent</dfn> el compara amb dades que no hem fet servir. Per
-    això separem tres tipus d'error: respecte de les dades de l'ajust, respecte d'una referència
-    independent i els que venen de les limitacions (resolució del terreny, ubicació de l'observador i
-    atmosfera).</p>
-  <p>Com a referència independent farem servir el calculador de la NASA per a l'eclipsi de 2026. Abans de
-    comparar-hi res, cal tenir en compte que fa servir convencions diferents de les del CNIG: posa
-    l'observador al nivell del mar, dona l'altura del Sol sense refracció i tracta la vora de la Lluna com
-    un cercle perfecte (sense les seves muntanyes, que canvien els contactes 1–3 segons).</p>
+  <p>Que un model coincideixi amb les dades amb què s'ha construït no demostra gaire: això és un
+    <dfn>ajust</dfn>. Una <dfn>comprovació independent</dfn> el compara amb dades que no ha fet servir.
+    El model nou no fa servir cap hora del CNIG (només les posicions de JPL i la geometria), de manera que
+    la comparació amb el CNIG és independent.</p>
+  <p>Resultats: als 9 punts, totes les hores a ≤ 1,2 s, la part tapada a ≤ 0,05 punts i l'elevació del
+    Sol a ≤ 0,017°; i l'eix de l'ombra, dins de la umbra del CNIG. Queda la comparació amb una segona font,
+    el calculador de la NASA, que fa servir convencions diferents (observador al nivell del mar, Sol sense
+    refracció, vora de la Lluna llisa).</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers i fonts:</span> seccions 6 i 7 del <a href="../PLA_DE_TREBALL.md">pla</a>;
-      <a href="https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html">calculador de la NASA</a>
-      ("Eclipse Predictions by Fred Espenak, NASA's GSFC").</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../scripts/validar_model.py"><code>scripts/validar_model.py</code></a>, <a href="../scripts/validar_ombra.py"><code>scripts/validar_ombra.py</code></a>, seccions 6, 7 i F9 del <a href="../PLA_DE_TREBALL.md">pla</a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">Comparació amb el CNIG a 9 punts (C1–C4 i Sol al màxim), amb scripts de prova. Són errors respecte de les dades de l'ajust.</li>
-      <li data-estat="fet">Font externa triada i convencions documentades.</li>
+      <li data-estat="fet">Comparació independent amb el CNIG a 9 punts: hores a ≤ 1,2 s.</li>
+      <li data-estat="fet">L'ombra del model cau dins de la umbra del CNIG.</li>
+      <li data-estat="fet">Font externa triada i convencions documentades (NASA).</li>
       <li data-estat="pendent">Comparació amb la NASA en uns quants punts i moments (tasca 3.8).</li>
-      <li data-estat="pendent">Script de validació dins del repositori (<code>scripts/validar_model.py</code>, tasca 0.2).</li>
     </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o1-13">
+<summary><span class="cap"><span class="titol">O1.13 · La Terra vista des de l'espai</span></span>
+  <span class="frase">Un sol model en què es pot passar del terra a l'espai i veure la Terra, el Sol i la Lluna al seu lloc.</span></summary>
+<div class="cos">
+  <figure class="costat"><img src="img/terra_des_de_lespai.jpg" alt="La Terra des de l'espai durant l'eclipsi" loading="lazy">
+    <figcaption>La Terra des de l'espai al màxim de Picos, amb el botó <em>Veure la Terra des de
+      l'espai</em>: la cara de dia és Amèrica; Europa ja és al vespre.</figcaption></figure>
+  <p>Per poder canviar de punt de vista, tota l'escena viu en un sol sistema de
+    <dfn>coordenades terrestres</dfn> (ECEF): l'origen al centre de la Terra i els eixos fixos amb ella,
+    en quilòmetres. La Terra és l'el·lipsoide WGS84 amb una textura de la NASA, il·luminada pel Sol (dia
+    i nit) i amb l'ombra de la Lluna; la península i Picos s'hi posen al seu lloc; i el Sol i la Lluna són a
+    la seva posició i mida reals.</p>
+  <p>Això vol dir distàncies enormes: el terra a un metre i el Sol a 150 milions de km. Per dibuixar-ho
+    tot alhora calen dues tècniques (<a href="#o2-2">O2.2</a>): tot es dibuixa relatiu a la càmera, i la
+    profunditat és logarítmica.</p>
+  <p>A escala real, la Lluna és a 60 vegades el radi de la Terra: des d'on es veu bé l'ombra, la Lluna
+    queda lluny, i des d'on es veuen totes dues, l'ombra és massa petita per distingir-la. No hem fet
+    cap composició il·lustrativa amb distàncies falses.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/terra.py"><code>basecode/terra.py</code></a>, <a href="../main.py"><code>main.py</code></a> (<code>veure_terra_des_de_lespai</code>).</p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">La Terra, la península, Picos, el Sol i la Lluna es dibuixen junts del terra fins a l'espai (inspecció de captures).</li>
+      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
+    </ul>
+    <p><span class="rotul">Limitacions:</span> la malla del globus queda fins a ~120 m per sota de l'el·lipsoide entre vèrtexs; fora d'Espanya no hi ha relleu.</p>
   </div>
 </div></details>
 </section>
@@ -477,9 +494,16 @@
     veiem tota la península.</p>
   <p>El mateix càlcul, desfet al revés, serveix per saber quin punt del terreny hi ha sota el cursor: es
     llegeix la profunditat d'aquell píxel i es multiplica per les matrius inverses.</p>
+  <p>A l'escena de la Terra apareixen dos problemes de precisió. La GPU treballa amb nombres de 32 bits,
+    que a 6.400 km del centre de la Terra només distingeixen mig metre. Per això la CPU calcula totes les
+    posicions en doble precisió i a la GPU li arriba cada objecte <dfn>relatiu a la càmera</dfn>: a prop de
+    la càmera els nombres són petits i precisos. L'altre problema és la profunditat: amb el terra a un
+    metre i el Sol a 150 milions de km, la profunditat normal no té prou precisió. La
+    <dfn>profunditat logarítmica</dfn> guarda el logaritme de la distància, de manera que la precisió
+    relativa és la mateixa a totes les distàncies.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>
-      (<code>update()</code>, <code>desprojectar()</code>),
+      (<code>matrius()</code>, <code>desprojectar()</code>), <a href="../basecode/camera_orbital.py"><code>basecode/camera_orbital.py</code></a> (mode pla),
       <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
