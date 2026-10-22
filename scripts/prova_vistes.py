@@ -1,7 +1,7 @@
 """
 Prova del programa real (main.py) a les sis ubicacions: el que ha de funcionar quan l'equip fa servir la
-finestra. Per defecte la finestra queda amagada i es dibuixa en un framebuffer; amb --visible es fa
-servir la finestra de veritat (es veu com passa la prova).
+finestra. Es dibuixa en un framebuffer propi, que es el que es llegeix; per defecte la finestra queda
+amagada i amb --visible es mostra i hi va apareixent cada fotograma (es veu com passa la prova).
 
 Per a cada ubicacio (Picos, Vic, l'Escala, Cerdanyola, Montmelo, la UAB):
   1. Ulls: mirant cap avall, la distancia (llegida del depth buffer) als triangles dibuixats es 1,7 m.
@@ -66,9 +66,9 @@ def main():
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - prova de les vistes', use_ui_panel=True)
     if a.visible:
         W, H = glfw.get_framebuffer_size(app.window)
-        objectiu = app.ctx.screen
-    else:
-        objectiu = app.ctx.simple_framebuffer((W, H))
+    # es dibuixa en un framebuffer propi (el que es llegeix); amb --visible, cada fotograma es copia a la
+    # finestra (llegir directament el framebuffer de la finestra de macOS dona imatges incorrectes)
+    objectiu = app.ctx.simple_framebuffer((W, H))
     os.makedirs(SORTIDA, exist_ok=True)
     errors = []
 
@@ -85,9 +85,10 @@ def main():
             objectiu.use()
             app.render()
             imgui.render()   # el panell no es dibuixa: nomes cal tancar el fotograma d'imgui
-        if a.visible:
-            glfw.swap_buffers(app.window)
-            glfw.poll_events()
+            if a.visible:
+                app.ctx.copy_framebuffer(app.ctx.screen, objectiu)
+                glfw.swap_buffers(app.window)
+                glfw.poll_events()
 
     def llegir_distancies():
         """Distancia (km, al llarg de l'eix de la camera) de cada pixel; inf on no hi ha res (cel)."""
