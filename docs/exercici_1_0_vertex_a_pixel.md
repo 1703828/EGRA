@@ -18,9 +18,9 @@ amb el que la GPU ha dibuixat de debò.
 
 | Criteri | Qui el comprova | Estat |
 |---|---|---|
-| El script s'executa i diu `RESULTAT: COINCIDEIX` | Claude (fet el 22/10) i l'equip | Claude: sí. Equip: pendent |
+| El script s'executa i diu `RESULTAT: COINCIDEIX` | Claude (fet el 22/10) i l'equip | **Validat** per l'equip el 22/10 |
 | La creu vermella de la captura cau sobre el terreny, al lloc del vèrtex | Claude (captura revisada) i l'equip | Claude: sí. Equip: pendent |
-| L'equip prediu l'efecte de la modificació proposada abans d'executar-la i explica la diferència entre la predicció i el resultat | L'equip | Pendent |
+| L'equip prediu l'efecte de la modificació proposada abans d'executar-la | L'equip | Opcional (l'equip va donar l'activitat per tancada) |
 
 ---
 
@@ -188,7 +188,7 @@ Executat amb l'entorn `egra`, sense finestra, a l'ordinador del projecte:
 | `--distancia 0.5` | 1,37 cm | 2,29·10⁻⁵ | 2,76·10⁻⁵ | 1,46 m | COINCIDEIX |
 
 Les dues captures s'han revisat: la creu cau sobre el vessant del terreny.
-**Pendent:** que l'equip ho executi, faci la predicció i ho comprovi.
+L'equip ho va executar el 22/10 amb `COINCIDEIX` i va donar l'activitat per tancada.
 
 ## Limitacions
 

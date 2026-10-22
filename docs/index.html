@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seguiment EGRA</title>
+  <link rel="stylesheet" href="estil.css">
+  <script src="progres.js" defer></script>
+</head>
+<body>
+<main>
+
+<h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
+<p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
+  Web de seguiment, versió local 1 (22/10/2026)</p>
+
+<p>Volem representar l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya,
+  amb Python i OpenGL (ModernGL, 3.3 core), a partir de l'estructura dels reptes de classe. El terreny
+  surt del model digital del terreny (MDT) de l'IGN i les dades de l'eclipsi, del CNIG. El programa ha
+  de permetre explorar el terreny des de fora i observar l'eclipsi des d'un punt, a l'altura dels ulls,
+  on el relleu pot tapar el Sol. La prioritat és que l'equip entengui el que fa i ho pugui explicar.</p>
+
+<div class="avis">
+  <strong>Com llegir aquesta web.</strong> Cada objectiu es divideix en subobjectius desplegables.
+  El progrés es calcula només amb criteris comprovables:
+  <span class="etiqueta validat">VALIDAT</span> l'equip ha fet i entès la comprovació ·
+  <span class="etiqueta fet">FET</span> implementat i comprovat per Claude, pendent de l'equip ·
+  <span class="etiqueta pendent">PENDENT</span> sense fer o sense comprovar ·
+  <span class="etiqueta no-compleix">NO COMPLEIX</span> comprovat i no arriba a l'objectiu.
+  El percentatge només compta els validats. Cada funcionalitat s'indica com a
+  <span class="etiqueta actual">ACTUAL</span> (al codi guardat) o
+  <span class="etiqueta planificat">PLANIFICAT</span>.
+</div>
+
+<p class="nota">Font del contingut: les actes 1 i 3 (01/10 i 15/10/2026, PDF) i l'acta 2
+  (<code>actes/acta2.md</code>, 08/10/2026), el <a href="../PLA_DE_TREBALL.md">pla de treball</a> i el codi
+  guardat a l'etiqueta <code>abans-reorganitzacio</code> de la branca <code>reorganitzacio-projecte</code>.
+  Les actes no es versionen al Git. A l'acta 1, l'apartat d'objectius per a la següent acta només conté text de prova.</p>
+
+<div class="botons">
+  <button id="obrir-tot" type="button">Obrir-ho tot</button>
+  <button id="tancar-tot" type="button">Tancar-ho tot</button>
+</div>
+
+<!-- ================================================================ ESTAT ACTUAL -->
+<h2>Funcionalitats: què hi ha ara i què està planificat</h2>
+<div class="taula"><table>
+  <tr><th>Funcionalitat</th><th>Estat</th><th>Observacions</th></tr>
+  <tr><td>Terreny 3D d'un MDT (Picos de Europa, 5 m, 20 × 20 km)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Una sola regió carregada; fora dels 20 km no hi ha relleu.</td></tr>
+  <tr><td>Capes del CNIG sobre el terreny (enfosquiment, durada, ombres del relleu)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Reprojectades al terreny.</td></tr>
+  <tr><td>Barra temporal (play, ±5 min, velocitats)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>No comprovada amb finestra per Claude.</td></tr>
+  <tr><td>Sol i Lluna que es mouen segons l'hora</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Model aproximat amb errors coneguts (O1.6, O1.7).</td></tr>
+  <tr><td>Personatge de dues esferes, salts i vista "de joc"</td><td><span class="etiqueta actual">ACTUAL</span></td><td><strong>Es retirarà</strong> (decisió D3): no és el que volem.</td></tr>
+  <tr><td>Càmera d'exploració lliure, sense personatge</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 3.1.</td></tr>
+  <tr><td>Observador a l'altura dels ulls (1,7 m), bloquejat durant la reproducció</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 3.1 i 3.2. Ara hi ha una primera persona lligada al personatge.</td></tr>
+  <tr><td>Curvatura terrestre activa i exageració 1 en mode normal</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 3.4. Ara la curvatura és opcional i desactivada.</td></tr>
+  <tr><td>Ubicacions catalanes (Vic, l'Escala, Cerdanyola, Montmeló, UAB)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 0.3, 4.3 i 4.4.</td></tr>
+  <tr><td>Ombres del relleu (shadow mapping)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.1.</td></tr>
+  <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
+  <tr><td>Vista il·lustrativa des de la Lluna; Sol amb textura</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Opcional (F7). Ara hi ha un botó "Mirar des de darrere la Lluna", sense etiquetar com a il·lustratiu.</td></tr>
+</table></div>
+
+<!-- ================================================================ O1 -->
+<h2>Objectius</h2>
+
+<details class="objectiu">
+<summary><span class="titol">O1 · Simulador de l'eclipsi sobre terreny real</span></summary>
+<div class="contingut">
+<p class="nota">Objectiu 1 de l'acta 3: una simulació interactiva amb dades reals del terreny i de
+  l'eclipsi, amb vista exterior i vista des del terra, la posició del Sol i la Lluna, els canvis de llum
+  i el pas del temps.</p>
+
+<!-- O1.1 -->
+<details class="sub">
+<summary><span class="titol">O1.1 · Dades del terreny</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Tenir el relleu de les zones que ens interessen a la resolució necessària i poder-lo
+      reproduir: Picos (totalitat) i les ubicacions catalanes, amb prou terreny al voltant per a
+      l'horitzó.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">El MDT de Picos (<code>data/mdt/picos_5m.tif</code>, 5 m, EPSG:25830) es carrega i es dibuixa (captura sense finestra, 22/10).</li>
+      <li data-estat="pendent">Cada fitxer de <code>data/</code> té la font, la zona, la resolució, el CRS, la llicència, la comanda, la data i el sha256 a <code>data/FONTS.md</code> (tasca 4.1).</li>
+      <li data-estat="pendent">Els MDT nous van a una carpeta ignorada pel Git; Picos continua versionat (tasca 4.1).</li>
+      <li data-estat="pendent">Zona del Vallès (Cerdanyola, UAB, Montmeló) a 5 m amb un anell de 25 m (tasca 4.3).</li>
+      <li data-estat="pendent">Zones de Vic i de l'Escala (tasca 4.4).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Un MDT és una imatge on cada píxel guarda l'altitud en metres i on la georeferència diu on és
+      cada píxel. Per tenir coordenades en metres cal una projecció (UTM). La península ocupa tres fusos
+      UTM; treballem en un de sol (ETRS89 / UTM 30N, EPSG:25830) perquè tot encaixi.</p>
+    <p>El mar surt com a "sense dades" o 0 m, però hi ha rius i costa a 0 m que són terra: es considera
+      mar només el que està connectat amb la vora del mapa (components connexos).</p>
+    <p>El WCS de l'IGN dona qualsevol zona en un sol fitxer i sistema de referència, en lloc de milers de
+      fulles. El GeoTIFF del servei arrodoneix les altituds a metres enters; l'ArcGrid conserva els
+      decimals. Perquè les dades siguin reproduïbles, cal poder-les regenerar amb els scripts i saber
+      d'on surt cada fitxer.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../scripts/descarregar_mdt.py"><code>scripts/descarregar_mdt.py</code></a> descarrega
+      del servei WCS de l'IGN per rajoles en format ArcGrid.
+      <a href="../data_io.py"><code>data_io.py</code></a> llegeix, neteja i desa una memòria cau a
+      <code>data/cache/</code>, i <a href="../scripts/preparar_dades.py"><code>scripts/preparar_dades.py</code></a>
+      la calcula per a tots els terrenys.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut">
+    <figure><img src="img/picos_relleu.jpg" alt="Relleu de Picos de Europa amb la llum del Sol del màxim" loading="lazy">
+      <figcaption>Picos de Europa, MDT de 5 m, amb la llum al Sol del màxim (CNIG: azimut 281,4°,
+        elevació 9,6°). Exageració 1,41 (valor per defecte de <code>captura.py</code>).
+        <code>python scripts/captura.py data/mdt/picos_5m.tif … --sol-maxim --gir -115 --inclinacio 30</code></figcaption></figure>
+  </div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <ul><li>El WCS només té Espanya: Portugal i França valen 0 i es veuen com a mar.</li>
+      <li>Ara només hi ha una regió de 20 × 20 km: no hi ha horitzó llunyà.</li>
+      <li>Els MDT d'Astúries i de Luarca encara hi són, però es retiraran (tasca 4.2).</li>
+      <li>Els MDT ja versionats es queden a l'historial del Git (no es reescriu).</li></ul></div></details>
+</div></details>
+
+<!-- O1.2 -->
+<details class="sub">
+<summary><span class="titol">O1.2 · Dades de l'eclipsi (CNIG)</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Fer servir les dades oficials per mostrar l'eclipsi sobre el terreny i per controlar la
+      simulació, distingint sempre el que llegim del que calculem.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">Al punt de Picos (43,262, −4,949) es llegeixen C1 19:31:39, màxim 20:28:02 i C4 21:20:55 CEST, i 100,4 s de totalitat.</li>
+      <li data-estat="fet">Convencions comprovades al document del CNIG: l'elevació del Sol (banda 1) està corregida per refracció.</li>
+      <li data-estat="pendent">Les coordenades dels punts concrets (plaça Major de Vic, ajuntament de Cerdanyola, plaça Cívica de la UAB...) verificades amb una font cartogràfica (tasca 0.3).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Les capes del CNIG són en un altre sistema de coordenades (EPSG:3857). Per posar-les sobre el
+      terreny es reprojecten: amb interpolació per als valors continus (percentatges, hores) i amb el
+      punt més proper per a les classes (ombres). Les fases després de la posta no es veuen.</p>
+    <p>Cal distingir la <strong>cobertura del Sol per la Lluna</strong> (enfosquiment) de
+      l'<strong>ocultació del Sol pel relleu</strong> (capa d'ombres, només al màxim).</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../eclipse_data.py"><code>eclipse_data.py</code></a> (capes i valors en un punt) i
+      <a href="../data/eclipsi2026/LLEGENDA.md"><code>data/eclipsi2026/LLEGENDA.md</code></a>
+      (què és cada banda i classe).</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut">
+    <figure><img src="img/peninsula_enfosquiment.jpg" alt="Enfosquiment màxim sobre la península" loading="lazy">
+      <figcaption>Enfosquiment màxim sobre la península (MDT de 200 m); en magenta, la franja de totalitat
+        amb els límits en blanc. Exageració per defecte (10, eina de visualització).
+        <code>--overlay enfosquiment --limits --gir -35 --inclinacio 45</code></figcaption></figure>
+    <figure><img src="img/asturies_durada.jpg" alt="Durada de la totalitat a Astúries" loading="lazy">
+      <figcaption>Durada de la totalitat a Astúries (MDT de 25 m), amb corbes cada 10 s.
+        <code>--overlay durada --limits --gir -20 --inclinacio 55</code></figcaption></figure>
+    <figure><img src="img/picos_ombres_cnig.jpg" alt="Classes d'ombres del relleu del CNIG sobre Picos" loading="lazy">
+      <figcaption>Classes de visibilitat del Sol al màxim segons el CNIG (píxels de ~300 m) sobre Picos.
+        <code>--overlay ombres --sol-maxim --gir -115 --inclinacio 30</code></figcaption></figure>
+  </div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <ul><li>Les efemèrides tenen píxels d'uns 920 m sobre el terreny i les ombres, d'uns 230–300 m:
+      sobre el MDT de 5 m són una referència, no un resultat final.</li>
+      <li>Les ombres del CNIG només valen al moment del màxim i no tenen en compte edificis ni arbres.</li></ul></div></details>
+</div></details>
+
+<!-- O1.3 -->
+<details class="sub">
+<summary><span class="titol">O1.3 · Terreny 3D i representació visual</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Un terreny estable, clar i coherent, amb el relleu real (exageració 1) i la curvatura de la Terra
+      en el mode normal.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">El terreny es renderitza sense finestra amb colors per altitud, mar, faldilles i boira (captura del 22/10).</li>
+      <li data-estat="pendent">Curvatura geomètrica activa i exageració 1 en mode normal; els controls per canviar-ho, etiquetats com a eines de depuració (tasca 3.4).</li>
+      <li data-estat="pendent">L'horitzó dibuixat coincideix amb el calculat per un script (≤ 0,05°) amb les mateixes convencions (tasca 3.4).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Una textura no ha de ser una imatge de colors: pot guardar altituds en metres. El terreny és una
+      graella plana fixa (com a màxim 1024 × 1024 vèrtexs) i el vertex shader hi llegeix l'altura. El cost
+      de dibuixar no depèn de la mida del fitxer.</p>
+    <p>La rampa de colors és absoluta en metres, perquè la mateixa altitud tingui el mateix color a
+      totes les escales. Per al mar es guarda la distància a la costa: l'aigua és més fosca mar endins i
+      la línia de costa surt suau.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../terrain.py"><code>terrain.py</code></a>,
+      <a href="../basecode/shaders/terrain.vert"><code>basecode/shaders/terrain.vert</code></a> i
+      <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut">
+    <p>Veure O1.1 (relleu de Picos).</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <ul><li>La geometria dibuixada és una mitjana (un vèrtex cada ~20 m a Picos). A Picos, l'horitzó cap
+      al Sol canvia de 5,8° (5 m) a 5,6° (malla dibuixada) i a 2,7° (200 m).</li>
+      <li>Ara la curvatura es calcula des del punt on mira la càmera orbital, no des de l'observador.</li></ul></div></details>
+</div></details>
+
+<!-- O1.4 -->
+<details class="sub">
+<summary><span class="titol">O1.4 · Exploració de l'escena</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Una càmera per inspeccionar el terreny lliurement, sense personatge, i per triar un punt
+      d'observació.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="pendent">Càmera orbital amb gir, desplaçament, zoom cap al cursor i doble clic per triar un punt <span class="etiqueta actual">ACTUAL</span> (implementada; falta comprovar-la amb finestra).</li>
+      <li data-estat="pendent">La càmera es mou sense personatge i un marcador senzill indica el punt triat (tasca 3.1) <span class="etiqueta planificat">PLANIFICAT</span>.</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Per saber quin punt hi ha sota el cursor no cal intersecar un raig amb el relleu: es llegeix la
+      profunditat d'aquell píxel i es desfan les transformacions de vista i projecció (<em>picking</em>).
+      Veure també O2.2.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../camera.py"><code>camera.py</code></a> (a la reorganització passarà a
+      <code>basecode/camera_exploracio.py</code>) i el <em>picking</em> a
+      <a href="../main.py"><code>main.py</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha del programa amb finestra.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>Ara la càmera segueix el personatge; quan es retiri (D3), la càmera serà independent.</p></div></details>
+</div></details>
+
+<!-- O1.5 -->
+<details class="sub">
+<summary><span class="titol">O1.5 · Observació des del terra</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Veure l'eclipsi com es veuria des d'un punt, a 1,7 m sobre el terreny, on el relleu pot tapar el
+      Sol. Durant la reproducció la ubicació queda bloquejada: es pot girar la mirada i fer zoom.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="pendent">La ubicació de l'observador és una dada separada del dibuix (tasca 3.1).</li>
+      <li data-estat="pendent">Durant la reproducció no es pot canviar el punt, i les coordenades, les dades del CNIG i el model són del mateix punt (tasca 3.2).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p>Ara hi ha <a href="../camera_primera_persona.py"><code>camera_primera_persona.py</code></a>, als ulls del
+      personatge, amb zoom de prismàtics i la tecla P <span class="etiqueta actual">ACTUAL</span>. Es convertirà
+      en <code>basecode/camera_observador.py</code>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <ul><li>Ara, si es camina mentre es reprodueix l'eclipsi, el model queda al punt antic i el panell
+      barreja dades de dos punts (es resol amb la tasca 3.2).</li>
+      <li>Fora dels 10 km del centre no hi ha relleu: l'horitzó llunyà no és real.</li></ul></div></details>
+</div></details>
+
+<!-- O1.6 -->
+<details class="sub">
+<summary><span class="titol">O1.6 · El Sol</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>El Sol a la seva posició per a cada hora i punt, comparat amb el CNIG i amb una font independent
+      (la NASA), i, com a opció, una representació amb textura.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">Al màxim, l'elevació i l'azimut coincideixen amb el CNIG als 9 punts provats. És un <em>ajust</em> (el model es corregeix amb aquest valor), no una validació.</li>
+      <li data-estat="no-compleix">L'azimut a l'escena: ara està girat entre 1,3° (Picos) i 4,1° (l'Escala) per la convergència de meridians de l'UTM. Correcció: tasca 3.5.</li>
+      <li data-estat="pendent">Refracció segons l'altura del Sol, en lloc d'una correcció constant (tasca 3.6).</li>
+      <li data-estat="pendent">Comparació amb el calculador de la NASA en uns quants punts i moments (tasca 3.8).</li>
+      <li data-estat="pendent">Sol amb textura (enfosquiment del limbe), opcional (tasca 7.1).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Azimut des del nord, en sentit horari, i elevació sobre l'horitzó. El nord de la quadrícula UTM
+      no és el nord geogràfic: la diferència (convergència de meridians) creix amb la distància al
+      meridià central del fus.</p>
+    <p>Refracció astronòmica: la llum del Sol es corba a l'atmosfera i el Sol sembla més alt (≈0,09° a
+      10°, ≈0,57° a l'horitzó). La diferència entre el CNIG i el nostre càlcul geomètric és coherent amb
+      la fórmula de Bennett (residu ≤ 0,017°); és coherent, no demostrat.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../model_eclipsi.py"><code>model_eclipsi.py</code></a> (algorisme de la NOAA),
+      <a href="../sol.py"><code>sol.py</code></a> (la llum) i
+      <a href="../astres.py"><code>astres.py</code></a> (l'esfera visible).</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>La correcció constant fa que el Sol sigui correcte al màxim però massa baix a prop de la posta
+      (a la UAB, uns 0,38° a l'horitzó).</p></div></details>
+</div></details>
+
+<!-- O1.7 -->
+<details class="sub">
+<summary><span class="titol">O1.7 · La Lluna</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>La Lluna a la seva posició respecte del Sol a cada hora, per reproduir les fases de l'eclipsi, i
+      una vista il·lustrativa des de la Lluna, identificada com a tal.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">C2 i C3 a ≤ 0,1 s del CNIG als punts de totalitat provats (ajust: el model s'hi ha construït).</li>
+      <li data-estat="no-compleix">C1 i C4 a ≤ 5 s del CNIG: ara surten entre 93 i 105 s tard a tots els punts (tasca 3.7).</li>
+      <li data-estat="pendent">Comparació amb la NASA (tasca 3.8).</li>
+      <li data-estat="pendent">Vista il·lustrativa des de la Lluna, etiquetada "distàncies no reals" (tasca 7.3).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>El model suposa que la Lluna fa una recta a velocitat constant i que C1 i C4 són simètrics
+      respecte del màxim. Al CNIG no ho són (a Picos, 56 min 23 s abans i 52 min 53 s després): per això
+      C1 i C4 surten desplaçats. Que el model coincideixi amb les dades que s'han fet servir per
+      construir-lo no el valida: cal una referència independent.</p>
+    <p>El Sol i la Lluna tenen una mida aparent d'uns 0,5°; a l'escena no es poden posar a la seva
+      distància real.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../model_eclipsi.py"><code>model_eclipsi.py</code></a> i
+      <a href="../astres.py"><code>astres.py</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>La Lluna es dibuixa a una distància artificial (per defecte, 2 × la mida del terreny): només és
+      correcta vista des de l'observador. Una vista coherent des de la Lluna és una ampliació a part
+      (tasca 8.1).</p></div></details>
+</div></details>
+
+<!-- O1.8 -->
+<details class="sub">
+<summary><span class="titol">O1.8 · Il·luminació durant l'eclipsi</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Que la llum del terreny i del cel variï segons la part del Sol que queda visible.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="pendent">La llum depèn de la fracció visible del Sol <span class="etiqueta actual">ACTUAL</span> (implementat; falta definir-ne i fer-ne la comprovació).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><code>actualitzar_llum()</code> a <a href="../main.py"><code>main.py</code></a> i
+      <a href="../basecode/shaders/esfera.frag"><code>esfera.frag</code></a> (halo i corona).</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>El color del cel, el halo i la corona són il·lustratius: no són un model físic de l'atmosfera.</p></div></details>
+</div></details>
+
+<!-- O1.9 -->
+<details class="sub">
+<summary><span class="titol">O1.9 · Ombres del relleu</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Que el relleu pugui ocultar la llum del Sol (shadow mapping) i comparar-ho amb la capa d'ombres
+      del CNIG.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris"><li data-estat="pendent">Shadow mapping comparat amb la capa del CNIG (tasca 6.1).</li></ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
+</div></details>
+
+<!-- O1.10 -->
+<details class="sub">
+<summary><span class="titol">O1.10 · Interfície i barra temporal</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Reproduir, pausar, avançar i retrocedir l'eclipsi, amb l'hora, i un panell entenedor.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="pendent">Barra temporal amb play/pausa, ±5 min, velocitats i hora CEST <span class="etiqueta actual">ACTUAL</span> (implementada; falta comprovar-la amb finestra).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>El panell es fa amb slimgui (com als reptes). Les hores es calculen en TU i es mostren en CEST (TU + 2).</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><code>build_ui()</code> i <code>barra_temps()</code> a <a href="../main.py"><code>main.py</code></a>
+      (passaran a <code>ui.py</code> a la reorganització).</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>La font de slimgui no mostra bé els accents: els textos de la interfície van sense accents.</p></div></details>
+</div></details>
+
+<!-- O1.11 -->
+<details class="sub">
+<summary><span class="titol">O1.11 · Condicions meteorològiques</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Opcions de dia clar, boira i núvols (actes 1 i 3).</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris"><li data-estat="pendent">Menú de condicions meteorològiques (tasca 6.2).</li></ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p>Ja hi ha una boira per distància al shader del terreny, que es podrà reaprofitar.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
+</div></details>
+
+<!-- O1.12 -->
+<details class="sub">
+<summary><span class="titol">O1.12 · Validació del model de l'eclipsi</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Saber quant s'equivoca el model i per què, separant tres tipus d'error: respecte de les dades de
+      l'ajust, respecte d'una referència independent i limitacions (terreny, observador, atmosfera).</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="fet">Comparació amb el CNIG a 9 punts (C1–C4, Sol al màxim): fet amb scripts de prova el 22/10. Són errors respecte de les dades de l'ajust.</li>
+      <li data-estat="fet">Font externa triada i convencions documentades: calculador de la NASA per al 2026 (altitud de l'observador 0 m, Sol sense refracció, ΔT = 71,4 s, limbe mitjà de la Lluna).</li>
+      <li data-estat="pendent">Comparació amb la NASA en uns quants punts i moments (tasca 3.8).</li>
+      <li data-estat="pendent">Script de validació al repositori (<code>scripts/validar_model.py</code>, tasca 0.2).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Un <strong>ajust</strong> fixa els paràmetres del model amb unes dades; que el model les reprodueixi
+      no demostra res. Una <strong>comprovació independent</strong> el compara amb dades que no s'han fet
+      servir per construir-lo. Els llindars del pla (p. ex. ≤ 5 s als contactes) són objectius de
+      comprovació, no una garantia de precisió.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p>Seccions 6 i 7 del <a href="../PLA_DE_TREBALL.md">pla de treball</a>. Enllaç de la NASA:
+      <a href="https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html">SE2026Aug12Tgoogle</a>
+      ("Eclipse Predictions by Fred Espenak, NASA's GSFC").</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>—</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>Els scripts de prova del 22/10 encara no són al repositori.</p></div></details>
+</div></details>
+
+</div></details>
+
+<!-- ================================================================ O2 -->
+<details class="objectiu">
+<summary><span class="titol">O2 · Entendre i aplicar els conceptes d'informàtica gràfica</span></summary>
+<div class="contingut">
+<p class="nota">Objectiu 2 de l'acta 3: posar en pràctica els continguts d'EGRA (terrenys 3D, càmeres,
+  shaders, transformacions i il·luminació) i entendre com funcionen. Referència:
+  <a href="https://www.labri.fr/perso/nrougier/python-opengl/">Python &amp; OpenGL for Scientific
+  Visualization</a> (N. Rougier), que fa servir altres llibreries però els mateixos conceptes.</p>
+
+<!-- O2.1 -->
+<details class="sub">
+<summary><span class="titol">O2.1 · Com es dibuixa un fotograma</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Poder explicar el camí des de <code>python main.py</code> fins a una imatge a la pantalla.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="validat">Exercici 1.0: un vèrtex de la superfície dibuixada, seguit a mà fins al píxel, coincideix amb el que dibuixa la GPU (22/10).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <ol>
+      <li><code>basecode/engine.py</code>: glfw obre la finestra amb un context OpenGL 3.3 core i ModernGL s'hi connecta.</li>
+      <li><code>on_init()</code> crea els objectes; cadascun té un <strong>VBO</strong> (dades dels vèrtexs a la GPU),
+        sovint un <strong>IBO</strong> (índexs que reutilitzen vèrtexs), un <strong>VAO</strong> (com es llegeix el
+        VBO cap al shader) i un <strong>programa</strong> (vertex + fragment shader).</li>
+      <li>A cada fotograma: la càmera calcula <code>m_view</code> i <code>m_proj</code> i les escriu com a
+        <em>uniforms</em>; cada objecte fa <code>vao.render()</code>; <code>swap_buffers</code> mostra la imatge (doble buffer).</li>
+      <li><strong>Vèrtex</strong> (punt de la malla) ≠ <strong>fragment</strong> (candidat a pintar un píxel,
+        amb valors interpolats) ≠ <strong>píxel</strong> (casella de la imatge final).</li>
+    </ol></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../basecode/engine.py"><code>basecode/engine.py</code></a>,
+      <a href="../main.py"><code>main.py</code></a>, <a href="../terrain.py"><code>terrain.py</code></a> i
+      l'activitat <a href="exercici_1_0_vertex_a_pixel.md">Exercici 1.0</a>
+      (<a href="../scripts/exercici_fotograma.py"><code>scripts/exercici_fotograma.py</code></a>).</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut">
+    <figure><img src="img/exercici_1_0.jpg" alt="Creu vermella al píxel predit sobre el terreny" loading="lazy">
+      <figcaption>Exercici 1.0: la creu marca el píxel on el càlcul a mà diu que ha de sortir el vèrtex
+        (columna 640, fila 512). <code>python scripts/exercici_fotograma.py</code></figcaption></figure></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>L'exercici fa servir l'escena de <code>captura.py</code> (sense Sol ni Lluna) i la curvatura desactivada.</p></div></details>
+</div></details>
+
+<!-- O2.2 -->
+<details class="sub">
+<summary><span class="titol">O2.2 · Càmeres i transformacions</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Entendre <code>m_model</code>, <code>m_view</code>, <code>m_proj</code>, la perspectiva i els plans de retall.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="validat">Exercici 1.0: cada etapa (vista, clip, divisió per w, NDC, píxel) es calcula i coincideix.</li>
+      <li data-estat="fet">Amb la càmera a la meitat de distància, la NDC x es multiplica per la raó de profunditats (≈2,14) i el punt s'allunya del centre.</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p><code>m_view</code> (<code>lookAt</code>) col·loca la càmera a l'origen mirant cap a −z. La
+      <strong>w</strong> que surt de <code>m_proj</code> és la <strong>profunditat del punt segons l'eix de
+      visió</strong> (−z), no la distància en línia recta. En dividir per w, el que és lluny es fa petit.</p>
+    <p>La precisió del depth buffer depèn de la relació entre els plans <em>near</em> i <em>far</em>: si és
+      massa gran, les superfícies llunyanes parpellegen (z-fighting). Per això <code>camera.py</code> els
+      ajusta segons la distància al terreny.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../camera.py"><code>camera.py</code></a> (<code>update()</code>, <code>desprojectar()</code>) i
+      <a href="../camera_primera_persona.py"><code>camera_primera_persona.py</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Veure O2.1.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
+</div></details>
+
+<!-- O2.3 -->
+<details class="sub">
+<summary><span class="titol">O2.3 · Textures, heightmap i mipmaps</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Entendre com una textura pot guardar dades (altituds) i com la llegeix la GPU.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="validat">Exercici 1.0: l'altura reconstruïda a partir dels mipmaps queda a 1,37 cm de la que calcula el vertex shader real.</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Els <em>mipmaps</em> són versions reduïdes de la textura (cada nivell és la mitjana 2 × 2 de
+      l'anterior). El vertex shader del terreny llegeix l'altura amb <code>textureLod</code> en un nivell
+      ~1,97: barreja els nivells 1 i 2. Per això el cim del MDT (2647 m) no existeix a la superfície
+      dibuixada.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><code>make_texture()</code> a <a href="../terrain.py"><code>terrain.py</code></a> i
+      <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
+</div></details>
+
+<!-- O2.4 -->
+<details class="sub">
+<summary><span class="titol">O2.4 · Normals i il·luminació</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Entendre l'ombrejat del terreny: normals, model de Lambert i llum ambient.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris"><li data-estat="pendent">Criteri de comprovació encara per definir.</li></ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>La normal es calcula al fragment shader amb el pendent a la resolució completa (5 m), encara que la
+      malla tingui un vèrtex cada ~20 m: es manté el detall i s'adapta a qualsevol exageració. També s'han
+      fet servir les derivades de pantalla (<code>dFdx</code>, <code>dFdy</code>, <code>fwidth</code>) per
+      dibuixar línies de gruix constant (acta 3).</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p><a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a> i <code>gradient()</code> a
+      <a href="../data_io.py"><code>data_io.py</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Veure O1.1.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p>El model de Phong amb reflex especular per a l'aigua està només previst (acta 3).</p></div></details>
+</div></details>
+
+<!-- O2.5 -->
+<details class="sub">
+<summary><span class="titol">O2.5 · Ombres (shadow mapping)</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Entendre i aplicar el shadow mapping (lligat a O1.9).</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris"><li data-estat="pendent">Tasca 6.1.</li></ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
+</div></details>
+
+<!-- O2.6 -->
+<details class="sub">
+<summary><span class="titol">O2.6 · Organització del codi i del treball</span></summary>
+<div class="contingut">
+  <details class="apartat"><summary>Què es vol aconseguir</summary><div class="contingut">
+    <p>Un codi organitzat com el repte 4 (basecode del professor sense canvis) i una feina traçable al Git.</p></div></details>
+  <details class="apartat" open><summary>Estat i criteris de comprovació</summary><div class="contingut">
+    <ul class="criteris">
+      <li data-estat="validat">Estat del projecte preservat: branca <code>reorganitzacio-projecte</code> i etiqueta <code>abans-reorganitzacio</code> (tasca 0.1).</li>
+      <li data-estat="fet">Els fitxers originals de <code>basecode/</code> són idèntics als de <code>repte4/basecode/</code> (comprovat amb <code>diff</code> el 22/10).</li>
+      <li data-estat="pendent">Reorganització en passos petits sense canvis de comportament (fase F2).</li>
+    </ul></div></details>
+  <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
+    <p>Una <strong>branca</strong> és una línia de treball; un <strong>commit</strong>, una fotografia del
+      projecte; una <strong>etiqueta</strong>, un nom fix enganxat a un commit.</p></div></details>
+  <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
+    <p>Estructura de destinació: secció 4 del <a href="../PLA_DE_TREBALL.md">pla</a>.
+      Instruccions de treball: <a href="../CLAUDE.md"><code>CLAUDE.md</code></a>.</p></div></details>
+  <details class="apartat"><summary>Captures</summary><div class="contingut"><p>—</p></div></details>
+  <details class="apartat"><summary>Limitacions</summary><div class="contingut">
+    <p><code>main.py</code> té 508 línies i barreja la lògica, el temps, la llum i la interfície.</p></div></details>
+</div></details>
+
+</div></details>
+
+<footer>
+  MDT i dades de l'eclipsi © Instituto Geográfico Nacional / CNIG (CC BY 4.0). "Official astronomical
+  information provided by the National Geographic Institute based on calculations made by the National
+  Astronomical Observatory". Prediccions de contrast: "Eclipse Predictions by Fred Espenak, NASA's GSFC".
+</footer>
+
+</main>
+</body>
+</html>

@@ -80,10 +80,12 @@ Darrera actualització: 2026-10-22 (`CLAUDE.md` nou; P12 resolta).
 | D27 | `CLAUDE.md` passa a versionar-se (instruccions compartides de l'equip): es treu la regla corresponent del `.gitignore`. `CLAUDE_ANTIC.md` continua fora dels commits. | 22/10 |
 | D28 | Compartir la feina: push de la branca `reorganitzacio-projecte` i de l'etiqueta `abans-reorganitzacio` a `origin`, **sense fusionar amb `main`** ni canviar la visibilitat del repositori. | 22/10 |
 | D29 | Web de seguiment: primera versió **local** a `docs/` (HTML, CSS i JavaScript mínim, sense frameworks ni WebGL) abans de la reorganització del codi. **No es publica encara** amb GitHub Pages. | 22/10 |
+| D30 | La web es basa en els objectius **1 i 2 de l'acta 3 final** (PDF del 15/10). L'antic O3 ("Del dada oficial a la GPU", de l'esborrany `acta3.md`, que ja no hi és a `actes/`) es mostra com a objectiu propi del pla, **marcat com a no inclòs a l'acta final**. Substituït per D31. | 22/10 |
+| D31 | (P13) **Es retira l'O3.** Els seus subobjectius es reparteixen: la reproduïbilitat de les dades va a **O1.1** (dades del terreny), la validació del model a un nou **O1.12** i l'organització del codi i del treball a un nou **O2.6**. | 22/10 |
 
 ### 1.2 Pendents
 
-Cap pregunta oberta en aquest moment. (Historial: P1–P12 resoltes a D15–D25.)
+Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 i D31.)
 
 ---
 
@@ -537,7 +539,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 - Depèn: D15.
 - Comprovació (equip): `git branch` mostra `reorganitzacio-projecte`; `git show --stat abans-reorganitzacio`
   llista els fitxers esperats; `git status` només mostra `CLAUDE_ANTIC.md` com a no seguit.
-- Documentem: un registre a la web (O3) i aquí (§12).
+- Documentem: un registre a la web (O2.6) i aquí (§12).
 
 **0.3 Verificar les coordenades de les ubicacions** — Tipus: dades. Estat: `PENDENT`
 - Aprenem: geocodificació, sistemes de coordenades (ETRS89/WGS84), d'on surt una coordenada "oficial".
@@ -545,7 +547,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
   consulta), i els valors del CNIG recalculats per als punts concrets.
 - Depèn: D17; permís per fer peticions de xarxa a un geocodificador (no és una descàrrega de dades).
 - Comprovació: cada punt es pot obrir al mapa de la font i cau al lloc indicat (plaça, edifici).
-- Documentem: §10.3 i la web (O3.2).
+- Documentem: §10.3 i la web (O1.2).
 
 **0.2 Línia base de comportament** — Tipus: N (només scripts de prova). Estat: `PENDENT`
 - Aprenem: què vol dir "el mateix comportament" i com es demostra.
@@ -554,7 +556,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 - Depèn: 0.1.
 - Comprovació: l'equip executa els scripts i obté els mateixos números que §6.6 (els de l'horitzó,
   recalculats amb k = 0 segons D18).
-- Documentem: les evidències de partida (O3).
+- Documentem: les evidències de partida (O1.12).
 
 ### F1 — Entendre el programa (mínim)
 
@@ -629,7 +631,7 @@ Per a totes les tasques de la F2:
 - Comprovació: captures de la mateixa escena idèntiques a les de 0.2 (al mateix ordinador i en
   les mateixes condicions), la llista de proves manuals passa i
   `diff -r` amb `repte4/basecode` no mostra canvis als originals.
-- Documentem: l'arbre i la responsabilitat de cada fitxer (O3).
+- Documentem: l'arbre i la responsabilitat de cada fitxer (O2.6).
 
 | Tasca | Canvia | Estat |
 |---|---|---|
@@ -670,17 +672,27 @@ Per a la F3:
 | 4.4 Vic i l'Escala | Ídem | 4.3 | Ídem | `PENDENT` |
 
 - Aprenem: CRS, resolució, nivells de detall senzills, reproduïbilitat.
-- Documentem: fitxes de dades (O3) i resultats per ubicació (O1).
+- Documentem: fitxes de dades (O1.1) i resultats per ubicació (O1).
 
 ### F5 — Web de seguiment (N; mínim; en paral·lel des de la F1)
 
-**5.1 Esquelet** — Estat: `PENDENT`
+**5.1 Primera versió local** — Estat: `FET` (22/10/2026, pendent de revisió de l'equip)
+
+Resultat: `docs/index.html`, `docs/estil.css`, `docs/progres.js` i `docs/img/` (5 captures JPEG,
+~520 KB en total, generades amb `scripts/captura.py` i `scripts/exercici_fotograma.py`; les comandes
+són al peu de cada imatge). S'obre fent doble clic a `docs/index.html` (no cal servidor). No es
+publica amb GitHub Pages (D29). El contingut surt de les actes 1 i 3 (PDF), de l'acta 2 (md) i
+d'aquest pla. Comprovat per Claude: estructura HTML correcta, cap enllaç local trencat, 41 criteris
+(4 validats, 10 fets, 25 pendents, 2 no compleixen) i renderitzat amb Chrome sense finestra.
+Pendent de l'equip: revisar-ne el contingut. L'O3 s'ha retirat (D31).
+
+Disseny previst inicialment (es manté):
 - Canvia: `docs/index.html` (HTML i CSS, sense llibreries) + `docs/objectius.json`; publicació amb
   GitHub Pages (opcional, pendent de permís).
 - Estructura, amb desplegables tipus Notion (`<details>`):
 
   ```
-  Objectiu (O1, O2, O3)            estat · % (criteris validats / total)
+  Objectiu (O1, O2)                estat · % (criteris validats / total)
     └ Subobjectiu                  estat · %
         ▸ Què es vol aconseguir
         ▸ Estat i criteris de comprovació
@@ -692,12 +704,13 @@ Per a la F3:
         ▸ Limitacions
   ```
 
-- Objectius inicials (de l'acta 3):
-  - **O1** Simulador: O1.1 terreny, O1.2 exploració i observació, O1.3 Sol i Lluna (model),
-    O1.4 llum, O1.5 temps, O1.6 ombres del relleu, O1.7 meteorologia.
-  - **O2** Aprenentatge gràfic: O2.1 pipeline i fotograma, O2.2 càmeres i matrius, O2.3 textures i
-    heightmap, O2.4 normals i il·luminació, O2.5 profunditat, O2.6 ombres.
-  - **O3** Dades: O3.1 MDT, O3.2 dataset del CNIG, O3.3 reproduïbilitat, O3.4 validació.
+- Objectius (els dos de l'acta 3 final; D30, D31), tal com són a la web:
+  - **O1** Simulador: O1.1 dades del terreny (inclou la reproduïbilitat), O1.2 dades de l'eclipsi,
+    O1.3 terreny 3D, O1.4 exploració, O1.5 observació des del terra, O1.6 el Sol, O1.7 la Lluna,
+    O1.8 il·luminació, O1.9 ombres del relleu, O1.10 interfície i barra temporal,
+    O1.11 meteorologia, O1.12 validació del model.
+  - **O2** Conceptes gràfics: O2.1 fotograma, O2.2 càmeres i transformacions, O2.3 textures i
+    mipmaps, O2.4 normals i il·luminació, O2.5 shadow mapping, O2.6 organització del codi i del treball.
 - Percentatge: cada subobjectiu té una llista de criteris comprovables, i
   % = criteris `VALIDAT` / total. Res de percentatges a ull.
 - Comprovació: s'obre al navegador; cada desplegable s'obre; els percentatges coincideixen amb
@@ -735,4 +748,6 @@ l'evidència corresponents.
 | 22/10/2026 | D23 (NASA com a font externa, §6.3.1) i D24. Tasca 1.0 reformulada: vèrtex de la geometria dibuixada i tolerància calculada. Nova pendent P12 (`CLAUDE.md` nou de l'equip). 0.1 continua `FET`, no `VALIDAT`. |
 | 22/10/2026 | D25: `CLAUDE.md` substituït per la versió nova; `CLAUDE_ANTIC.md` sense canvis. P12 resolta. Retirades les instruccions transitòries que deien que `CLAUDE.md` estava desactualitzat. Definició de `FET`/`VALIDAT`, regla d'autoritzacions i criteri de comparació d'imatges alineats amb `CLAUDE.md`. Títol de §2 corregit (fotografia de l'etiqueta vs. canvis posteriors). 0.1 continua `FET`, pendent de la validació de l'equip. |
 | 22/10/2026 | 0.1 `VALIDAT` per l'equip. Tasca 1.0 `FET`: `scripts/exercici_fotograma.py` i `docs/exercici_1_0_vertex_a_pixel.md`. Sense commit. |
-| 22/10/2026 | 1.0 `VALIDAT`. Corregida la descripció de w (profunditat segons l'eix de visió, no distància euclidiana) a la documentació i al script. D26–D29. `CLAUDE.md` versionat (D27). Commit i push de la branca i l'etiqueta (D28). |
+| 22/10/2026 | 1.0 `VALIDAT`. Corregida la descripció de w (profunditat segons l'eix de visió, no distància euclidiana) a la documentació i al script. D26–D29. `CLAUDE.md` versionat (D27). Commit `6bca321` i push de la branca i l'etiqueta (D28); `main` sense canvis. |
+| 22/10/2026 | 5.1 `FET`: primera versió local de la web a `docs/`. D30 i pendent P13 (O3 no és a l'acta 3 final). |
+| 22/10/2026 | D31: O3 retirat i repartit (O1.1, O1.12, O2.6). Commit i push de la web i del pla. |
