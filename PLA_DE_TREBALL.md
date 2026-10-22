@@ -99,7 +99,7 @@ Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 
 
 ---
 
-## 2. Funcionalitats existents (codi actual, després de la F2)
+## 2. Funcionalitats existents (codi actual, després de la F9)
 
 El **comportament** és el mateix que el de la fotografia guardada a l'etiqueta
 `abans-reorganitzacio`: la fase F2 només ha mogut fitxers i codi (veure F2 a §11). Les rutes
@@ -109,21 +109,17 @@ Res d'aquesta llista no està validat formalment per l'equip.
 
 | Funcionalitat | On és | Estat / observacions |
 |---|---|---|
-| Terreny 3D d'un MDT (heightmap a textura, graella de 1024² vèrtexs, faldilles, colors per altitud, mar, boira) | `basecode/terrain.py`, `basecode/shaders/terrain.*`, `dades/data_io.py` | Funciona (captura sense finestra comprovada) |
-| Overlays del CNIG (enfosquiment, durada, ombres del relleu, límits de la totalitat) | `dades/eclipse_data.py`, `terrain.frag` | Funciona |
-| Una sola regió carregada (Picos, 5 m, 20×20 km) | `main.py` (`REGIO`) | Sense relleu fora dels 20 km |
-| Càmera d'exploració lliure (arrossegar, botó dret o WASD, roda); doble clic tria el punt d'observació | `basecode/camera_exploracio.py`, `main.py` (`triar_punt`) | Tasca 3.1 (`FET`) |
-| Ubicació de l'observador com a dada; marcador (esfera) que només la mostra | `dades/observador.py`, `main.py` (`situar_marcador`) | Tasca 3.1 (`FET`). El personatge s'ha retirat |
-| Vista d'observador als ulls (1,7 m sobre la superfície dibuixada), zoom de prismàtics, seguir el Sol | `basecode/camera_observador.py` | Tasca 3.1 (`FET`) |
-| Punt bloquejat durant la reproducció (es pot mirar i fer zoom) | `main.py` (`triar_punt`), `ui.py` (avís) | Tasca 3.2 (`FET`) |
-| Tecla P: vista d'observador mirant el Sol i reproducció des de C1 al punt triat | `main.py` (`eclipsi_des_d_aqui`) | Funciona |
-| Barra de temps (play, ±5 min, velocitats, Auto) | `ui.py` (`barra_temps`) | Funciona |
-| Model del Sol (NOAA + correcció constant al màxim del CNIG) i de la Lluna (recta ajustada als contactes del CNIG) | `dades/model_eclipsi.py` | Errors coneguts (§6) |
-| Llum del terreny i del cel segons el Sol visible i el crepuscle; halo i corona | `main.py` (`actualitzar_llum`), `basecode/astres.py`, `esfera.frag` | Il·lustratiu (no és un model físic del cel) |
-| Lluna a distància artificial (per defecte, 2 × la mida del terreny), amb la mida aparent real | `main.py` (`distancia_lluna`), `basecode/astres.py` | **Il·lustratiu** (§8) |
-| Botó "Mirar des de darrere la Lluna" | `ui.py` (`panell_avancat`) | **Il·lustratiu**: no és una vista des de la Lluna real |
-| Curvatura (desactivada per defecte) i exageració (slider de 1 a 20) | `basecode/terrain.py`, `terrain.vert` | Per defecte, la curvatura està **desactivada** (contradiu D6) |
-| Scripts: descàrrega WCS, caches, captura, exercici 1.0 | `scripts/` | Funcionen (captura, caches i exercici comprovats després de la F2; la descàrrega no s'ha tornat a executar) |
+| La Terra (el·lipsoide WGS84) amb textura, dia i nit i ombra de la Lluna per a cada punt | `basecode/terra.py`, `shaders/terra.*` | F9 (`FET`) |
+| Relleu de la península (200 m) i Picos (5 m) posats sobre la Terra | `basecode/terrain.py` (mode globus), `shaders/terrain.*` | F9 (`FET`); només Espanya |
+| Sol i Lluna a la seva posició i mida reals; Sol amb limbe i granulació; Lluna amb textura | `dades/efemerides.py`, `basecode/astres.py`, `shaders/esfera.*` | F9 (`FET`); granulació il·lustrativa |
+| Model de l'eclipsi per a qualsevol punt (part tapada, contactes, posta, centre de l'ombra) | `dades/model_eclipsi.py`, `dades/geodesia.py` | F9 (`FET`); comprovat contra el CNIG |
+| Càmera d'exploració lliure (del terreny a l'espai) | `basecode/camera_exploracio.py` | F9 (`FET`) |
+| Observació als ulls (1,7 m), mirada fixa, sense seguir el Sol | `basecode/camera_observador.py` | F9 (`FET`) |
+| Punt d'observació com a dada; llista d'ubicacions; doble clic; bloquejat en reproduir | `dades/observador.py`, `main.py` (`triar_punt`) | `FET` |
+| P només reproduir/pausar; temps independent de la càmera | `main.py`, `ui.py` | F9 (`FET`) |
+| Panell senzill i apartat Avançat (capes del CNIG, depuració) | `ui.py` | F9 (`FET`) |
+| Mode pla del terreny i càmera orbital, per als scripts | `basecode/terrain.py`, `basecode/camera_orbital.py` | Funciona |
+| Scripts: descàrregues, caches, captura, exercici 1.0, validacions | `scripts/` | Funcionen |
 
 ---
 
@@ -159,28 +155,31 @@ Al repte 4 real, les classes pròpies (`Sphere`, `MeshObject`...) són dins de `
 el nostre projecte en té moltes, les posem en fitxers propis **afegits** a `basecode/`, tal com
 demanàveu inicialment, sense tocar-ne cap d'original.
 
-Estructura **actual** (després de la F2):
+Estructura **actual** (després de la F9):
 
 ```
-main.py                         GraphicsEngine: on_init, drawables, render (temps, llum, teclat)
-ui.py                           build_ui(app): panell "Opcions" i barra de temps
+main.py                         GraphicsEngine: escena, temps, astres, cel i teclat
+ui.py                           build_ui(app): panell i barra de temps
 basecode/                       ORIGINALS sense canvis, més els nostres objectes:
-  sol.py                          Sol (Light amb azimut i elevacio)
-  terrain.py                      Terrain
-  astres.py                       Esfera, Lluna (Sol visible i halo)
-  camera_exploracio.py            CameraExploracio (abans camera.py, classe Camera)
-  camera_observador.py            CameraObservador (abans camera_primera_persona.py): als ulls de
-                                  l'observador
-  shaders/                        gouraud, phong (originals) + terrain, esfera (nostres)
-dades/                          sense OpenGL: data_io.py, eclipse_data.py, model_eclipsi.py,
-                                observador.py (ubicacio de l'observador; tasca 3.1)
-scripts/                        descarregar_mdt.py, preparar_dades.py, captura.py, exercici_fotograma.py
+  terra.py                        Terra (el·lipsoide amb textura)
+  terrain.py                      Terrain (mode globus i mode pla)
+  astres.py                       Esfera (Sol, halo) i Lluna
+  sol.py                          Sol (Light amb azimut i elevació)
+  camera_exploracio.py            CameraExploracio (lliure, ECEF)
+  camera_observador.py            CameraObservador (als ulls)
+  camera_orbital.py               CameraOrbital (mode pla, scripts)
+  programes.py                    carregar shaders amb #define
+  shaders/                        gouraud, phong (originals) + terrain, terra, esfera (nostres)
+dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
+                                observador.py, data_io.py, eclipse_data.py
+scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
+                                exercici_fotograma, validar_model, validar_ombra
 models/                         .obj, com al repte 4
-data/                           MDT, dataset del CNIG, cache (veure §10)
+data/                           MDT, CNIG, efemerides, textures, cache (veure data/FONTS.md)
 docs/                           web de seguiment
 ```
 
-Previst més endavant: `scripts/validar_model.py` (tasca 0.2).
+(`scripts/validar_model.py`, la tasca 0.2, ja existeix.)
 
 **Constants compartides:** les mides aparents del Sol i la Lluna (`RADI_*`, `DIST_*`) les fa servir
 tant el model de l'eclipsi com el dibuix. Abans eren a `astres.py` i `model_eclipsi.py` les
@@ -569,7 +568,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 - Comprovació: cada punt es pot obrir al mapa de la font i cau al lloc indicat (plaça, edifici).
 - Documentem: §10.3 i la web (O1.2).
 
-**0.2 Línia base de comportament** — Tipus: N (només scripts de prova). Estat: `PENDENT`
+**0.2 Línia base de comportament** — Tipus: N (només scripts de prova). Estat: `FET` en part (22/10: `scripts/validar_model.py` i `scripts/validar_ombra.py` són al repositori; les proves del programa amb finestra amagada encara són fora)
 - Aprenem: què vol dir "el mateix comportament" i com es demostra.
 - Canvia: s'afegeixen `scripts/validar_model.py` (contactes, convergència, horitzó) i captures de
   referència a `captures/referencia/`, i una llista de proves manuals a la web.
@@ -727,11 +726,11 @@ sense canvis. **No provat:** la finestra visible amb el teclat i el ratolí real
 |---|---|---|---|
 | 3.1 Retirar el personatge | Fora `basecode/personatge.py`, salts i el WASD del ninot. Nou `dades/observador.py` (x, z, lat, lon, altitud; sense dibuix). `main.triar_punt()` crea alhora l'observador, el model i les dades del CNIG. Càmera d'exploració lliure (WASD i ratolí la desplacen); el doble clic tria el punt, marcat amb una esfera. Càmera d'observador als ulls | Prova automàtica (Claude) i llista de proves de l'equip: explorar, triar un punt, passar a la vista d'observador; les coordenades del panell = les del punt | `FET` |
 | 3.2 Bloquejar l'observador durant la reproducció (D5) | `triar_punt()` no canvia res mentre es reprodueix; el doble clic i el WASD només mouen la càmera; el panell avisa que el punt està bloquejat | Prova automàtica (Claude) i de l'equip: amb la reproducció en marxa, canviar de punt no fa res; es pot girar i fer zoom; coordenades, CNIG i model del mateix punt | `FET` |
-| 3.3 `durada = None` sense dades vàlides | `dades/model_eclipsi.py` | `validar_model.py`: el punt (55, 0) no dona error en accedir a `durada` | `PENDENT` |
-| 3.4 Curvatura i horitzó coherents (D6, D18, §7) | Mode normal amb curvatura geomètrica activa (centrada a l'observador, k = 0) i exageració 1; controls de depuració etiquetats; ull a altitud del MDT complet + 1,7 m | Horitzó del script = horitzó del depth buffer (≤ 0,05°), tots dos amb k = 0 | `PENDENT` |
-| 3.5 Convergència UTM | Sol i Lluna girats −γ | `validar_model.py`: el nord geogràfic té azimut de quadrícula −γ a l'escena | `PENDENT` |
-| 3.6 Refracció del Sol | Substituir la correcció constant per una fórmula de refracció documentada (§6.5), només si l'explicació és defensable | Error tipus 1: elev. al màxim ≤ 0,02° del CNIG als 9 punts. Error tipus 2 (mateixa font): posta ≤ 1 min de la banda 5 | `PENDENT` |
-| 3.7 Contactes asimètrics | Primer: explicar la causa de l'asimetria. Després, només si aporta valor (§6.4.1), un model de la Lluna amb C1 i C4 correctes | Error tipus 1: C1–C4 ≤ 5 s als 9 punts | `PENDENT` |
+| 3.3 `durada = None` sense dades vàlides | `dades/model_eclipsi.py` | `validar_model.py`: el punt (55, 0) no dona error en accedir a `durada` | `FET` (Resolta a la 9.2: el model nou té `durada = None` quan no hi ha totalitat) |
+| 3.4 Curvatura i horitzó coherents (D6, D18, §7) | Mode normal amb curvatura geomètrica activa (centrada a l'observador, k = 0) i exageració 1; controls de depuració etiquetats; ull a altitud del MDT complet + 1,7 m | Horitzó del script = horitzó del depth buffer (≤ 0,05°), tots dos amb k = 0 | `EN CURS` (A la 9.3 el relleu es posa sobre l'el·lipsoide: la curvatura és la real. Falta comparar l'horitzó dibuixat amb un script) |
+| 3.5 Convergència UTM | Sol i Lluna girats −γ | `validar_model.py`: el nord geogràfic té azimut de quadrícula −γ a l'escena | `FET` (Resolta a la 9.3: tot és en coordenades terrestres; no hi ha nord de quadrícula a l'escena) |
+| 3.6 Refracció del Sol | Substituir la correcció constant per una fórmula de refracció documentada (§6.5), només si l'explicació és defensable | Error tipus 1: elev. al màxim ≤ 0,02° del CNIG als 9 punts. Error tipus 2 (mateixa font): posta ≤ 1 min de la banda 5 | `FET` (Resolta a la 9.2: refracció de Bennett per a l'elevació mostrada; elevació al màxim a ≤ 0,017° del CNIG) |
+| 3.7 Contactes asimètrics | Primer: explicar la causa de l'asimetria. Després, només si aporta valor (§6.4.1), un model de la Lluna amb C1 i C4 correctes | Error tipus 1: C1–C4 ≤ 5 s als 9 punts | `FET` (Resolta a la 9.2: amb les efemèrides reals, C1–C4 a ≤ 1,2 s del CNIG) |
 | 3.8 Comprovació independent (D20, D23) | Consulta manual del calculador de la NASA (§6.3.1) en uns quants punts (Picos, un punt de totalitat més, 2 punts catalans) i moments (C1, màxim, C4, posta). Taula amb les convencions de cada valor: hora (TU), coordenades i altitud, refracció inclosa o no, definició dels contactes | Error tipus 2 dins dels objectius de §6.4, o explicació de la diferència | `PENDENT` |
 
 Per a la F3:
@@ -808,13 +807,45 @@ espacial, integrant-hi les correccions astronòmiques i geogràfiques (3.4–3.8
 
 | Tasca | Canvia | Estat |
 |---|---|---|
-| 9.1 | P només reproduir/pausar; sense seguir el Sol; fora el marcador permanent; panell senzill | `EN CURS` |
-| 9.2 | Efemèrides reals del Sol i la Lluna (JPL Horizons) i geodèsia (WGS84) a `dades/` | `PENDENT` |
-| 9.3 | Món en coordenades terrestres (ECEF): Terra, península + Picos posats sobre el globus, profunditat logarítmica, coordenades relatives a la càmera | `PENDENT` |
-| 9.4 | Càmeres noves: exploració lliure del terreny a l'espai i observació amb la mirada fixa | `PENDENT` |
-| 9.5 | Ombra de la Lluna per a cada punt de la superfície; Sol treballat; Lluna amb textura | `PENDENT` |
-| 9.6 | Model de l'observador a partir de la geometria; comprovació contra el CNIG i la NASA (substitueix 3.5–3.8) | `PENDENT` |
-| 9.7 | README, web i pla | `PENDENT` |
+| 9.1 | P només reproduir/pausar; sense seguir el Sol; fora el marcador permanent; panell senzill | `FET` |
+| 9.2 | Efemèrides reals del Sol i la Lluna (JPL Horizons) i geodèsia (WGS84) a `dades/` | `FET` |
+| 9.3 | Món en coordenades terrestres (ECEF): Terra, península + Picos posats sobre el globus, profunditat logarítmica, coordenades relatives a la càmera | `FET` |
+| 9.4 | Càmeres noves: exploració lliure del terreny a l'espai i observació amb la mirada fixa | `FET` |
+| 9.5 | Ombra de la Lluna per a cada punt de la superfície; Sol treballat; Lluna amb textura | `FET` |
+| 9.6 | Model de l'observador a partir de la geometria; comprovació contra el CNIG (fet) i la NASA (pendent) | `EN CURS` |
+| 9.7 | README, `data/FONTS.md`, `CLAUDE.md`, pla i web | `EN CURS` |
+
+**Resultats de la F9 (22/10/2026).**
+
+*Comprovat automàticament:*
+- `scripts/validar_model.py` (independent: el model no s'ajusta al CNIG): als 9 punts, C1, C2, màxim, C3 i
+  C4 a ≤ 1,2 s del CNIG; part tapada al màxim a ≤ 0,05 punts; elevació del Sol a ≤ 0,017°.
+- `scripts/validar_ombra.py`: l'eix de l'ombra cau dins del polígon de la umbra del CNIG a tots els
+  instants comparats que no estan retallats (de 18,338 a 18,518 h TU). La distància al centre del
+  polígon creix quan el Sol baixa (de 3 a 132 km), perquè l'ombra s'allarga cap al terminador.
+- Prova del programa real (finestra amagada, 13 condicions): els ulls i la mirada no canvien en
+  reproduir (el Sol no se segueix); els ulls són a 1,7 m del terra dibuixat; P congela i continua des
+  del mateix instant sense moure la càmera; la roda allunya la càmera de 3,5 km a ~27.000 km sense
+  canviar el camp de visió; la velocitat amb W és ~2,6 km/s a 3,5 km d'altura i ~21.000 km/s a
+  27.000 km; el punt no es pot canviar durant la reproducció; el picking cau a 0,3 m de la superfície;
+  el terra s'enfosqueix a la totalitat.
+- Mode pla (`captura.py`, exercici 1.0): igual que abans llevat d'arrodoniments a les siluetes
+  (l'exercici continua `COINCIDEIX`). Els originals del `basecode/`, sense canvis.
+
+*Inspeccionat visualment (captures):* eclipsi parcial amb el creixent del Sol; totalitat amb la corona;
+transició del terreny a 50 km i 800 km amb Picos encaixat dins la península i el globus fora d'Espanya;
+la Terra des de l'espai amb la cara de dia i l'ombra; la Lluna amb textura il·luminada pel costat del Sol.
+
+*Provat per l'equip:* encara no.
+
+*Aproximacions i limitacions:* el geoide no es corregeix (~50 m); la malla del globus queda fins a
+~120 m per sota de l'el·lipsoide entre vèrtexs (el relleu la tapa); fora d'Espanya només hi ha la
+textura del globus, sense relleu; la península té un vèrtex cada ~1 km; els ulls van sobre la
+superfície dibuixada (mitjana de la malla); l'orientació de la Lluna és aproximada (sense libració);
+el color del cel, el halo, la corona, el contorn d'atmosfera i la granulació del Sol són il·lustratius;
+l'eclipsi a Espanya passa a prop de la posta, de manera que des de l'espai l'ombra cau a prop del
+terminador i es distingeix poc del vespre.
+
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
@@ -847,3 +878,4 @@ espacial, integrant-hi les correccions astronòmiques i geogràfiques (3.4–3.8
 | 22/10/2026 | F2 `FET` (tasques 2.1–2.7): reorganització en commits locals separats, sense push. Estructura actual a §4. |
 | 22/10/2026 | 2.1–2.6 `VALIDAT` per l'equip (finestra i controls principals). Documentades la magnitud i la ubicació de les diferències d'imatge. |
 | 22/10/2026 | Web reescrita (un desplegable per subobjectiu, text seguit). Tasques 3.1 i 3.2 `FET`: personatge retirat, observador com a dada, bloqueig durant la reproducció. Commits locals, sense push. |
+| 22/10/2026 | Treball autònom (D32–D38). F9: P només reproduir/pausar, efemèrides de JPL i geodèsia WGS84, escena en coordenades terrestres amb la Terra, la península i Picos, Sol i Lluna reals, ombra de la Lluna per punt, càmeres noves i panell senzill. Comprovacions a la F9. 3.3–3.7 resoltes. `data/FONTS.md` creat (tasca 4.1, part de documentació). |

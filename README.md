@@ -2,13 +2,14 @@
 
 Projecte de l'assignatura EGRA (Alícia Martí, Oriol Mota, Elena Gutiérrez).
 
-Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya,
-amb el model digital del terreny (MDT) de l'IGN i les dades oficials de l'eclipsi del CNIG.
-Amb la càmera d'exploració es recorre el terreny dels Picos de Europa (MDT de 5 m) i, amb un doble
-clic, es tria un punt d'observació. Des d'aquell punt, a 1,7 m sobre el terra, es veu com el Sol baixa
-cap a l'horitzó i la Lluna el tapa. La tecla **P** reprodueix l'eclipsi des del punt triat, mirant el Sol.
-De moment es carrega una sola regió; més endavant volem un zoom progressiu (com Google Maps) en què el
-terreny guanyi detall a mesura que t'hi apropes.
+Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya.
+L'escena és un model geomètric coherent: la Terra (el·lipsoide WGS84 amb textura de la NASA), el
+relleu de la península (MDT de 200 m de l'IGN) amb els Picos de Europa com a zona de detall (5 m), i el
+Sol i la Lluna a les seves posicions i mides reals (efemèrides de JPL Horizons). L'ombra de la Lluna es
+calcula per a cada punt de la superfície i es veu moure's sobre la Terra.
+
+Es pot observar l'eclipsi des d'un punt, a 1,7 m sobre el terra, o explorar lliurement des del terreny
+fins a l'espai. El temps es controla a part: **P** només reprodueix o pausa.
 
 ---
 
@@ -33,18 +34,12 @@ conda activate egra
 python main.py
 ```
 
-S'obre una finestra amb el terreny, el panell **Opcions** i la barra de temps. La primera vegada es
-calculen uns fitxers auxiliars del terreny (5–7 s); a partir de llavors es carrega en menys d'un
-segon. Si es vol, es poden calcular tots d'entrada amb:
+S'obre una finestra amb la vista des del terra (Picos de Europa, uns minuts abans del màxim), el
+panell i la barra de temps. La primera vegada es calculen uns fitxers auxiliars del terreny (uns
+segons); a partir de llavors es carrega en un o dos segons. Es poden calcular d'entrada amb:
 
 ```bash
 python scripts/preparar_dades.py
-```
-
-També es pot obrir un altre MDT en EPSG:25830 en lloc dels Picos:
-
-```bash
-python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif
 ```
 
 ---
@@ -53,77 +48,85 @@ python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif
 
 ### Controls
 
-Hi ha dues vistes. La **d'exploració** és una càmera lliure per inspeccionar el terreny i triar el punt
-d'observació, que es marca amb una esfera taronja. La **d'observador** posa la càmera als ulls d'una
-persona en aquell punt, 1,7 m sobre el terra.
+Hi ha dues vistes. **Observar des del terra** posa la càmera als ulls d'una persona al punt
+d'observació, 1,7 m sobre el terra: els ulls no es mouen i la mirada es queda on la deixes (el Sol no
+se segueix sol). **Explorar** és una càmera lliure que es pot moure del terreny fins a l'espai; la
+velocitat s'adapta a l'altura.
 
-| Acció | Exploració | Observador |
+| Acció | Explorar | Observar des del terra |
 |---|---|---|
-| Girar la càmera / mirar al voltant | arrossegar o fletxes | arrossegar o fletxes |
-| Desplaçar la càmera | botó dret (o Maj + esquerre), o `W` `A` `S` `D` (`Ctrl`: més ràpid) | — |
-| Zoom | roda (cap al punt del cursor) | roda (com uns prismàtics) |
-| Triar el punt d'observació | doble clic al terreny | — (cal tornar a l'exploració) |
+| Girar la mirada | arrossegar o fletxes | arrossegar o fletxes |
+| Moure's | `W` `A` `S` `D` (endavant, enrere, costats), `E` / `Q` (pujar, baixar), `Ctrl`: més ràpid | — |
+| Roda | avançar o retrocedir (mou la càmera) | zoom (com uns prismàtics) |
+| Triar el punt d'observació | doble clic al terreny, o la llista del panell | la llista del panell |
 | Canviar de vista | `V` | `V` |
-| Veure l'eclipsi des del punt triat | `P` | `P` |
+| Reproduir / pausar el temps | `P` | `P` |
 
-Amb la `P` la càmera passa a la vista d'observador, segueix el Sol amb una mica de zoom i el temps avança
-sol des de l'inici de l'eclipsi: ràpid a les fases parcials i lent a la totalitat. Si gires la
-càmera, deixa de seguir el Sol.
+**P** no canvia res de la càmera: congela el temps on és i el torna a posar en marxa des del mateix
+instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a explorar i s'allunya
+fins a veure la Terra, i es prem P: l'eclipsi continua amb la càmera a l'espai.
 
-**Mentre es reprodueix l'eclipsi, el punt d'observació queda bloquejat**: es pot mirar al voltant, fer
-zoom i moure la càmera d'exploració, però el doble clic no canvia el punt. Així el cel, el model i les
-dades del panell són sempre del mateix lloc. Per triar-ne un altre, cal posar la barra de temps en pausa.
+Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i el model són sempre
+del mateix lloc). El botó **Veure la Terra des de l'espai** porta la càmera d'exploració a uns
+9.000 km, mirant l'ombra de la Lluna.
 
 ### Panell i barra de temps
 
-- **Barra de temps** (a baix): play/pausa, ±5 min, velocitat (x1, x10, x60, x300 o *Auto*) i l'hora
-  (CEST) amb la fase de l'eclipsi. A sota, les hores de contacte del CNIG en aquell punt.
-- **Ara mateix**: hora, fase, percentatge del Sol tapat per la Lluna i posició del Sol.
-- **Punt d'observació (dades del CNIG)**: coordenades, hores de cada fase, posta del Sol, durada de la
-  totalitat i visibilitat segons el relleu.
-- **Capes sobre el terreny**: enfosquiment màxim, durada de la totalitat i ombres del relleu del CNIG
-  (amb opacitat i llegenda), i els límits de la franja de totalitat.
-- **Avançat**: FPS, exageració vertical, boira, distància de la Lluna, filferros, curvatura, eixos,
-  zoom i el botó *Mirar des de darrere la Lluna*.
+- **Panell**: reproduir o pausar, hora, fase, part del Sol tapada al punt triat i velocitat (x1 a x1000,
+  o *Auto*, que va lenta a la totalitat); la vista; el punt d'observació (llista d'ubicacions, doble
+  clic al terreny i *Tornar al punt d'observació*); una ajuda curta dels controls.
+- **Avançat** (tancat per defecte): FPS i posició de la càmera, les dades del CNIG del punt amb les
+  hores del nostre model al costat, les capes del CNIG sobre el terreny (enfosquiment, durada, ombres
+  del relleu i límits de la totalitat) i eines de depuració (exageració del relleu, filferros).
+- **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar, de 16:00 a
+  23:30 (hora d'estiu). A sota, les hores de l'eclipsi al punt triat.
 
-### Com es calcula el cel (`dades/model_eclipsi.py`)
+### Com es calcula l'eclipsi (`dades/`)
 
-- **Sol**: algorisme de la NOAA per a la data i el punt, corregit perquè al màxim coincideixi amb
-  l'azimut i l'elevació del CNIG. La correcció d'elevació va d'uns 0,09° a 0,26° segons el punt i és
-  compatible amb la refracció atmosfèrica, que el CNIG inclou (veure `PLA_DE_TREBALL.md`, §6).
-- **Lluna** (primera aproximació): es mou en línia recta respecte del Sol, en la direcció de
-  l'eclíptica, i passa a la distància mínima a l'hora del màxim. La velocitat i la distància mínima
-  s'ajusten amb les hores de contacte del CNIG en aquell punt; fora de la franja, amb l'enfosquiment
-  màxim. Es comprova que a l'inici i al final de la totalitat la Lluna tapa el 100 % del Sol.
-- **Mides**: el Sol i la Lluna tenen la seva mida aparent real (~0,5°). La Lluna es dibuixa a la
-  distància que es tria al panell; el Sol, "a l'infinit".
-- **Llum**: el terreny i el cel s'enfosqueixen segons la part del Sol que queda visible i segons
-  l'altura del Sol (crepuscle). A la totalitat es veu la corona.
+- **Posicions del Sol i la Lluna**: efemèrides de JPL Horizons (NASA/JPL), cada minut, passades a
+  coordenades terrestres amb la precessió, la nutació i la rotació de la Terra (`dades/efemerides.py`).
+- **Observador**: latitud, longitud i altitud sobre l'el·lipsoide WGS84 (`dades/geodesia.py`).
+- **Part del Sol tapada**: des de cada punt, el Sol i la Lluna es veuen com dos discs; la part tapada
+  és l'àrea on se solapen (`dades/model_eclipsi.py`). Els contactes (C1–C4), el màxim i la posta
+  surten d'aquesta geometria; **no s'ajusten a cap dada del CNIG**.
+- **Comprovació**: `python scripts/validar_model.py` compara les hores amb el CNIG a 9 punts (totes a
+  ≤ 1,2 s) i `python scripts/validar_ombra.py` comprova que l'eix de l'ombra cau dins de la umbra
+  publicada pel CNIG.
+- **A l'escena**: la llum i l'ombra de la Lluna es calculen per a cada punt del terreny i de la Terra
+  amb la mateixa fórmula, de manera que l'ombra es veu moure's i la resta de la cara de dia segueix
+  il·luminada.
+- **Il·lustratiu (no validat)**: el color del cel, el halo i la corona, el contorn blau de l'atmosfera
+  de la Terra i la granulació animada del Sol. L'orientació de la Lluna és aproximada (sense libració).
 
 ---
 
 ## 3. Què hi ha a cada carpeta
 
 ```
-main.py                  Programa principal: coordina l'escena (crea els objectes, temps, llum i teclat)
-ui.py                    Interfície: el panell "Opcions" i la barra de temps (slimgui)
+main.py                  Programa principal: coordina l'escena (temps, astres, cel i teclat)
+ui.py                    Interfície: el panell i la barra de temps (slimgui)
 basecode/                Codi base de l'assignatura (el del repte 4, sense canvis) i els nostres objectes:
   engine.py, window.py, ui_panel.py, objects.py, camera.py, light.py, axis.py,
   meshloader.py, shaders.py       fitxers originals del professor (no es modifiquen)
-  sol.py                 El Sol: la llum de l'escena (Light del basecode amb azimut i elevació)
-  terrain.py             El terreny: textures, graella de vèrtexs, faldilles i capes de l'eclipsi
-  astres.py              Esferes de la Lluna, el Sol i la seva resplendor (halo i corona)
-  camera_exploracio.py   Càmera orbital per explorar el terreny i triar el punt d'observació
+  terra.py               La Terra (el·lipsoide amb textura, dia i nit, ombra de la Lluna)
+  terrain.py             Relleu d'un MDT: mode globus (posat sobre la Terra) i mode pla (scripts)
+  astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
+  sol.py                 La llum de l'escena (Light del basecode)
+  camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
   camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
-  shaders/               gouraud i phong (originals) i terrain i esfera (nostres)
+  camera_orbital.py      Càmera orbital del mode pla (només per als scripts)
+  programes.py           Carrega shaders amb opcions (#define)
+  shaders/               gouraud i phong (originals); terrain, terra i esfera (nostres)
 dades/                   Lectura i càlcul de dades, sense OpenGL:
-  observador.py          La ubicació de l'observador (només dades: punt, latitud, longitud, altitud)
+  efemerides.py          Posicions del Sol i la Lluna en coordenades terrestres
+  geodesia.py            Latitud, longitud i altitud <-> coordenades terrestres (WGS84)
+  model_eclipsi.py       Part del Sol tapada, contactes i centre de l'ombra
+  observador.py          La ubicació de l'observador i la llista d'ubicacions
   data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
-  model_eclipsi.py       On són el Sol i la Lluna a cada hora, vistos des d'un punt
-scripts/                 Scripts per preparar dades, fer captures i l'exercici 1.0 (veure secció 5)
+scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
 models/                  Models .obj, cadascun a la seva carpeta (com al repte 4)
-data/                    Dades (veure secció 4)
+data/                    Dades (veure secció 4 i data/FONTS.md)
 docs/                    Web de seguiment (obrir docs/index.html al navegador)
 PLA_DE_TREBALL.md        Pla de treball: tasques, decisions i comprovacions
 CLAUDE.md                Instruccions de treball de l'equip
@@ -131,14 +134,16 @@ requirements.txt         Llibreries de Python
 ```
 
 Com al repte 4, `main.py` defineix un `GraphicsEngine` que hereta del `GraphicsEngineBase` de
-`basecode/`: `on_init` crea la llum (el Sol, `self.light`), la càmera, els eixos i el terreny;
+`basecode/`: `on_init` crea la llum (el Sol, `self.light`), les càmeres, la Terra, el relleu i els astres;
 `drawables()` són els objectes als quals la càmera escriu `m_proj` i `m_view`; `render()` els dibuixa i
 `build_ui()` crida el panell de `ui.py`. Els objectes gràfics propis són fitxers nous dins de
 `basecode/` (els originals del professor no es toquen) i el que no depèn d'OpenGL és a `dades/`. Cada objecte té `get_vbo`, `get_vao`, `get_shader_program`, `on_init`,
 `render` i `destroy`. Els shaders són fitxers de `basecode/shaders/` i es carreguen amb
-`basecode.shaders.load_program(ctx, nom)`.
+`basecode.shaders.load_program(ctx, nom)` (o amb `basecode/programes.py`, si cal activar opcions).
 
-Unitats i coordenades de l'escena: quilòmetres, amb X = est, Y = altitud i Z = sud. Les dades fan
+Unitats i coordenades de l'escena: quilòmetres, en coordenades terrestres (ECEF: X cap a la longitud 0,
+Y cap a 90° E, Z cap al pol nord), que la CPU calcula en doble precisió; la GPU rep cada objecte relatiu
+a la càmera. El mode pla dels scripts fa servir X = est, Y = altitud i Z = sud. Les dades fan
 servir el sistema ETRS89 / UTM 30N (EPSG:25830).
 
 ---
@@ -182,6 +187,10 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_mdt.py` | Torna a descarregar un MDT del WCS de l'IGN, o en descarrega un de nou |
 | `captura.py` | Desa una imatge del terreny en PNG sense obrir cap finestra |
 | `exercici_fotograma.py` | Exercici 1.0: segueix un vèrtex del terreny fins al píxel de la pantalla (`docs/exercici_1_0_vertex_a_pixel.md`) |
+| `descarregar_efemerides.py` | Descarrega les posicions del Sol i la Lluna de JPL Horizons (`data/efemerides/`) |
+| `descarregar_textures.py` | Descarrega les textures de la Terra i la Lluna (NASA, `data/textures/`) |
+| `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
+| `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
 
 Descàrrega d'MDT (els de `data/mdt/` ja hi són; només cal per refer-los o per a zones noves):
 
@@ -209,3 +218,9 @@ python scripts/captura.py data/mdt/peninsula_200m.tif captures/peninsula.png --o
 - **Eclipsi**: dades de l'eclipsi del 12/08/2026 del CNIG (`https://visualizadores.ign.es/eclipses`).
   "Official astronomical information provided by the National Geographic Institute based on
   calculations made by the National Astronomical Observatory" (CC BY 4.0).
+- **Posicions del Sol i la Lluna**: JPL Horizons (NASA/JPL), `https://ssd.jpl.nasa.gov/horizons/`.
+- **Textures**: NASA Visible Earth ("Blue Marble", la Terra) i NASA SVS ("CGI Moon Kit", la Lluna),
+  domini públic.
+
+El detall de cada fitxer (zona, resolució, CRS, llicència i com es torna a descarregar) és a
+`data/FONTS.md`.

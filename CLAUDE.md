@@ -114,18 +114,17 @@ Demana autorització abans d’instal·lar dependències i documenta les aprovad
 
 ## Convencions gràfiques i geogràfiques
 
-- Unitats del món local: quilòmetres.
-- Eixos locals: X cap a l’est de quadrícula, Y amunt i Z cap al sud de quadrícula.
-- Les altituds dels MDT s’emmagatzemen habitualment en metres: fes explícites les conversions.
-- CRS actual de treball: EPSG:25830. Llegeix i comprova el CRS de cada font; no assignis un CRS per substituir una reprojecció.
-- Distingeix nord geogràfic i nord de quadrícula. Converteix les direccions astronòmiques al marc de l’escena amb el signe comprovat.
+- Unitats: quilòmetres. Les altituds dels MDT són en metres: fes explícites les conversions.
+- Escena principal (`main.py`): coordenades terrestres ECEF (X cap a la longitud 0, Y cap a 90° E, Z cap al pol nord), calculades en doble precisió a la CPU i dibuixades **relatives a la càmera**, amb profunditat logarítmica. Latitud, longitud i altitud sobre l’el·lipsoide WGS84 (`dades/geodesia.py`).
+- Mode pla del terreny (scripts de captura i exercici 1.0): X cap a l’est de quadrícula, Y amunt i Z cap al sud de quadrícula.
+- CRS dels MDT: EPSG:25830. Llegeix i comprova el CRS de cada font; no assignis un CRS per substituir una reprojecció.
+- Distingeix nord geogràfic i nord de quadrícula. A l’escena principal no cal convertir: tot és en ECEF i la base local (est, nord, amunt) surt de la latitud i la longitud.
 - Azimut geogràfic: des del nord en sentit horari.
 - Conserva el temps de càlcul en TU i identifica explícitament les conversions. Per a aquesta data, la visualització local és CEST, TU + 2.
 
 Mode normal acordat:
-- Curvatura terrestre geomètrica activa.
+- Geometria real de la Terra (el·lipsoide WGS84): el relleu es posa sobre l’el·lipsoide, de manera que la curvatura és la real.
 - Exageració vertical igual a 1.
-- Radi terrestre aproximat de 6371 km.
 - Sense correcció de radi efectiu del terreny per refracció terrestre, llevat d’un canvi acordat.
 
 Distingeix refracció astronòmica del Sol i refracció terrestre del relleu. Documenta les aproximacions i evita aplicar correccions duplicades.
