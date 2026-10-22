@@ -1,5 +1,6 @@
 """
-Prepara les caches de tots els terrenys del selector (data/cache/<nom>.derivats.npz):
+Prepara les caches de tots els terrenys (els del selector dels scripts i les zones de detall de
+l'escena principal) a data/cache/<nom>.derivats.npz:
 gradient, distancia a la costa, altitud mitjanada i overlays de l'eclipsi.
 
 Els MDT son a data/mdt/ (o es descarreguen amb scripts/descarregar_mdt.py). Despres d'executar aquest
@@ -22,7 +23,11 @@ from basecode.terrain import MAX_VERTEXS  # noqa: E402
 def main():
     # la cache depen de la mida maxima de textura de la GPU: la consultem igual que el programa
     max_textura = mgl.create_standalone_context(require=330).info['GL_MAX_TEXTURE_SIZE']
-    for nom, cami, _ in data_io.TERRENYS:
+    vistos = set()
+    for nom, cami, _ in data_io.TERRENYS + data_io.ZONES_DETALL:
+        if cami in vistos:
+            continue
+        vistos.add(cami)
         if not os.path.exists(cami):
             print(f"AVIS: no hi ha {cami}; descarrega'l amb scripts/descarregar_mdt.py")
             continue

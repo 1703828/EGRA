@@ -12,6 +12,9 @@ Exemples (executar des de l'arrel del projecte):
     python scripts/descarregar_mdt.py asturias      #  25 m -> data/mdt/asturias_25m.tif
     python scripts/descarregar_mdt.py picos         #   5 m, 20x20 km -> data/mdt/picos_5m.tif
     python scripts/descarregar_mdt.py luarca        #   5 m, 20x20 km -> data/mdt/luarca_5m.tif
+    python scripts/descarregar_mdt.py vic           #   5 m, 20x20 km -> data/mdt/zones/vic_5m.tif
+    python scripts/descarregar_mdt.py escala        #   5 m, 20x20 km -> data/mdt/zones/escala_5m.tif
+    python scripts/descarregar_mdt.py valles        #   5 m, ~27x30 km -> data/mdt/zones/valles_5m.tif
     python scripts/descarregar_mdt.py --res 5 --centre 43.3 -5.0 --sortida zona_5m.tif
     python scripts/descarregar_mdt.py --res 25 --bbox 43.3 43.6 -6.8 -6.3 --sortida zona_25m.tif
 
@@ -51,6 +54,10 @@ PREDEFINITS = {
     'asturias':  dict(res=25,  bbox=(42.88, 43.67, -7.19, -4.51), sortida='asturias_25m.tif'),
     'picos':     dict(res=5,   centre=(43.262, -4.949), sortida='picos_5m.tif'),   # Picos de Europa
     'luarca':    dict(res=5,   centre=(43.54, -6.54), sortida='luarca_5m.tif'),
+    # zones de detall de les ubicacions catalanes (carpeta ignorada pel Git: data/mdt/zones/)
+    'vic':       dict(res=5,   centre=(41.9302, 2.2546), sortida='zones/vic_5m.tif'),
+    'escala':    dict(res=5,   centre=(42.1250, 3.1330), sortida='zones/escala_5m.tif'),
+    'valles':    dict(res=5,   bbox=(41.39, 41.63, 2.00, 2.36), sortida='zones/valles_5m.tif'),  # Cerdanyola, UAB, Montmelo
 }
 MIDA_DETALL_KM = 20.0
 
@@ -188,8 +195,8 @@ def descarregar(res, bbox, sortida, mida_rajola=2000):
             mosaic[f0:f1, c0:c1] = rajola
             print(f"  [{n}/{total}] rajola fila {fr} col {cr}: {estat}  ({time.time() - t0:.0f} s)")
 
-    os.makedirs(DIR_MDT, exist_ok=True)
     cami = os.path.join(DIR_MDT, sortida)
+    os.makedirs(os.path.dirname(cami), exist_ok=True)
     desar_geotiff(cami, mosaic, xmin, ymax, res)
     valid = mosaic[mosaic != NODATA]
     print(f"Desat {cami}")

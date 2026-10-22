@@ -29,6 +29,16 @@ TERRENYS = [
     ('Picos', os.path.join(DIR_MDT, 'picos_5m.tif'), True),
     ('Luarca', os.path.join(DIR_MDT, 'luarca_5m.tif'), True),
 ]
+# zones de detall de l'escena principal (MDT de 5 m, mateix CRS que la peninsula): el programa carrega
+# la que conte el punt d'observacio. Picos es al Git; les altres, a data/mdt/zones/ (ignorada pel Git),
+# es descarreguen amb scripts/descarregar_mdt.py (vic, escala, valles).
+DIR_ZONES = os.path.join(DIR_MDT, 'zones')
+ZONES_DETALL = [
+    ('Picos de Europa', os.path.join(DIR_MDT, 'picos_5m.tif'), 'picos'),
+    ('Vic', os.path.join(DIR_ZONES, 'vic_5m.tif'), 'vic'),
+    ("L'Escala", os.path.join(DIR_ZONES, 'escala_5m.tif'), 'escala'),
+    ('Valles (Cerdanyola, UAB, Montmelo)', os.path.join(DIR_ZONES, 'valles_5m.tif'), 'valles'),
+]
 VERSIO_CACHE = 5  # canviar-la si canvia la manera de calcular els derivats (invalida les caches)
 
 

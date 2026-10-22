@@ -1,6 +1,9 @@
 # --- fitxers generats (es tornen a crear amb scripts/preparar_dades.py) ---
 data/cache/
 
+# --- MDT de les zones de detall (es tornen a baixar amb scripts/descarregar_mdt.py) ---
+data/mdt/zones/
+
 # --- dades que no fa servir el programa ---
 data/mdt05/altres/
 data/mdt200/
