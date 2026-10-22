@@ -21,7 +21,7 @@ from pyproj import Transformer
 from rasterio.warp import reproject, Resampling
 from scipy import ndimage
 
-DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'eclipsi2026')
+DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'eclipsi2026')  # data/ es a l'arrel
 EFEMERIDES = os.path.join(DIR, '10bandas2026_3857_COG.tiff')
 OMBRES = os.path.join(DIR, 'terrain_shadows_2026_3857_COG_DEF_OVERSx6_8704x8192.tif')
 CORBES = os.path.join(DIR, 'Eclipses_2026.gpkg')

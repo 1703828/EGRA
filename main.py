@@ -54,13 +54,13 @@ from basecode.axis import Axis
 from camera import Camera
 from camera_primera_persona import CameraPrimeraPersona
 from personatge import Personatge
-from astres import Esfera, Lluna, EMISSIVA, HALO, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
-from model_eclipsi import ModelEclipsi
+from astres import Esfera, Lluna, EMISSIVA, HALO
+from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
 from basecode.sol import Sol
-from data_io import TERRENYS
+from dades.data_io import TERRENYS
 from terrain import (Terrain, COLOR_CEL, OVERLAYS, ENFOSQUIMENT_MIN,
                      COLORS_ENFOSQUIMENT, COLOR_TOTALITAT, COLORS_DURADA, COLORS_OMBRES)
-import eclipse_data
+from dades import eclipse_data
 
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
 REGIO = 'Picos'           # de moment, una sola regio (data_io.TERRENYS)

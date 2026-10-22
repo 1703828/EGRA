@@ -16,8 +16,15 @@ from datetime import datetime, timezone
 
 import glm
 
-import eclipse_data
-from astres import RADI_ANGULAR_SOL as RS, RADI_ANGULAR_LLUNA as RL
+from . import eclipse_data
+
+# radis angulars (radi / distancia) aproximats per al 12/08/2026: la Terra es a prop de l'afeli
+# (Sol a ~151,6 milions de km) i la Lluna es veu un 3,9 % mes gran que el Sol (eclipsi total)
+RADI_SOL, DIST_SOL = 696000.0, 151.6e6       # km
+RADI_LLUNA, DIST_LLUNA = 1737.4, 364200.0    # km (distancia des de l'observador)
+RADI_ANGULAR_SOL = RADI_SOL / DIST_SOL
+RADI_ANGULAR_LLUNA = RADI_LLUNA / DIST_LLUNA
+RS, RL = RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA  # noms curts per a les formules
 
 DATA = datetime(2026, 8, 12, tzinfo=timezone.utc)
 JD_DATA = 2440587.5 + DATA.timestamp() / 86400.0  # dia julia a les 0 h TU

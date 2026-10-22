@@ -15,13 +15,7 @@ import numpy as np
 
 from basecode import shaders
 from basecode.objects import GouraudObject
-
-# radis angulars (radi / distancia) aproximats per al 12/08/2026: la Terra es a prop de l'afeli
-# (Sol a ~151,6 milions de km) i la Lluna es veu un 3,9 % mes gran que el Sol (eclipsi total)
-RADI_SOL, DIST_SOL = 696000.0, 151.6e6       # km
-RADI_LLUNA, DIST_LLUNA = 1737.4, 364200.0    # km (distancia des de l'observador)
-RADI_ANGULAR_SOL = RADI_SOL / DIST_SOL
-RADI_ANGULAR_LLUNA = RADI_LLUNA / DIST_LLUNA
+from dades.model_eclipsi import RADI_ANGULAR_SOL  # mides aparents: les defineix el model de l'eclipsi
 
 # modes del shader basecode/shaders/esfera.frag
 IL_LUMINADA, EMISSIVA, HALO = 0, 1, 2

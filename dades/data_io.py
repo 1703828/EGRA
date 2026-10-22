@@ -19,7 +19,7 @@ import rasterio
 from rasterio.crs import CRS
 from scipy import ndimage
 
-DIR_DADES = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+DIR_DADES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')  # data/ es a l'arrel del projecte
 DIR_MDT = os.path.join(DIR_DADES, 'mdt')       # MDT descarregats (scripts/descarregar_mdt.py)
 DIR_CACHE = os.path.join(DIR_DADES, 'cache')   # fitxers generats (no es versionen)
 # terrenys del selector: (nom al panell, fitxer, es zona de detall)
@@ -162,7 +162,7 @@ def carregar_terreny(cami, max_textura, max_vertexs):
                    arrays buits si no hi ha el dataset de l'eclipsi
       res_m, transform, crs, n_cols, n_files (vertexs de la graella), lod_vertexs
     """
-    import eclipse_data  # aqui dins: data_io tambe es pot fer servir sense les dades de l'eclipsi
+    from . import eclipse_data  # aqui dins: data_io tambe es pot fer servir sense les dades de l'eclipsi
     t0 = time.time()
     st = os.stat(cami)
     clau = dict(versio=VERSIO_CACHE, fitxer=os.path.abspath(cami), mida=st.st_size, mtime=st.st_mtime,

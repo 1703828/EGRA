@@ -19,8 +19,7 @@ import rasterio
 from pyproj import Transformer
 
 from basecode import shaders
-import data_io
-import eclipse_data
+from dades import data_io, eclipse_data
 
 MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella
 MAX_ZONES = 4                   # rectangles de zones de detall que pot dibuixar el shader

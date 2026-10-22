@@ -15,7 +15,7 @@ import time
 import moderngl as mgl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import data_io  # noqa: E402
+from dades import data_io  # noqa: E402
 from terrain import MAX_VERTEXS  # noqa: E402
 
 
