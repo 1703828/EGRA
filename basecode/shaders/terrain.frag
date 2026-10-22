@@ -50,6 +50,7 @@ uniform bool dibuixar_mar;      // el mar del fitxer es dibuixa a 0 m (zones de 
 uniform sampler2D tex_terra;    // textura de la Terra (NASA Blue Marble)
 uniform vec3 cam_ecef;          // posicio de la camera (ECEF, km; float32 n'hi ha prou per a la textura)
 uniform float atmosfera;        // 1 dins de l'atmosfera, 0 a l'espai (el contorn blau, nomes des de fora)
+uniform bool ressaltar_ombra;
 #endif
 
 // rampa hipsometrica absoluta: la mateixa altitud te el mateix color a tots els fitxers
@@ -142,9 +143,27 @@ vec3 color_globus(vec3 up, vec3 sol, float visible) {
 }
 #endif
 
+#ifdef PROFUNDITAT_LOG
+// Ressaltat didactic de l'ombra (opcional, desactivat per defecte): linies on la Lluna tapa el 25, el 50
+// i el 75 % del Sol (groc) i el limit de la totalitat (lila), nomes on el Sol es sobre l'horitzo (pes).
+// Nomes dibuixa linies: no canvia ni la mida ni la foscor de l'ombra. df = fwidth(f), calculat abans de
+// qualsevol discard (despres, les derivades no estan definides als pixels veins descartats).
+vec3 ressaltar(vec3 c, float f, float df, float pes) {
+    float g = f * 4.0;
+    float px = abs(fract(g - 0.5) - 0.5) / max(4.0 * df, 1e-6);
+    vec3 r = c;
+    if (g > 0.5 && g < 3.5)
+        r = mix(vec3(1.0, 0.8, 0.2), r, smoothstep(0.5, 1.5, px));
+    float pt = abs(f - 0.999) / max(df, 1e-6);
+    r = mix(vec3(1.0, 0.3, 1.0), r, smoothstep(1.0, 2.5, pt));
+    return mix(c, r, pes);
+}
+#endif
+
 void main() {
 #ifdef PROFUNDITAT_LOG
     gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
+    float tapat = tapat_des_de(pos_mon), d_tapat = fwidth(tapat);   // abans de cap discard
 #endif
     float d = texture(tex_costa, uv).r;          // km a la costa (mar > 0, terra < 0)
     vec3 sol = normalize(sun_dir);
@@ -220,5 +239,10 @@ void main() {
 
     // boira exponencial quadratica segons la distancia a la camera (a partir d'inici_boira)
     float f = exp(-pow(max(length(pos_mon - cam_pos) - inici_boira, 0.0) * densitat_boira, 2.0));
-    fragColor = vec4(mix(color_cel, color, f), 1.0);
+    color = mix(color_cel, color, f);
+#ifdef PROFUNDITAT_LOG
+    if (ressaltar_ombra)
+        color = ressaltar(color, tapat, d_tapat, smoothstep(-0.03, 0.0, dot(normalize(amunt), normalize(sol_rel - pos_mon))));
+#endif
+    fragColor = vec4(color, 1.0);
 }

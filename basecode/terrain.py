@@ -531,6 +531,7 @@ class Terrain:
         sp['dibuixar_mar'].value = self.dibuixar_mar
         sp['cam_ecef'].write(glm.vec3(*rel))
         sp['atmosfera'].value = app.atmosfera
+        sp['ressaltar_ombra'].value = app.ressaltar_ombra
         app.terra.textura.use(5)
         sp['tex_terra'].value = 5
         sp['profunditat_faldilla'].value = FALDILLA_GLOBUS_KM

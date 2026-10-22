@@ -36,8 +36,12 @@ def build_ui(app):
             imgui.same_line()
         if imgui.radio_button(nom, app.vista == i):
             app.canviar_vista(i)
-    if imgui.button("Veure la Terra des de l'espai", (-1.0, 0.0)):
-        app.veure_terra_des_de_lespai()
+    if imgui.button("Veure l'ombra des de l'espai", (-1.0, 0.0)):
+        app.veure_ombra_des_de_lespai()
+    _, app.ressaltar_ombra = imgui.checkbox("Ressaltar l'ombra amb linies (didactic)", app.ressaltar_ombra)
+    if app.ressaltar_ombra:
+        imgui.text_colored(COLOR_SUAU, 'Groc: 25, 50 i 75 % del Sol tapat. Lila: totalitat.')
+        imgui.text_colored(COLOR_SUAU, "Nomes linies: la foscor de l'ombra no canvia.")
 
     imgui.separator_text("Punt d'observacio")
     panell_punt(app)
@@ -90,6 +94,8 @@ def panell_punt(app):
         imgui.text_colored((0.5, 0.9, 0.6, 1.0), 'Punt d\'observacio canviat')
     else:
         imgui.text_colored(COLOR_SUAU, 'O fes doble clic sobre el terreny (Explorar)')
+    if imgui.button("Anar al maxim del punt seleccionat", (-1.0, 0.0)):
+        app.anar_al_maxim()
     if imgui.button("Tornar al punt d'observacio", (-1.0, 0.0)):
         app.tornar_al_punt()
 

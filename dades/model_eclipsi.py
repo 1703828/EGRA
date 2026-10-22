@@ -77,6 +77,22 @@ def centre_ombra(hora_tu, ef=None):
     return float(lat), float(lon)
 
 
+def punt_ombra(hora_tu, ef=None):
+    """Punt de la Terra on l'ombra de la Lluna es mes fosca en aquest instant: (lat, lon, toca).
+    Si l'eix de l'ombra toca la Terra (toca=True), es on la talla (centre_ombra). Si no, es el punt de la
+    superficie mes proper a l'eix (a sota del punt de l'eix mes proper al centre de la Terra): alli la
+    Lluna tapa la part mes gran del Sol, encara que l'ombra completa (umbra) no arribi a terra."""
+    c = centre_ombra(hora_tu, ef)
+    if c is not None:
+        return c[0], c[1], True
+    ef = ef or efemerides()
+    sol, lluna = ef.posicions(hora_tu)
+    u = (lluna - sol) / np.linalg.norm(lluna - sol)
+    q = lluna - (lluna @ u) * u                    # punt de l'eix mes proper al centre de la Terra
+    lat, lon, _ = geodesia.geodesiques(q)
+    return float(lat), float(lon), False
+
+
 class ModelEclipsi:
     def __init__(self, lat, lon, alt_km=0.0):
         self.lat, self.lon, self.alt_km = lat, lon, alt_km

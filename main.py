@@ -70,7 +70,7 @@ from basecode.sol import Sol
 from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
 from dades.data_io import TERRENYS, ZONES_DETALL
-from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, centre_ombra
+from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
 from dades import eclipse_data, geodesia
@@ -131,6 +131,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.velocitat_auto = True    # lent a la totalitat, rapid a les fases parcials
         self.tapada = 0.0
         self.marcador_fins = -1.0     # temps real (s) fins al qual es veu l'avis del punt triat
+        self.ressaltar_ombra = False  # linies de l'ombra de la Lluna (didactic, opcional)
         self.camera = None
 
         # --- punt d'observacio (dada independent): Picos de Europa
@@ -253,21 +254,26 @@ class GraphicsEngine(GraphicsEngineBase):
         self.camera_exploracio.posicio = self.ulls() + 6.0 * darrere + 3.0 * amunt
         self.camera_exploracio.rumb, self.camera_exploracio.inclinacio = az, -25.0
 
-    def veure_terra_des_de_lespai(self):
-        """Camera d'exploracio a uns 9.000 km, entre la vertical del lloc i el Sol, mirant el centre de
-        l'ombra de la Lluna (o el punt d'observacio, si l'ombra no toca la Terra en aquest moment)."""
-        o = self.observador
-        centre = centre_ombra(self.hora, self.ef) or (o.lat, o.lon)
+    def veure_ombra_des_de_lespai(self):
+        """Enquadrament (una sola vegada, sense seguiment): la camera d'exploracio a 12.000 km, entre la
+        vertical del lloc i el Sol (veu la cara de dia), mirant el punt on l'ombra de la Lluna es mes fosca
+        a l'hora actual. El temps no canvia."""
+        lat_o, lon_o, _ = punt_ombra(self.hora, self.ef)
         cap_al_sol = self.sol_ecef / np.linalg.norm(self.sol_ecef)
-        _, _, amunt = geodesia.base_local(*centre)
-        punt = geodesia.ecef(centre[0], centre[1], 0.0)
+        _, _, amunt = geodesia.base_local(lat_o, lon_o)
+        punt = geodesia.ecef(lat_o, lon_o, 0.0)
         cam = self.camera_exploracio
         direccio = amunt + cap_al_sol
-        cam.posicio = punt + 9000.0 * direccio / np.linalg.norm(direccio)
+        cam.posicio = punt + 12000.0 * direccio / np.linalg.norm(direccio)
         lat, lon, _ = cam.geodesiques()
         az, el = geodesia.azimut_elevacio(punt - cam.posicio, lat, lon)
         cam.rumb, cam.inclinacio = az, el
         self.canviar_vista(0)
+
+    def anar_al_maxim(self):
+        """L'hora del maxim de l'eclipsi al punt d'observacio, amb el temps pausat. La camera no es mou."""
+        if self.model.valid:
+            self.hora, self.reproduint = self.model.hores['maxim'], False
 
     def reproduir_pausar(self):
         """Tecla P: nomes posa en marxa o atura el temps. Si ja s'ha arribat al final, no fa res."""

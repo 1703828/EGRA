@@ -61,6 +61,7 @@ class Terra:
         sp['radi_sol'].value, sp['radi_lluna'].value = app.radi_sol_km, app.radi_lluna_km
         sp['coef_log'].value = app.coef_log
         sp['atmosfera'].value = app.atmosfera
+        sp['ressaltar_ombra'].value = app.ressaltar_ombra
         self.textura.use(0)
         sp['textura'].value = 0
         self.vao.render()
