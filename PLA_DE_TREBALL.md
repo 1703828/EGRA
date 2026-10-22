@@ -713,7 +713,8 @@ Resultat: `docs/index.html`, `docs/estil.css`, `docs/progres.js` i `docs/img/` (
 són al peu de cada imatge). S'obre fent doble clic a `docs/index.html` (no cal servidor). No es
 publica amb GitHub Pages (D29). El contingut surt de les actes 1 i 3 (PDF), de l'acta 2 (md) i
 d'aquest pla. Comprovat per Claude: estructura HTML correcta, cap enllaç local trencat, 41 criteris
-(4 validats, 10 fets, 25 pendents, 2 no compleixen) i renderitzat amb Chrome sense finestra.
+(a la versió inicial, 4 validats, 10 fets, 25 pendents i 2 que no compleixen; després de la F2,
+4 validats, 11 fets, 24 pendents i 2 que no compleixen) i renderitzat amb Chrome sense finestra.
 Pendent de l'equip: revisar-ne el contingut. L'O3 s'ha retirat (D31).
 
 Disseny previst inicialment (es manté):

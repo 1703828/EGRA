@@ -73,9 +73,9 @@ vèrtex de la graella** i n'obté l'altura de la mateixa manera que la GPU.
 |---|---|
 | `scripts/exercici_fotograma.py` | L'exercici (no modifica cap altre fitxer) |
 | `scripts/captura.py` | D'aquí es reutilitza l'"app" sense finestra (`AppSenseFinestra`) |
-| `terrain.py` | La graella (`build_grid`), les textures i `render()` |
+| `basecode/terrain.py` | La graella (`build_grid`), les textures i `render()` |
 | `basecode/shaders/terrain.vert` | El càlcul real que reproduïm a mà |
-| `camera.py` | `update()`: calcula `m_view` i `m_proj` |
+| `basecode/camera_exploracio.py` | `update()`: calcula `m_view` i `m_proj` |
 
 El script:
 1. Tria el vèrtex (columna 640, fila 512 per defecte: uns 2,5 km a l'est del centre de Picos).
@@ -195,7 +195,7 @@ L'equip ho va executar el 22/10 amb `COINCIDEIX` i va donar l'activitat per tanc
 - L'escena és la de `captura.py` (sense Sol, Lluna ni personatge) i amb la curvatura desactivada,
   com el programa actual. Quan la curvatura s'activi (tasca 3.4), el punt baixarà una mica.
 - El *near* de la càmera és força gran (~2 km a la distància per defecte): ho decideix
-  `camera.update()` segons la distància; no afecta l'exercici.
+  `CameraExploracio.update()` segons la distància; no afecta l'exercici.
 - La comprovació de visibilitat recorre el raig a passos (2000) i no detectaria un obstacle més
   petit que un pas (uns 10 m).
 - Els 1,37 cm de diferència amb el vertex shader real venen, probablement, de la precisió amb què

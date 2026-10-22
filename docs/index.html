@@ -34,7 +34,7 @@
 
 <p class="nota">Font del contingut: les actes 1 i 3 (01/10 i 15/10/2026, PDF) i l'acta 2
   (<code>actes/acta2.md</code>, 08/10/2026), el <a href="../PLA_DE_TREBALL.md">pla de treball</a> i el codi
-  guardat a l'etiqueta <code>abans-reorganitzacio</code> de la branca <code>reorganitzacio-projecte</code>.
+  actual de la branca <code>reorganitzacio-projecte</code> (reorganitzat a la fase F2; el comportament és el de l'etiqueta <code>abans-reorganitzacio</code>).
   Les actes no es versionen al Git. A l'acta 1, l'apartat d'objectius per a la següent acta només conté text de prova.</p>
 
 <div class="botons">
@@ -99,7 +99,7 @@
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
     <p><a href="../scripts/descarregar_mdt.py"><code>scripts/descarregar_mdt.py</code></a> descarrega
       del servei WCS de l'IGN per rajoles en format ArcGrid.
-      <a href="../data_io.py"><code>data_io.py</code></a> llegeix, neteja i desa una memòria cau a
+      <a href="../dades/data_io.py"><code>dades/data_io.py</code></a> llegeix, neteja i desa una memòria cau a
       <code>data/cache/</code>, i <a href="../scripts/preparar_dades.py"><code>scripts/preparar_dades.py</code></a>
       la calcula per a tots els terrenys.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut">
@@ -135,7 +135,7 @@
     <p>Cal distingir la <strong>cobertura del Sol per la Lluna</strong> (enfosquiment) de
       l'<strong>ocultació del Sol pel relleu</strong> (capa d'ombres, només al màxim).</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../eclipse_data.py"><code>eclipse_data.py</code></a> (capes i valors en un punt) i
+    <p><a href="../dades/eclipse_data.py"><code>dades/eclipse_data.py</code></a> (capes i valors en un punt) i
       <a href="../data/eclipsi2026/LLEGENDA.md"><code>data/eclipsi2026/LLEGENDA.md</code></a>
       (què és cada banda i classe).</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut">
@@ -177,7 +177,7 @@
       totes les escales. Per al mar es guarda la distància a la costa: l'aigua és més fosca mar endins i
       la línia de costa surt suau.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../terrain.py"><code>terrain.py</code></a>,
+    <p><a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a>,
       <a href="../basecode/shaders/terrain.vert"><code>basecode/shaders/terrain.vert</code></a> i
       <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut">
@@ -205,8 +205,8 @@
       profunditat d'aquell píxel i es desfan les transformacions de vista i projecció (<em>picking</em>).
       Veure també O2.2.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../camera.py"><code>camera.py</code></a> (a la reorganització passarà a
-      <code>basecode/camera_exploracio.py</code>) i el <em>picking</em> a
+    <p><a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>
+      (classe <code>CameraExploracio</code>) i el <em>picking</em> a
       <a href="../main.py"><code>main.py</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha del programa amb finestra.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
@@ -227,9 +227,9 @@
     </ul></div></details>
   <details class="apartat"><summary>Teoria apresa</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p>Ara hi ha <a href="../camera_primera_persona.py"><code>camera_primera_persona.py</code></a>, als ulls del
-      personatge, amb zoom de prismàtics i la tecla P <span class="etiqueta actual">ACTUAL</span>. Es convertirà
-      en <code>basecode/camera_observador.py</code>.</p></div></details>
+    <p>Ara hi ha <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>
+      (classe <code>CameraObservador</code>), encara als ulls del personatge, amb zoom de prismàtics i la
+      tecla P <span class="etiqueta actual">ACTUAL</span>. A la tasca 3.1 deixarà de dependre del personatge.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
     <ul><li>Ara, si es camina mentre es reprodueix l'eclipsi, el model queda al punt antic i el panell
@@ -260,9 +260,9 @@
       10°, ≈0,57° a l'horitzó). La diferència entre el CNIG i el nostre càlcul geomètric és coherent amb
       la fórmula de Bennett (residu ≤ 0,017°); és coherent, no demostrat.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../model_eclipsi.py"><code>model_eclipsi.py</code></a> (algorisme de la NOAA),
-      <a href="../sol.py"><code>sol.py</code></a> (la llum) i
-      <a href="../astres.py"><code>astres.py</code></a> (l'esfera visible).</p></div></details>
+    <p><a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a> (algorisme de la NOAA),
+      <a href="../basecode/sol.py"><code>basecode/sol.py</code></a> (la llum) i
+      <a href="../basecode/astres.py"><code>basecode/astres.py</code></a> (l'esfera visible).</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
     <p>La correcció constant fa que el Sol sigui correcte al màxim però massa baix a prop de la posta
@@ -291,8 +291,8 @@
     <p>El Sol i la Lluna tenen una mida aparent d'uns 0,5°; a l'escena no es poden posar a la seva
       distància real.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../model_eclipsi.py"><code>model_eclipsi.py</code></a> i
-      <a href="../astres.py"><code>astres.py</code></a>.</p></div></details>
+    <p><a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a> i
+      <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
     <p>La Lluna es dibuixa a una distància artificial (per defecte, 2 × la mida del terreny): només és
@@ -347,8 +347,8 @@
   <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
     <p>El panell es fa amb slimgui (com als reptes). Les hores es calculen en TU i es mostren en CEST (TU + 2).</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><code>build_ui()</code> i <code>barra_temps()</code> a <a href="../main.py"><code>main.py</code></a>
-      (passaran a <code>ui.py</code> a la reorganització).</p></div></details>
+    <p><code>build_ui(app)</code> i <code>barra_temps(app)</code> a <a href="../ui.py"><code>ui.py</code></a>.
+      <code>GraphicsEngine.build_ui()</code> (a <code>main.py</code>) només crida <code>ui.build_ui(self)</code>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
     <p>La font de slimgui no mostra bé els accents: els textos de la interfície van sense accents.</p></div></details>
@@ -431,7 +431,7 @@
     </ol></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
     <p><a href="../basecode/engine.py"><code>basecode/engine.py</code></a>,
-      <a href="../main.py"><code>main.py</code></a>, <a href="../terrain.py"><code>terrain.py</code></a> i
+      <a href="../main.py"><code>main.py</code></a>, <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a> i
       l'activitat <a href="exercici_1_0_vertex_a_pixel.md">Exercici 1.0</a>
       (<a href="../scripts/exercici_fotograma.py"><code>scripts/exercici_fotograma.py</code></a>).</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut">
@@ -458,11 +458,12 @@
       <strong>w</strong> que surt de <code>m_proj</code> és la <strong>profunditat del punt segons l'eix de
       visió</strong> (−z), no la distància en línia recta. En dividir per w, el que és lluny es fa petit.</p>
     <p>La precisió del depth buffer depèn de la relació entre els plans <em>near</em> i <em>far</em>: si és
-      massa gran, les superfícies llunyanes parpellegen (z-fighting). Per això <code>camera.py</code> els
+      massa gran, les superfícies llunyanes parpellegen (z-fighting). Per això <code>camera_exploracio.py</code> els
       ajusta segons la distància al terreny.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><a href="../camera.py"><code>camera.py</code></a> (<code>update()</code>, <code>desprojectar()</code>) i
-      <a href="../camera_primera_persona.py"><code>camera_primera_persona.py</code></a>.</p></div></details>
+    <p><a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>
+      (<code>update()</code>, <code>desprojectar()</code>) i
+      <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Veure O2.1.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
 </div></details>
@@ -483,7 +484,7 @@
       ~1,97: barreja els nivells 1 i 2. Per això el cim del MDT (2647 m) no existeix a la superfície
       dibuixada.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p><code>make_texture()</code> a <a href="../terrain.py"><code>terrain.py</code></a> i
+    <p><code>make_texture()</code> a <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a> i
       <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Encara no n'hi ha.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut"><p>—</p></div></details>
@@ -504,7 +505,7 @@
       dibuixar línies de gruix constant (acta 3).</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
     <p><a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a> i <code>gradient()</code> a
-      <a href="../data_io.py"><code>data_io.py</code></a>.</p></div></details>
+      <a href="../dades/data_io.py"><code>dades/data_io.py</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>Veure O1.1.</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
     <p>El model de Phong amb reflex especular per a l'aigua està només previst (acta 3).</p></div></details>
@@ -534,17 +535,27 @@
     <ul class="criteris">
       <li data-estat="validat">Estat del projecte preservat: branca <code>reorganitzacio-projecte</code> i etiqueta <code>abans-reorganitzacio</code> (tasca 0.1).</li>
       <li data-estat="fet">Els fitxers originals de <code>basecode/</code> són idèntics als de <code>repte4/basecode/</code> (comprovat amb <code>diff</code> el 22/10).</li>
-      <li data-estat="pendent">Reorganització en passos petits sense canvis de comportament (fase F2).</li>
+      <li data-estat="fet">Reorganització en passos petits sense canvis de comportament (fase F2): objectes propis a <code>basecode/</code>, dades a <code>dades/</code> i interfície a <code>ui.py</code>. Comprovada per Claude amb captures i l'estat del programa; falta la prova amb finestra de l'equip.</li>
     </ul></div></details>
   <details class="apartat"><summary>Teoria apresa</summary><div class="contingut">
     <p>Una <strong>branca</strong> és una línia de treball; un <strong>commit</strong>, una fotografia del
-      projecte; una <strong>etiqueta</strong>, un nom fix enganxat a un commit.</p></div></details>
+      projecte; una <strong>etiqueta</strong>, un nom fix enganxat a un commit.</p>
+    <p><strong>Paquets de Python:</strong> una carpeta amb <code>__init__.py</code> (<code>basecode/</code>,
+      <code>dades/</code>) es pot importar com a <code>from dades import eclipse_data</code>. Dins del mateix
+      paquet es fan imports relatius (<code>from .objects import GouraudObject</code>), com els fitxers del
+      professor. Les dependències van en un sol sentit: els gràfics (<code>basecode/</code>, <code>ui.py</code>)
+      fan servir les dades, però <code>dades/</code> no importa res d'OpenGL. Per això les mides aparents del Sol i
+      la Lluna, que fan servir tots dos, es defineixen a <code>dades/model_eclipsi.py</code>.</p></div></details>
   <details class="apartat"><summary>Implementació i fitxers</summary><div class="contingut">
-    <p>Estructura de destinació: secció 4 del <a href="../PLA_DE_TREBALL.md">pla</a>.
+    <p><code>main.py</code> (coordina l'escena), <a href="../ui.py"><code>ui.py</code></a> (interfície),
+      <code>basecode/</code> (originals del professor + <code>sol.py</code>, <code>terrain.py</code>, <code>astres.py</code>,
+      <code>personatge.py</code>, <code>camera_exploracio.py</code>, <code>camera_observador.py</code>),
+      <code>dades/</code> (<code>data_io.py</code>, <code>eclipse_data.py</code>, <code>model_eclipsi.py</code>) i
+      <code>scripts/</code>. Detall: secció 4 del <a href="../PLA_DE_TREBALL.md">pla</a>.
       Instruccions de treball: <a href="../CLAUDE.md"><code>CLAUDE.md</code></a>.</p></div></details>
   <details class="apartat"><summary>Captures</summary><div class="contingut"><p>—</p></div></details>
   <details class="apartat"><summary>Limitacions</summary><div class="contingut">
-    <p><code>main.py</code> té 508 línies i barreja la lògica, el temps, la llum i la interfície.</p></div></details>
+    <p><code>main.py</code> ha passat de 508 a ~330 línies; encara barreja la lògica del joc (teclat, personatge), el temps i la llum, que es revisarà amb la retirada del personatge.</p></div></details>
 </div></details>
 
 </div></details>
