@@ -10,13 +10,15 @@ out float logz;
 uniform mat4 m_proj;
 uniform mat4 m_view;
 uniform mat4 m_model;   // trasllada el centre de la Terra a la seva posicio relativa a la camera
-uniform float coef_log;
 void main() {
     vec4 p = m_model * vec4(in_position, 1.0);
     pos_rel = p.xyz;
     normal = in_normal;
     uv = in_uv;
     gl_Position = m_proj * m_view * p;
+    // profunditat logaritmica: la calcula el fragment shader (gl_FragDepth) a partir de logz.
+    // gl_Position.z es deixa com el dona la projeccio: el retall (clipping) dels triangles es fa
+    // interpolant z linealment entre vertexs, i una z logaritmica per vertex retallaria triangles
+    // grans que passen per darrere de la camera (el terra als peus desapareixia).
     logz = 1.0 + gl_Position.w;
-    gl_Position.z = (log2(max(1e-6, logz)) * coef_log - 1.0) * gl_Position.w;
 }

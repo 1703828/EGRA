@@ -237,7 +237,8 @@ class Terrain:
         sp['cota_base'].value = self.cota_base
         sp['escala_mar'].value = 0.03 * max(self.mida)  # a aquesta distancia de la costa el mar ja es fosc
         sp['globus'].value = self.globus
-        sp['coef_log'].value = 0.0
+        if 'coef_log' in sp:   # nomes el fa servir el mode globus
+            sp['coef_log'].value = 0.0
         sp['hi_ha_forat'].value = False
 
     # ------------------------------------------------------------ consultes a la CPU

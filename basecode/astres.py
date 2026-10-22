@@ -44,6 +44,10 @@ class Esfera(GouraudObject):
         self.ambient = 1.0        # multiplica la llum ambient del Sol (light.Ia)
         self.sun_dir = glm.vec3(0.0, 1.0, 0.0)
         super().__init__(app)
+        # el shader (esfera.frag) declara el sampler de la textura de la Lluna per a tots els modes: si
+        # a la unitat 0 no hi ha cap textura completa, el controlador avisa ("unit 0 ... unloadable").
+        # El Sol i el halo no la llegeixen, pero hi lliguem una textura d'1 pixel; la Lluna, la seva.
+        self.textura = self.ctx.texture((1, 1), 3, bytes((255, 255, 255)))
 
     def situar(self, centre, radi, rotacio=None):
         self.centre = glm.vec3(centre)
@@ -92,6 +96,9 @@ class Esfera(GouraudObject):
             sp['ambient'].value = self.ambient
         if 'temps' in sp:
             sp['temps'].value = self.app.time
+        self.textura.use(0)
+        if 'textura' in sp:
+            sp['textura'].value = 0
         if self.mode == HALO:  # es suma al que hi ha darrere (es transparent)
             self.ctx.enable(mgl.BLEND)
             self.ctx.blend_func = mgl.SRC_ALPHA, mgl.ONE
@@ -101,6 +108,10 @@ class Esfera(GouraudObject):
             self.ctx.disable(mgl.BLEND)
         else:
             self.vao.render()
+
+    def destroy(self):
+        super().destroy()
+        self.textura.release()
 
 
 class Lluna(Esfera):
@@ -112,6 +123,7 @@ class Lluna(Esfera):
         self.radi_sol = 0.0046            # radi angular del Sol vist des de la camera (rad)
         self.ambient = 0.15               # una mica de llum de la Terra (llum cendrosa)
         img = Image.open(TEXTURA_LLUNA).convert('RGB')
+        self.textura.release()   # la d'1 pixel d'Esfera
         self.textura = self.ctx.texture(img.size, 3, img.tobytes())
         self.textura.build_mipmaps()
         self.textura.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
@@ -120,10 +132,4 @@ class Lluna(Esfera):
         sp = self.shader_program
         sp['atmosfera'].value = self.atmosfera
         sp['radi_sol'].value = self.radi_sol
-        self.textura.use(0)
-        sp['textura'].value = 0
         super().render()
-
-    def destroy(self):
-        super().destroy()
-        self.textura.release()

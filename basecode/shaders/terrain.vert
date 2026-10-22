@@ -23,7 +23,6 @@ uniform float cota_base;     // altura (km) del fons de les faldilles
 uniform bool curvatura;
 uniform vec2 centre_curvatura;  // (x, z) de l'objectiu de la camera: alli no hi ha caiguda
 uniform bool globus;         // true: terreny posat sobre la Terra (main.py); false: pla (scripts)
-uniform float coef_log;      // 2 / log2(far + 1); 0 = profunditat normal
 const float RADI_TERRA = 6371.0;
 void main() {
     uv = in_uv;
@@ -50,8 +49,9 @@ void main() {
     vec4 q = m_model * vec4(p, 1.0);
     pos_mon = q.xyz;
     gl_Position = m_proj * m_view * q;
-    // profunditat logaritmica: precisio relativa constant, del metre fins al Sol
+    // profunditat logaritmica (mode globus): la calcula el fragment shader (gl_FragDepth) a partir de logz.
+    // gl_Position.z es deixa com el dona la projeccio: el retall (clipping) dels triangles es fa
+    // interpolant z linealment entre vertexs, i una z logaritmica per vertex retallaria triangles
+    // grans que passen per darrere de la camera (el terra als peus desapareixia).
     logz = 1.0 + gl_Position.w;
-    if (coef_log > 0.0)
-        gl_Position.z = (log2(max(1e-6, logz)) * coef_log - 1.0) * gl_Position.w;
 }
