@@ -4,9 +4,14 @@ Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode
 coordina l'escena: crea els objectes, fa avancar el temps i els dibuixa.
 
 L'escena es un model geometric coherent en coordenades terrestres (ECEF, km): la Terra (el·lipsoide
-WGS84 amb textura), el relleu de la peninsula (MDT de 200 m) amb Picos de Europa com a zona de detall
-(MDT de 5 m), i el Sol i la Lluna a les seves posicions reals (efemerides de JPL Horizons). L'ombra
-de la Lluna sobre la Terra es calcula per a cada punt de la superficie.
+WGS84 amb textura), el relleu de la peninsula (MDT de 200 m), una zona de detall (MDT de 5 m) al
+voltant del punt d'observacio (Picos, Vic, l'Escala o el Valles) i el Sol i la Lluna a les seves
+posicions reals (efemerides de JPL Horizons). L'ombra de la Lluna es calcula per a cada punt.
+
+Nivells de detall del relleu, de lluny a prop: la graella general de la peninsula (~1 km entre
+vertexs), un pegat de la peninsula al voltant de l'observador (200 m, ~100 km), la zona de 5 m
+(~20 m entre vertexs) i un pegat de la zona al voltant de l'observador (5 m, ~2,5 km). Cada nivell
+fa un forat al de sota i, a la vora, la seva altura passa suaument a la del de sota.
 
 Tres coses independents:
   - el temps de simulacio (self.hora, TU): nomes canvia quan es reprodueix (tecla P);
@@ -54,6 +59,7 @@ import glfw
 import glm
 import numpy as np
 import moderngl as mgl
+import rasterio
 from slimgui import imgui
 
 from basecode.engine import GraphicsEngineBase
@@ -63,7 +69,7 @@ from basecode.astres import Esfera, Lluna, SOL, HALO
 from basecode.sol import Sol
 from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
-from dades.data_io import TERRENYS
+from dades.data_io import TERRENYS, ZONES_DETALL
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, centre_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
@@ -97,20 +103,24 @@ class GraphicsEngine(GraphicsEngineBase):
         self.light = Sol()
         self.coef_log = COEF_LOG
         self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
-        self.terra = self.peninsula = self.picos = self.sol_visible = self.halo = self.lluna = None
+        self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = None
 
-        # --- territori: la peninsula sencera i Picos com a zona de detall, posats sobre la Terra
+        # --- territori: la peninsula sencera posada sobre la Terra; la zona de detall de 5 m es
+        # carrega quan es tria un punt d'observacio que hi es (triar_punt)
         t0 = time.time()
         cami = {n: c for n, c, _ in TERRENYS}
         self.peninsula = Terrain(self, cami['Peninsula'], globus=True)
-        self.picos = Terrain(self, cami['Picos'], globus=True)
-        for t in (self.peninsula, self.picos):
-            t.exaggeration = 1.0
-            t.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
-        # la peninsula no es dibuixa on hi ha Picos (el dibuixa el terreny de 5 m)
-        u0, v0 = self.peninsula.uv_de_utm(*self.picos.utm_de_uv(0.0, 0.0))
-        u1, v1 = self.peninsula.uv_de_utm(*self.picos.utm_de_uv(1.0, 1.0))
-        self.peninsula.forat = (u0, v0, u1, v1)
+        self.peninsula.exaggeration = 1.0
+        self.peninsula.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
+        # zones de detall disponibles (fitxers descarregats) i el rectangle que ocupen (UTM, m)
+        self.zones = []
+        for nom, cami_zona, ordre in ZONES_DETALL:
+            if os.path.exists(cami_zona):
+                with rasterio.open(cami_zona) as f:
+                    self.zones.append((nom, cami_zona, f.bounds))
+            else:
+                print(f"AVIS: falta la zona de detall '{nom}': python scripts/descarregar_mdt.py {ordre}")
+        self.nom_zona = None
         self.terra = Terra(self)
         print(f"Escena carregada en {time.time() - t0:.1f} s")
 
@@ -121,6 +131,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.velocitat_auto = True    # lent a la totalitat, rapid a les fases parcials
         self.tapada = 0.0
         self.marcador_fins = -1.0     # temps real (s) fins al qual es veu l'avis del punt triat
+        self.camera = None
 
         # --- punt d'observacio (dada independent): Picos de Europa
         nom, lat, lon = UBICACIONS[0]
@@ -148,7 +159,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.fps, self.frames, self.temps_fps = 0.0, 0, 0.0
 
     def drawables(self):
-        objectes = [self.terra, self.peninsula, self.picos, self.lluna, self.sol_visible, self.halo]
+        objectes = [self.terra, self.peninsula, self.zona, self.lluna, self.sol_visible, self.halo]
         return [obj for obj in objectes if obj is not None]
 
     def on_resize(self, window, amplada, alcada):
@@ -162,14 +173,45 @@ class GraphicsEngine(GraphicsEngineBase):
 
     # ------------------------------------------------------------ territori i observador
 
+    def terrenys(self):
+        """Els relleus que es dibuixen, del menys al mes detallat."""
+        return [t for t in (self.peninsula, self.zona) if t is not None]
+
     def altitud_terra_km(self, lat, lon):
-        """Altura de la superficie dibuixada (km): Picos si hi es, si no la peninsula, si no 0."""
-        for t in (self.picos, self.peninsula):
-            if t is not None:
-                h = t.altitud_latlon(lat, lon)
-                if h is not None:
-                    return h / 1000.0 * t.exaggeration
+        """Altura (km) dels triangles que es dibuixen en aquest punt: els de la zona de detall si hi
+        es, si no els de la peninsula, si no 0 (el globus)."""
+        for t in reversed(self.terrenys()):
+            h = t.altitud_latlon(lat, lon)
+            if h is not None:
+                return h / 1000.0 * t.exaggeration
         return 0.0
+
+    def posar_detall(self, lat, lon):
+        """Carrega la zona de 5 m que conte el punt (si n'hi ha) i posa els pegats densos al voltant del
+        punt. Nomes es mante carregada una zona: la de l'observador (cada una ocupa uns 200 MB)."""
+        x, y = self.peninsula.de_latlon.transform(lon, lat)
+        nom = next((n for n, _, b in self.zones if b.left < x < b.right and b.bottom < y < b.top), None)
+        if nom != self.nom_zona:
+            if self.zona is not None:
+                self.zona.destroy()
+                self.zona, self.peninsula.fills = None, []
+            if nom is not None:
+                t0 = time.time()
+                cami = next(c for n, c, _ in self.zones if n == nom)
+                self.zona = Terrain(self, cami, globus=True)
+                self.zona.pare, self.zona.dibuixar_mar = self.peninsula, True
+                for atribut in ('exaggeration', 'overlay', 'opacitat', 'limits_totalitat', 'wireframe'):
+                    setattr(self.zona, atribut, getattr(self.peninsula, atribut))
+                self.peninsula.fills = [self.zona]
+                print(f"Zona de detall '{nom}' carregada en {time.time() - t0:.1f} s")
+            self.nom_zona = nom
+        # de lluny a prop: cada nivell depen de la superficie del de sota
+        self.peninsula.posar_pegat(lat, lon)
+        if self.zona is not None:
+            self.zona.actualitzar_transicio()
+            self.zona.posar_pegat(lat, lon)
+        if self.camera is not None:
+            self.camera.update()   # la zona nova tambe ha de rebre les matrius de la camera
 
     def triar_punt(self, lat, lon, nom=''):
         """Posa l'observador al punt (lat, lon) i hi calcula, tot alhora, el model del Sol i la Lluna
@@ -177,6 +219,7 @@ class GraphicsEngine(GraphicsEngineBase):
         Durant la reproduccio la ubicacio esta bloquejada: no canvia res i retorna False."""
         if self.reproduint:
             return False
+        self.posar_detall(lat, lon)
         alt_km = self.altitud_terra_km(lat, lon)
         self.observador = Observador(lat, lon, alt_km * 1000.0, nom)
         self.model = ModelEclipsi(lat, lon, alt_km)
@@ -185,9 +228,10 @@ class GraphicsEngine(GraphicsEngineBase):
         return True
 
     def ulls(self):
-        """Posicio dels ulls de l'observador (ECEF, km): 1,7 m sobre la superficie dibuixada."""
+        """Posicio dels ulls de l'observador (ECEF, km): 1,7 m sobre els triangles que es dibuixen en
+        aquell punt (es torna a calcular: l'exageracio de depuracio pot canviar el relleu)."""
         o = self.observador
-        return geodesia.ecef(o.lat, o.lon, o.altitud_m / 1000.0 + ALCADA_ULLS_KM)
+        return geodesia.ecef(o.lat, o.lon, self.altitud_terra_km(o.lat, o.lon) + ALCADA_ULLS_KM)
 
     # ------------------------------------------------------------ vistes i temps
 
@@ -332,8 +376,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.sol_visible.render()
         self.lluna.render()
         self.terra.render()
-        self.peninsula.render()
-        self.picos.render()
+        for t in self.terrenys():
+            t.render()
         self.halo.render()   # l'ultim: es transparent
 
         if self.vista == 0:

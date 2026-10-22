@@ -121,11 +121,13 @@ def panell_avancat(app):
         t = app.peninsula
         canviat, exag = imgui.slider_float('Exageracio', t.exaggeration, 1, 20)
         if canviat:
-            app.peninsula.exaggeration = app.picos.exaggeration = exag
+            for terreny in app.terrenys():
+                terreny.exaggeration = exag
         imgui.text_colored(COLOR_SUAU, '(eina de visualitzacio: 1 = relleu real)')
         canviat, filferros = imgui.checkbox('Filferros', t.wireframe)
         if canviat:
-            app.peninsula.wireframe = app.picos.wireframe = filferros
+            for terreny in app.terrenys():
+                terreny.wireframe = filferros
         imgui.tree_pop()
 
 
@@ -160,14 +162,17 @@ def panell_capes(app):
     t = app.peninsula
     for i, nom in enumerate(OVERLAYS):
         if imgui.radio_button(nom, t.overlay == i):
-            app.peninsula.overlay = app.picos.overlay = i
+            for terreny in app.terrenys():
+                terreny.overlay = i
     if t.overlay:
         canviat, op = imgui.slider_float('Opacitat', t.opacitat, 0, 1)
         if canviat:
-            app.peninsula.opacitat = app.picos.opacitat = op
+            for terreny in app.terrenys():
+                terreny.opacitat = op
     canviat, lim = imgui.checkbox('Limits de la totalitat', t.limits_totalitat)
     if canviat:
-        app.peninsula.limits_totalitat = app.picos.limits_totalitat = lim
+        for terreny in app.terrenys():
+            terreny.limits_totalitat = lim
 
     def llegenda(color, text):
         imgui.color_button(f'##{text}', (*color, 1.0), imgui.ColorEditFlags.NO_TOOLTIP, (14, 14))

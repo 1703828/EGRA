@@ -41,8 +41,16 @@ uniform vec3 sol_rel;           // posicio del Sol relativa a la camera (km)
 uniform vec3 lluna_rel;         // posicio de la Lluna relativa a la camera (km)
 uniform float radi_sol;         // km
 uniform float radi_lluna;       // km
-uniform bool hi_ha_forat;       // la zona de detall (Picos) es dibuixa a part: aqui no
-uniform vec4 forat;             // rectangle (u0, v0, u1, v1) en UV d'aquest terreny
+uniform vec4 forats[4];         // rectangles (u0, v0, u1, v1) en UV on no es dibuixa: hi ha un
+uniform int n_forats;           //   nivell mes detallat (una zona de 5 m o el pegat de l'observador)
+uniform bool dibuixar_mar;      // el mar del fitxer es dibuixa a 0 m (zones de 5 m de la costa)
+#ifdef PROFUNDITAT_LOG
+// el mar de les zones de detall es pinta com el globus (mateixa textura i mateixa llum que terra.frag),
+// perque a la vora de la zona no es noti on acaba
+uniform sampler2D tex_terra;    // textura de la Terra (NASA Blue Marble)
+uniform vec3 cam_ecef;          // posicio de la camera (ECEF, km; float32 n'hi ha prou per a la textura)
+uniform float atmosfera;        // 1 dins de l'atmosfera, 0 a l'espai (el contorn blau, nomes des de fora)
+#endif
 
 // rampa hipsometrica absoluta: la mateixa altitud te el mateix color a tots els fitxers
 const float COTES[6] = float[](0.0, 200.0, 600.0, 1200.0, 2000.0, 3000.0);
@@ -119,6 +127,21 @@ float tapat_des_de(vec3 p) {
     return area_tapada(d, rs, rl);
 }
 
+#ifdef PROFUNDITAT_LOG
+// Color del globus en aquest punt de la superficie (el mateix calcul que terra.frag)
+vec3 color_globus(vec3 up, vec3 sol, float visible) {
+    vec3 e = cam_ecef + pos_mon;
+    float lon = atan(e.y, e.x);
+    float lat = atan(e.z, length(e.xy) * (1.0 - 0.00669438));   // latitud geodesica a l'altura 0
+    vec3 c = texture(tex_terra, vec2(lon / 6.2831853 + 0.5, 0.5 - lat / 3.14159265)).rgb;
+    float cos_sol = dot(up, sol);
+    float dia = smoothstep(-0.10, 0.10, cos_sol);
+    c *= 0.03 + dia * visible * (0.25 + 0.95 * max(cos_sol, 0.0));
+    float vora = pow(1.0 - max(dot(up, normalize(-pos_mon)), 0.0), 3.0);
+    return c + vec3(0.30, 0.50, 1.00) * vora * 0.6 * dia * (1.0 - atmosfera);
+}
+#endif
+
 void main() {
 #ifdef PROFUNDITAT_LOG
     gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
@@ -128,8 +151,10 @@ void main() {
     float llum_sol_aqui = llum_sol, llum_cel_aqui = llum_cel;
     if (globus) {
         // el mar i les zones sense dades (Portugal, Franca) no es dibuixen: es veu el globus
-        if (d > 0.0) discard;
-        if (hi_ha_forat && uv.x > forat.x && uv.x < forat.z && uv.y > forat.y && uv.y < forat.w) discard;
+        // (excepte a les zones de detall de la costa, que dibuixen el mar a 0 m)
+        if (d > 0.0 && !dibuixar_mar) discard;
+        for (int i = 0; i < n_forats; i++)
+            if (uv.x > forats[i].x && uv.x < forats[i].z && uv.y > forats[i].y && uv.y < forats[i].w) discard;
         // llum del Sol i del cel en aquest punt: segons l'altura del Sol aqui i la part que en tapa la Lluna
         sol = normalize(sol_rel - pos_mon);
         float elev = dot(normalize(amunt), sol);                       // sinus de l'elevacio del Sol
@@ -141,6 +166,17 @@ void main() {
     // aigua: mes clara a prop de la costa, mes fosca mar endins; menys llum amb el Sol baix
     vec3 aigua = mix(vec3(0.16, 0.42, 0.58), vec3(0.04, 0.14, 0.32), 1.0 - exp(-max(d, 0.0) / escala_mar));
     aigua *= (0.5 + 0.5 * max(globus ? dot(sol, normalize(amunt)) : sol.y, 0.0)) * llum_cel_aqui;
+#ifdef PROFUNDITAT_LOG
+    if (dibuixar_mar) {
+        // les parets (faldilles) sobre el mar no es dibuixen: a la vora de la zona hi ha el mar del globus
+        if (es_faldilla && d > 0.0) discard;
+        // a prop de la vora de la zona, el color del globus; cap a dins, el de l'aigua (la textura del
+        // globus te pixels de 20 km i a la costa barreja terra i mar)
+        float a_vora = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+        aigua = mix(color_globus(normalize(amunt), sol, 1.0 - tapat_des_de(pos_mon)), aigua,
+                    smoothstep(0.02, 0.25, a_vora));
+    }
+#endif
     vec3 color;
 
     if (es_faldilla) {

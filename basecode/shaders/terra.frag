@@ -12,6 +12,7 @@ uniform vec3 lluna_rel;    // Lluna relativa a la camera (km)
 uniform float radi_sol;    // km
 uniform float radi_lluna;  // km
 uniform float coef_log;
+uniform float atmosfera;   // 1 dins de l'atmosfera, 0 a l'espai
 
 // La mateixa formula que dades/model_eclipsi.py i terrain.frag
 float area_tapada(float d, float r1, float r2) {
@@ -44,9 +45,10 @@ void main() {
     // llum directa (Lambert) + una part difusa del cel que manté clar el costat de dia prop del
     // terminador (aproximacio visual de l'atmosfera)
     vec3 c = color * (0.03 + dia * visible * (0.25 + 0.95 * max(cos_sol, 0.0)));
-    // atmosfera (il·lustratiu): un contorn blau a la vora del disc, nomes al costat de dia
+    // atmosfera (il·lustratiu): un contorn blau a la vora del disc, nomes al costat de dia i vist des
+    // de fora de l'atmosfera (des del terra, el mar llunya es veuria d'un blau brillant)
     vec3 v = normalize(-pos_rel);
     float vora = pow(1.0 - max(dot(n, v), 0.0), 3.0);
-    c += vec3(0.30, 0.50, 1.00) * vora * 0.6 * dia;
+    c += vec3(0.30, 0.50, 1.00) * vora * 0.6 * dia * (1.0 - atmosfera);
     fragColor = vec4(c, 1.0);
 }

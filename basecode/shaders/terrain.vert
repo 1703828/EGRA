@@ -6,6 +6,7 @@ layout (location = 1) in float in_base;  // faldilles: 0 = a dalt, 1 = a la cota
 layout (location = 2) in vec3 in_offset;
 layout (location = 3) in vec3 in_amunt;
 layout (location = 4) in vec3 in_tx;
+layout (location = 5) in float in_h;   // mode globus: altura del vertex (m), calculada a la CPU
 out vec2 uv;
 out vec3 pos_mon;   // posicio en km (mode globus: relativa a la camera), per a la boira i la llum
 out float base;
@@ -23,19 +24,22 @@ uniform float cota_base;     // altura (km) del fons de les faldilles
 uniform bool curvatura;
 uniform vec2 centre_curvatura;  // (x, z) de l'objectiu de la camera: alli no hi ha caiguda
 uniform bool globus;         // true: terreny posat sobre la Terra (main.py); false: pla (scripts)
+uniform float profunditat_faldilla;  // mode globus: km que baixen les faldilles per sota de la vora
 const float RADI_TERRA = 6371.0;
 void main() {
     uv = in_uv;
     base = in_base;
-    float h = textureLod(tex_altitud, in_uv, lod_vertexs).r;  // metres
-    float y = mix(max(h, 0.0) / 1000.0 * exaggeration, cota_base, in_base);
     vec3 p;
     if (globus) {
-        // el punt de l'el·lipsoide, aixecat al llarg de la vertical del lloc
+        // el punt de l'el·lipsoide, aixecat al llarg de la vertical del lloc. L'altura ve de la CPU
+        // (in_h): aixi la CPU sap on es exactament la superficie dibuixada (els ulls, a 1,7 m)
+        float y = max(in_h, 0.0) / 1000.0 * exaggeration - in_base * profunditat_faldilla;
         p = in_offset + in_amunt * y;
         amunt = in_amunt;
         tx = in_tx;
     } else {
+        float h = textureLod(tex_altitud, in_uv, lod_vertexs).r;  // metres
+        float y = mix(max(h, 0.0) / 1000.0 * exaggeration, cota_base, in_base);
         vec2 xz = (in_uv - 0.5) * mida_km;
         if (curvatura) {
             // la Terra es corba: a distancia d el terra baixa d^2/(2R) (sense exageracio)
