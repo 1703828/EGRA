@@ -648,12 +648,12 @@ de moure `astres.py`, per la qüestió de les constants):
 
 | Tasca | Canvia | Estat |
 |---|---|---|
-| 2.1 | `sol.py` → `basecode/sol.py` | `FET` |
-| 2.2 | `data_io.py`, `eclipse_data.py`, `model_eclipsi.py` → `dades/`; constants del Sol i la Lluna a `dades/model_eclipsi.py` | `FET` |
-| 2.3 | `astres.py` i `personatge.py` → `basecode/` | `FET` |
-| 2.4 | `terrain.py` → `basecode/` (i els imports dels scripts) | `FET` |
-| 2.5 | `camera.py` → `basecode/camera_exploracio.py` (`CameraExploracio`); `camera_primera_persona.py` → `basecode/camera_observador.py` (`CameraObservador`); el codi de dins no canvia | `FET` |
-| 2.6 | `build_ui` i les funcions del panell de `main.py` → funcions de `ui.py` | `FET` |
+| 2.1 | `sol.py` → `basecode/sol.py` | `VALIDAT` |
+| 2.2 | `data_io.py`, `eclipse_data.py`, `model_eclipsi.py` → `dades/`; constants del Sol i la Lluna a `dades/model_eclipsi.py` | `VALIDAT` |
+| 2.3 | `astres.py` i `personatge.py` → `basecode/` | `VALIDAT` |
+| 2.4 | `terrain.py` → `basecode/` (i els imports dels scripts) | `VALIDAT` |
+| 2.5 | `camera.py` → `basecode/camera_exploracio.py` (`CameraExploracio`); `camera_primera_persona.py` → `basecode/camera_observador.py` (`CameraObservador`); el codi de dins no canvia | `VALIDAT` |
+| 2.6 | `build_ui` i les funcions del panell de `main.py` → funcions de `ui.py` | `VALIDAT` |
 | 2.7 | README, pla i web amb les rutes noves | `FET` |
 
 `personatge.py` s'ha **mogut** a `basecode/` però **no** s'ha retirat (D7): la retirada és la tasca 3.1.
@@ -667,12 +667,35 @@ de moure `astres.py`, per la qüestió de les constants):
 - També s'executen `captura.py` (Picos i península amb zones), `exercici_fotograma.py` i
   `preparar_dades.py`, i es compara la sortida de text (sense els temps).
 - **Criteri:** l'estat i els textos han de ser **idèntics**. Les imatges poden diferir pel soroll de
-  la GPU: amb el **mateix codi**, dues execucions de `captura.py` (antialiasing 4x) difereixen de 0 a
-  503 píxels d'1,6 milions, i el primer fotograma del programa varia 39 píxels entre sessions. Es
-  van acceptar com a iguals les imatges amb ≤ 1000 píxels diferents.
+  la GPU, que es va mesurar amb el **mateix codi** (sense cap canvi entre les dues execucions):
+
+  | Cas (mateix codi) | Píxels diferents | Diferència màxima | Diferència mitjana | Grups (el més gran) | En vores del relleu |
+  |---|---|---|---|---|---|
+  | `captura.py`, repetició 1 | 503 (0,031 %) | 23/255 | 1,6 | 39 (83 px) | 69 % |
+  | `captura.py`, repetició 2 | 299 (0,019 %) | 14/255 | 1,5 | 51 (36 px) | 72 % |
+  | `exercici_fotograma.py` | 13 (0,001 %) | 5/255 | 1,8 | 8 (5 px) | 38 % |
+  | Programa, 1r fotograma, una altra sessió | 39 (0,004 %) | 9/255 | 1,9 | 10 (16 px) | 64 % |
+
+  "En vores del relleu" = píxels on la imatge canvia de cop (gradient de lluminositat > 8); a tota la
+  imatge només ho són el 19 % (captura) o el 3 % (programa). Per tant, el soroll és **dispers, petit
+  (gairebé sempre menys de 10/255) i concentrat a les vores**, on l'antialiasing i l'ordre de
+  rasterització poden canviar un píxel. Una regressió real (un objecte desplaçat, un color diferent)
+  faria una taca compacta o una diferència gran.
+- **Limitació del criteri que es va fer servir:** durant la fase es va acceptar ≤ 1000 píxels
+  diferents. Aquest límit, tot sol, no descarta una regressió petita (p. ex. un objecte de 30 × 30
+  píxels desplaçat). El que la descarta és la combinació de: l'estat numèric idèntic, la diferència
+  màxima i mitjana petites, la dispersió en grups petits a les vores i, sobretot, la **comparació
+  final**, en què totes les imatges (programa, captures i exercici) van sortir **idèntiques, amb 0
+  píxels diferents**. Per a les properes comparacions, el criteri inclourà la diferència màxima, la
+  mida del grup més gran i la ubicació, no només el recompte.
 - `diff -r basecode repte4/basecode`: els originals del professor, idèntics.
 - El bucle real `run()` (90 fotogrames, amb el panell dibuixat) funciona sense errors.
-- **No s'ha provat:** la finestra visible, el teclat ni el ratolí (ho ha de fer l'equip).
+- **Prova de l'equip (22/10/2026):** amb la finestra visible, els controls principals funcionen com
+  abans. Amb això, 2.1–2.6 passen a `VALIDAT`. 2.7 (documentació) queda `FET`.
+- **Limitacions de les proves:** l'script de prova no simula el teclat ni el ratolí (només crida les
+  funcions que hi ha al darrere, com la de la tecla P); `descarregar_mdt.py` no s'ha tornat a
+  executar (no s'ha fet cap descàrrega); l'equip ha provat els controls principals, no cada opció
+  del panell.
 
 ### F3 — Canvis de comportament i correccions (C; mínim)
 
@@ -783,3 +806,4 @@ l'evidència corresponents.
 | 22/10/2026 | 5.1 `FET`: primera versió local de la web a `docs/`. D30 i pendent P13 (O3 no és a l'acta 3 final). |
 | 22/10/2026 | D31: O3 retirat i repartit (O1.1, O1.12, O2.6). Commit i push de la web i del pla. |
 | 22/10/2026 | F2 `FET` (tasques 2.1–2.7): reorganització en commits locals separats, sense push. Estructura actual a §4. |
+| 22/10/2026 | 2.1–2.6 `VALIDAT` per l'equip (finestra i controls principals). Documentades la magnitud i la ubicació de les diferències d'imatge. |
