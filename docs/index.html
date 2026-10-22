@@ -12,7 +12,7 @@
 
 <h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
 <p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
-  Web de seguiment, versió local 3 (22/10/2026)</p>
+  Web de seguiment, versió local 4 (22/10/2026)</p>
 
 <p>Volem veure l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya: explorar
   el terreny des de fora i, després, situar-nos en un punt concret, a l'altura dels ulls, per veure com
@@ -183,9 +183,17 @@
     (<a href="#o2-3">O2.3</a>). Ara la graella no és plana: cada vèrtex es col·loca a la seva latitud i
     longitud reals sobre l'<dfn>el·lipsoide</dfn>, la forma lleugerament aixafada amb què es mesura la
     Terra. Per tant, la curvatura és la real i no cal cap correcció a part.</p>
-  <p>Hi ha dos terrenys. Tota la península, amb un punt cada 200 m, i Picos de Europa, amb un punt cada
-    5 m, que s'hi encaixa com a zona de detall (la península no es dibuixa on hi ha Picos). On el mapa de
-    l'IGN no té dades (el mar, Portugal, França) no es dibuixa relleu i es veu la Terra de sota.</p>
+  <p>El relleu té <dfn>nivells de detall</dfn>: més vèrtexs a prop de l'observador i menys lluny. De
+    lluny a prop: tota la península (un vèrtex cada ~1 km); la península a 200 m en ~100 km al voltant del
+    punt d'observació; la <dfn>zona de 5 m</dfn> que conté el punt (Picos, Vic, l'Escala o el Vallès, un
+    vèrtex cada ~20 m); i, en ~2,5 km al voltant del punt, un vèrtex per cada píxel de 5 m. Cada nivell fa
+    un forat al de sota, i a la seva vora l'altura passa suaument a la del nivell de sota perquè no hi
+    hagi esglaons. On el mapa de l'IGN no té dades (Portugal, França, el mar lluny de la costa) no es
+    dibuixa relleu i es veu la Terra de sota; a les zones de la costa, el mar es dibuixa a 0 m i, cap a la
+    vora, pren el color del globus.</p>
+  <figure class="costat"><img src="img/escala_4km.jpg" alt="L'Escala des de 4 km" loading="lazy">
+    <figcaption>L'Escala des de 4 km (zona de 5 m): el mar de la zona passa al del globus sense que es
+      vegi on acaba.</figcaption></figure>
   <p>Els colors depenen de l'altitud en metres (verd a baix, roca i neu a dalt) i la boira augmenta amb
     la distància. Quan la Lluna tapa el Sol, la llum de cada punt baixa segons la part del Sol que es
     veu des d'aquell punt (<a href="#o1-8">O1.8</a>).</p>
@@ -193,11 +201,12 @@
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a> (mode globus), <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>, <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">El relleu de la península i de Picos es posa sobre l'el·lipsoide; el picking cau a 0,3 m de la superfície dibuixada (prova automàtica).</li>
-      <li data-estat="fet">Picos encaixa dins la península sense línies ni salts visibles (inspecció de captures).</li>
+      <li data-estat="fet">El relleu es posa sobre l'el·lipsoide; el picking cau a 0,01 m de la superfície dibuixada (prova automàtica).</li>
+      <li data-estat="fet">Zones de 5 m de Picos, Vic, l'Escala i el Vallès, amb pegats de detall al voltant de l'observador (F10).</li>
+      <li data-estat="fet">Els nivells encaixen sense línies ni salts visibles des de 0,4, 4, 30 i 250 km (inspecció de captures).</li>
       <li data-estat="pendent">L'horitzó que es veu coincideix amb el que calcula un script (tasca 3.4).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); la península té un vèrtex cada ~1 km; fora d'Espanya no hi ha relleu.</p>
+    <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); entre 10 i 50 km de l'observador el relleu és el de 200 m; fora d'Espanya no hi ha relleu; només es manté carregada la zona de 5 m de l'observador.</p>
   </div>
 </div></details>
 
@@ -246,12 +255,17 @@
     <p><span class="rotul">Fitxers:</span> <a href="../dades/observador.py"><code>dades/observador.py</code></a>, <code>triar_punt()</code>, <code>ulls()</code> i <code>reproduir_pausar()</code> a <a href="../main.py"><code>main.py</code></a>, <a href="../basecode/camera_observador.py"><code>basecode/camera_observador.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">Els ulls i la mirada no canvien en reproduir; els ulls són a 1,7 m del terra dibuixat (prova automàtica).</li>
+      <li data-estat="fet">Els ulls i la mirada no canvien en reproduir (prova automàtica).</li>
+      <li data-estat="fet">A les sis ubicacions, els ulls són a 1,698–1,700 m dels triangles dibuixats, llegit del depth buffer mirant avall; mirant a −30° i −60° tot és terreny proper (<code>scripts/prova_vistes.py</code>).</li>
       <li data-estat="fet">P congela el temps i el reprèn des del mateix instant sense moure cap càmera (prova automàtica).</li>
       <li data-estat="fet">Durant la reproducció no es pot canviar el punt; en pausa sí, i el model i el panell són del punt nou (prova automàtica).</li>
       <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> els ulls van sobre la superfície dibuixada (mitjana de la malla), no sobre el MDT de 5 m.</p>
+    <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
+      però comparava amb l'altura que calculava la CPU, no amb el que es dibuixava. Mesurat al depth buffer,
+      a Montmeló eren a 122 m. Ara l'altura de cada vèrtex la calcula la CPU i la GPU la rep feta: totes dues
+      parlen dels mateixos triangles. Al punt de l'observador, la superfície dibuixada coincideix amb el MDT
+      original a menys d'1 cm.</p>
   </div>
 </div></details>
 
@@ -417,14 +431,24 @@
   <p>Això vol dir distàncies enormes: el terra a un metre i el Sol a 150 milions de km. Per dibuixar-ho
     tot alhora calen dues tècniques (<a href="#o2-2">O2.2</a>): tot es dibuixa relatiu a la càmera, i la
     profunditat és logarítmica.</p>
+  <p>El botó <em>Veure l'ombra des de l'espai</em> porta la càmera a 12.000 km, entre la vertical i el
+    Sol, mirant el punt on l'ombra és més fosca a l'hora actual; és un sol enquadrament, sense seguiment.
+    L'ombra real es distingeix poc: a Espanya l'eclipsi passa a prop de la posta, l'ombra cau a prop del
+    límit entre el dia i la nit i sovint sobre el mar fosc, la umbra només fa ~290 km i la penombra
+    enfosqueix a poc a poc. La casella <em>Ressaltar l'ombra amb línies (didàctic)</em> hi dibuixa les
+    línies del 25, 50 i 75 % del Sol tapat i el límit de la totalitat, sense canviar la foscor.</p>
+  <figure class="costat"><img src="img/ombra_linies.jpg" alt="L'ombra des de l'espai amb les línies didàctiques" loading="lazy">
+    <figcaption>20:18 (hora d'estiu), amb les línies didàctiques: groc, 25, 50 i 75 % del Sol tapat; lila,
+      la totalitat. Les línies s'aturen on es pon el Sol.</figcaption></figure>
   <p>A escala real, la Lluna és a 60 vegades el radi de la Terra: des d'on es veu bé l'ombra, la Lluna
     queda lluny, i des d'on es veuen totes dues, l'ombra és massa petita per distingir-la. No hem fet
     cap composició il·lustrativa amb distàncies falses.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/terra.py"><code>basecode/terra.py</code></a>, <a href="../main.py"><code>main.py</code></a> (<code>veure_terra_des_de_lespai</code>).</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/terra.py"><code>basecode/terra.py</code></a>, <a href="../main.py"><code>main.py</code></a> (<code>veure_ombra_des_de_lespai</code>), <code>punt_ombra()</code> a <a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">La Terra, la península, Picos, el Sol i la Lluna es dibuixen junts del terra fins a l'espai (inspecció de captures).</li>
+      <li data-estat="fet">"Veure l'ombra des de l'espai" posa al centre el punt més fosc de l'ombra, a ≤ 7 km (prova automàtica, sis ubicacions).</li>
       <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> la malla del globus queda fins a ~120 m per sota de l'el·lipsoide entre vèrtexs; fora d'Espanya no hi ha relleu.</p>
@@ -501,6 +525,18 @@
     metre i el Sol a 150 milions de km, la profunditat normal no té prou precisió. La
     <dfn>profunditat logarítmica</dfn> guarda el logaritme de la distància, de manera que la precisió
     relativa és la mateixa a totes les distàncies.</p>
+  <figure class="costat"><img src="img/tall_abans_despres.jpg" alt="Vic des del terra abans i després de la correcció" loading="lazy">
+    <figcaption>Vic des del terra. Abans: el terra proper desapareixia i es veia l'interior del globus
+      (Amèrica, mirant a l'oest). Després: el terra arriba fins als peus.</figcaption></figure>
+  <p><span class="rotul">Una lliçó del retall (F10).</span> Abans de dividir per w, la GPU
+    <dfn>retalla</dfn> (clipping) els triangles que surten del volum de la càmera, i ho fa interpolant
+    les coordenades <em>linealment</em> entre els vèrtexs. Nosaltres escrivíem la profunditat logarítmica
+    a <code>gl_Position.z</code> de cada vèrtex. El logaritme no és lineal: en un triangle gran que passa
+    per darrere de la càmera, la z interpolada es feia massa gran i la GPU en retallava un tros que era
+    davant dels ulls. A la península, amb vèrtexs cada ~1 km, a Vic desapareixia el terra fins a una
+    dotzena de metres i es veia l'interior del globus. Ara <code>gl_Position.z</code> és la que dona la
+    matriu de projecció (lineal, el retall és correcte) i la profunditat logarítmica només la posa el
+    fragment shader (<code>gl_FragDepth</code>).</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>
       (<code>matrius()</code>, <code>desprojectar()</code>), <a href="../basecode/camera_orbital.py"><code>basecode/camera_orbital.py</code></a> (mode pla),
@@ -509,6 +545,7 @@
     <ul class="criteris">
       <li data-estat="validat">Cada etapa (vista, perspectiva, divisió per w, píxel) es calcula a mà i coincideix (exercici 1.0).</li>
       <li data-estat="fet">Amb la càmera a la meitat de distància, el punt s'allunya del centre segons la raó de profunditats (2,14).</li>
+      <li data-estat="fet">Mirant avall des de les sis ubicacions, cap píxel de la meitat de baix és cel o globus (prova automàtica, F10).</li>
     </ul>
   </div>
 </div></details>
