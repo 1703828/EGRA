@@ -9,7 +9,13 @@ Terreny: MDT dibuixat amb un heightmap com a textura (T2-T6).
 - Segueix l'estructura dels objectes del repte 4 (get_vbo, get_vao, get_shader_program, on_init,
   render, destroy); el Sol es app.light (sol.py) i la camera escriu m_proj i m_view.
 - Copies a la CPU de l'altitud per a la camera (enganxada al terreny) i el punt d'observacio.
+- Dos modes. Pla (globus=False): el terreny es un rectangle en km amb l'origen al centre (el fan
+  servir scripts/captura.py i l'exercici 1.0). Globus (globus=True, main.py): cada vertex es posa a
+  la seva latitud i longitud reals sobre l'el·lipsoide WGS84, en coordenades terrestres (ECEF), i
+  la llum i l'ombra de la Lluna es calculen per a cada punt. Les posicions es guarden relatives a
+  l'origen del terreny (float32 n'hi ha prou) i es dibuixen relatives a la camera.
 """
+import os
 import math
 
 import glm
@@ -19,7 +25,8 @@ import rasterio
 from pyproj import Transformer
 
 from . import shaders
-from dades import data_io, eclipse_data
+from .programes import carregar_programa
+from dades import data_io, eclipse_data, geodesia
 
 MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella
 MAX_ZONES = 4                   # rectangles de zones de detall que pot dibuixar el shader
@@ -72,9 +79,11 @@ def build_skirt(n_cols, n_files):
 
 
 class Terrain:
-    def __init__(self, app, path):
+    def __init__(self, app, path, globus=False):
         self.app = app
         self.ctx = app.ctx
+        self.globus = globus
+        self.cami = path
         d = data_io.carregar_terreny(path, self.ctx.info['GL_MAX_TEXTURE_SIZE'], MAX_VERTEXS)
         h, res_m, transform = d['alt'], d['res_m'], d['transform']
         files, cols = h.shape
@@ -89,6 +98,7 @@ class Terrain:
         self.origen_utm = (transform.c, transform.f)  # cantonada nord-oest, en metres
         self.crs = d['crs']
         self.a_latlon = Transformer.from_crs(self.crs, 'EPSG:4326', always_xy=True)
+        self.de_latlon = Transformer.from_crs('EPSG:4326', self.crs, always_xy=True)
 
         # --- textures (fila 0 = nord = v 0). Totes amb mipmaps: de lluny es fa servir la mitjana.
         self.tex_altitud = self.make_texture(h, 1, 'f4')             # R32F, metres
@@ -114,6 +124,10 @@ class Terrain:
         # --- objecte OpenGL, com els del repte 4: VBO/IBO + shader program + VAO + m_model
         self.n_cols, self.n_files = d['n_cols'], d['n_files']  # graella fixa, independent de la mida del fitxer
         self.lod_vertexs = d['lod_vertexs']
+        if globus:
+            # origen del terreny: el seu centre sobre l'el·lipsoide (km, ECEF, float64)
+            lon_c, lat_c = self.a_latlon.transform(*self.utm_de_uv(0.5, 0.5))
+            self.origen_ecef = geodesia.ecef(lat_c, lon_c, 0.0)
         self.vbo, self.ibo, self.vbo_faldilla, self.ibo_faldilla = self.get_vbo()
         self.shader_program = self.get_shader_program()
         self.vao, self.vao_faldilla = self.get_vao()
@@ -133,6 +147,7 @@ class Terrain:
         self.overlay = 0             # index a OVERLAYS (0 = cap)
         self.opacitat = 0.6
         self.limits_totalitat = True
+        self.forat = None            # (u0, v0, u1, v1): zona que dibuixa un altre terreny mes detallat
         # llum de l'eclipsi (la posa el GraphicsEngine): 1, 1 i COLOR_CEL = dia normal
         self.llum_sol = 1.0
         self.llum_cel = 1.0
@@ -148,20 +163,58 @@ class Terrain:
     def get_vbo(self):
         (vertices, indices), (vertices_f, indices_f) = self.get_vertex_data()
         self.n_triangles = (len(indices) + len(indices_f)) // 3
+        if self.globus:
+            # cada vertex porta, a mes de la UV, la seva posicio sobre l'el·lipsoide, la vertical i la
+            # direccio de les columnes (9 floats mes)
+            g, g_f = self.atributs_globus(vertices[:, 0], vertices[:, 1]), self.atributs_globus(vertices_f[:, 0], vertices_f[:, 1])
+            vertices = np.hstack([vertices, g]).astype('f4')
+            vertices_f = np.hstack([vertices_f, g_f]).astype('f4')
         return (self.ctx.buffer(vertices), self.ctx.buffer(indices),
                 self.ctx.buffer(vertices_f), self.ctx.buffer(indices_f))
 
     def get_vao(self):
-        # la graella nomes porta in_uv: in_base hi val 0 (valor per defecte d'un atribut sense buffer)
-        vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '2f', 'in_uv')],
+        # la graella porta in_uv (+ els atributs del globus): in_base hi val 0 (valor per defecte d'un
+        # atribut sense buffer)
+        g = ' 3f 3f 3f' if self.globus else ''
+        noms_g = ('in_offset', 'in_amunt', 'in_tx') if self.globus else ()
+        vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '2f' + g, 'in_uv', *noms_g)],
                                     index_buffer=self.ibo)
         vao_faldilla = self.ctx.vertex_array(
-            self.shader_program, [(self.vbo_faldilla, '2f 1f', 'in_uv', 'in_base')],
+            self.shader_program, [(self.vbo_faldilla, '2f 1f' + g, 'in_uv', 'in_base', *noms_g)],
             index_buffer=self.ibo_faldilla)
         return vao, vao_faldilla
 
+    def utm_de_uv(self, u, v):
+        """UV del terreny (0..1) -> coordenades UTM (m), amb el mateix conveni que info_punt."""
+        return (self.origen_utm[0] + u * self.mida.x * 1000, self.origen_utm[1] - v * self.mida.y * 1000)
+
+    def atributs_globus(self, us, vs):
+        """Per a cada UV: posicio sobre l'el·lipsoide relativa a l'origen (km), vertical del lloc i
+        direccio de les columnes (cap on creix u), en ECEF. Es desa a data/cache/<nom>.globus_<n>.npz."""
+        nom = os.path.splitext(os.path.basename(self.cami))[0]
+        cache = os.path.join(data_io.DIR_CACHE, f'{nom}.globus_{len(us)}_{self.n_cols}x{self.n_files}.npz')
+        if os.path.exists(cache) and os.path.getmtime(cache) > os.path.getmtime(self.cami):
+            with np.load(cache) as z:
+                return z['g']
+        def ecef_de_uv(u, v):
+            lon, lat = self.a_latlon.transform(*self.utm_de_uv(u, v))
+            return geodesia.ecef(lat, lon, 0.0), lat, lon
+        p, lat, lon = ecef_de_uv(us, vs)
+        du = 0.5 / self.n_cols
+        tx = ecef_de_uv(us + du, vs)[0] - ecef_de_uv(us - du, vs)[0]
+        tx /= np.linalg.norm(tx, axis=1, keepdims=True)
+        fi, la = np.radians(lat), np.radians(lon)
+        amunt = np.stack([np.cos(fi) * np.cos(la), np.cos(fi) * np.sin(la), np.sin(fi)], axis=1)
+        g = np.hstack([p - self.origen_ecef, amunt, tx]).astype('f4')
+        os.makedirs(data_io.DIR_CACHE, exist_ok=True)
+        np.savez(cache, g=g)
+        return g
+
     def get_shader_program(self):
-        # el shader viu a basecode/shaders/terrain.vert i .frag (editable sense tocar Python)
+        # el shader viu a basecode/shaders/terrain.vert i .frag (editable sense tocar Python);
+        # al mode globus es compila amb la profunditat logaritmica
+        if self.globus:
+            return carregar_programa(self.ctx, 'terrain', ['PROFUNDITAT_LOG'])
         return shaders.load_program(self.ctx, 'terrain')
 
     def get_model_matrix(self):
@@ -183,6 +236,9 @@ class Terrain:
         sp['lod_vertexs'].value = self.lod_vertexs
         sp['cota_base'].value = self.cota_base
         sp['escala_mar'].value = 0.03 * max(self.mida)  # a aquesta distancia de la costa el mar ja es fosc
+        sp['globus'].value = self.globus
+        sp['coef_log'].value = 0.0
+        sp['hi_ha_forat'].value = False
 
     # ------------------------------------------------------------ consultes a la CPU
 
@@ -214,6 +270,23 @@ class Terrain:
 
     def altitud_max_mon(self):
         return self.max_height / 1000.0 * self.exaggeration
+
+    def latlon_a_uv(self, lat, lon):
+        """(u, v) d'un punt geografic dins d'aquest terreny (pot quedar fora de 0..1)."""
+        return self.uv_de_utm(*self.de_latlon.transform(lon, lat))
+
+    def conte(self, lat, lon, marge=0.0):
+        u, v = self.latlon_a_uv(lat, lon)
+        return marge <= u <= 1 - marge and marge <= v <= 1 - marge
+
+    def altitud_latlon(self, lat, lon, dibuixada=True):
+        """Altitud (m, el mar a 0) en un punt geografic: de la superficie dibuixada (mitjana de la
+        graella) o del MDT a resolucio completa. None si el punt es fora del terreny."""
+        u, v = self.latlon_a_uv(lat, lon)
+        if not (0 <= u <= 1 and 0 <= v <= 1):
+            return None
+        x, z = (u - 0.5) * self.mida.x, (v - 0.5) * self.mida.y
+        return max(self.altitud_m(x, z, self.alt_vertexs if dibuixada else None), 0.0)
 
     def info_punt(self, x, z):
         """Coordenades d'un punt del mon: UTM (CRS del fitxer), lat/lon (graus) i altitud (m)."""
@@ -248,6 +321,9 @@ class Terrain:
             return
         cam = self.app.camera
         sp = self.shader_program
+        if self.globus:
+            self.render_globus()
+            return
         sp['cam_pos'].write(cam.position)
         sp['exaggeration'].value = self.exaggeration
         sp['sun_dir'].write(self.app.light.direccio())
@@ -268,6 +344,37 @@ class Terrain:
         self.tex_costa.use(2)
         self.tex_eclipsi.use(3)
         self.tex_ombres.use(4)
+        sp['overlay'].value = self.overlay
+        sp['opacitat'].value = self.opacitat
+        sp['limits_totalitat'].value = self.limits_totalitat
+        self.ctx.wireframe = self.wireframe
+        sp['es_faldilla'].value = False
+        self.vao.render()
+        sp['es_faldilla'].value = True
+        self.vao_faldilla.render()
+        self.ctx.wireframe = False
+
+    def render_globus(self):
+        """Dibuix sobre la Terra: tot relatiu a la camera (app.camera.posicio, ECEF en float64)."""
+        app, sp = self.app, self.shader_program
+        rel = app.camera.posicio
+        sp['m_model'].write(glm.translate(glm.vec3(*(self.origen_ecef - rel))))
+        sp['cam_pos'].write(glm.vec3(0.0))
+        sp['coef_log'].value = app.coef_log
+        sp['sol_rel'].write(glm.vec3(*(app.sol_ecef - rel)))
+        sp['lluna_rel'].write(glm.vec3(*(app.lluna_ecef - rel)))
+        sp['radi_sol'].value, sp['radi_lluna'].value = app.radi_sol_km, app.radi_lluna_km
+        sp['exaggeration'].value = self.exaggeration
+        sp['color_cel'].value = tuple(app.color_cel)
+        sp['densitat_boira'].value = app.densitat_boira
+        sp['inici_boira'].value = 0.0
+        sp['curvatura'].value = False
+        sp['n_zones'].value = 0
+        sp['hi_ha_forat'].value = self.forat is not None
+        if self.forat is not None:
+            sp['forat'].value = tuple(self.forat)
+        for i, tex in enumerate((self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi, self.tex_ombres)):
+            tex.use(i)
         sp['overlay'].value = self.overlay
         sp['opacitat'].value = self.opacitat
         sp['limits_totalitat'].value = self.limits_totalitat

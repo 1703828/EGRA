@@ -3,6 +3,9 @@ layout (location = 0) out vec4 fragColor;
 in vec2 uv;
 in vec3 pos_mon;
 in float base;
+in vec3 amunt;
+in vec3 tx;
+in float logz;
 uniform sampler2D tex_altitud;
 uniform sampler2D tex_gradient;
 uniform sampler2D tex_costa;
@@ -31,6 +34,15 @@ uniform float durada_min;
 uniform float durada_max;
 uniform vec3 colors_durada[5];
 uniform vec3 colors_ombres[4];
+// mode globus (main.py): llum i ombra de la Lluna calculades per a cada punt de la superficie
+uniform bool globus;
+uniform float coef_log;         // profunditat logaritmica (0 = normal)
+uniform vec3 sol_rel;           // posicio del Sol relativa a la camera (km)
+uniform vec3 lluna_rel;         // posicio de la Lluna relativa a la camera (km)
+uniform float radi_sol;         // km
+uniform float radi_lluna;       // km
+uniform bool hi_ha_forat;       // la zona de detall (Picos) es dibuixa a part: aqui no
+uniform vec4 forat;             // rectangle (u0, v0, u1, v1) en UV d'aquest terreny
 
 // rampa hipsometrica absoluta: la mateixa altitud te el mateix color a tots els fitxers
 const float COTES[6] = float[](0.0, 200.0, 600.0, 1200.0, 2000.0, 3000.0);
@@ -87,12 +99,48 @@ vec4 color_overlay() {
     return vec4(0.0);
 }
 
+// Part del disc del Sol (radi r1) tapada per la Lluna (radi r2) amb els centres a d (radians).
+// La mateixa formula que dades/model_eclipsi.py (area_tapada).
+float area_tapada(float d, float r1, float r2) {
+    if (d >= r1 + r2) return 0.0;
+    if (d <= abs(r2 - r1)) return min(1.0, (r2 * r2) / (r1 * r1));
+    float a1 = r1 * r1 * acos(clamp((d * d + r1 * r1 - r2 * r2) / (2.0 * d * r1), -1.0, 1.0));
+    float a2 = r2 * r2 * acos(clamp((d * d + r2 * r2 - r1 * r1) / (2.0 * d * r2), -1.0, 1.0));
+    float a3 = 0.5 * sqrt(max((-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2), 0.0));
+    return (a1 + a2 - a3) / (3.14159265 * r1 * r1);
+}
+
+// Quina part del Sol tapa la Lluna vista des del punt p: 1 a l'ombra (umbra), entre 0 i 1 a la
+// penombra i 0 fora. Es aixo el que dibuixa l'ombra de la Lluna sobre la Terra.
+float tapat_des_de(vec3 p) {
+    vec3 s = sol_rel - p, l = lluna_rel - p;
+    float rs = asin(radi_sol / length(s)), rl = asin(radi_lluna / length(l));
+    float d = 2.0 * asin(min(1.0, 0.5 * length(normalize(s) - normalize(l))));
+    return area_tapada(d, rs, rl);
+}
+
 void main() {
-    vec3 sol = normalize(sun_dir);
+#ifdef PROFUNDITAT_LOG
+    gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
+#endif
     float d = texture(tex_costa, uv).r;          // km a la costa (mar > 0, terra < 0)
+    vec3 sol = normalize(sun_dir);
+    float llum_sol_aqui = llum_sol, llum_cel_aqui = llum_cel;
+    if (globus) {
+        // el mar i les zones sense dades (Portugal, Franca) no es dibuixen: es veu el globus
+        if (d > 0.0) discard;
+        if (hi_ha_forat && uv.x > forat.x && uv.x < forat.z && uv.y > forat.y && uv.y < forat.w) discard;
+        // llum del Sol i del cel en aquest punt: segons l'altura del Sol aqui i la part que en tapa la Lluna
+        sol = normalize(sol_rel - pos_mon);
+        float elev = dot(normalize(amunt), sol);                       // sinus de l'elevacio del Sol
+        float visible = 1.0 - tapat_des_de(pos_mon);
+        llum_sol_aqui = visible * smoothstep(-0.0175, 0.0175, elev);   // entre -1 i +1 graus
+        float dia = smoothstep(-0.105, 0.07, elev);                    // crepuscle: de -6 a +4 graus
+        llum_cel_aqui = max(0.03, dia * (0.04 + 0.96 * pow(visible, 0.4)));
+    }
     // aigua: mes clara a prop de la costa, mes fosca mar endins; menys llum amb el Sol baix
     vec3 aigua = mix(vec3(0.16, 0.42, 0.58), vec3(0.04, 0.14, 0.32), 1.0 - exp(-max(d, 0.0) / escala_mar));
-    aigua *= (0.5 + 0.5 * max(sol.y, 0.0)) * llum_cel;
+    aigua *= (0.5 + 0.5 * max(globus ? dot(sol, normalize(amunt)) : sol.y, 0.0)) * llum_cel_aqui;
     vec3 color;
 
     if (es_faldilla) {
@@ -100,13 +148,20 @@ void main() {
         vec3 n = normalize(cross(dFdx(pos_mon), dFdy(pos_mon)));
         if (dot(n, cam_pos - pos_mon) < 0.0) n = -n;
         vec3 paret = d > 0.0 ? aigua * 0.6 : mix(vec3(0.45, 0.35, 0.25), vec3(0.22, 0.16, 0.11), base);
-        color = paret * (0.35 * llum_cel + 0.65 * llum_sol * max(dot(n, sol), 0.0));
+        color = paret * (0.35 * llum_cel_aqui + 0.65 * llum_sol_aqui * max(dot(n, sol), 0.0));
     } else {
         float height = texture(tex_altitud, uv).r;
         vec2 g = texture(tex_gradient, uv).rg;   // (dh/dx, dh/dz) a resolucio completa
-        // superficie y = k*h(x,z) -> normal = (-k*dh/dx, 1, -k*dh/dz), exacta per a qualsevol k
-        vec3 normal = normalize(vec3(-exaggeration * g.x, 1.0, -exaggeration * g.y));
-        vec3 terra = rampa(height) * (0.25 * llum_cel + 0.75 * llum_sol * max(dot(normal, sol), 0.0));
+        // superficie y = k*h(x,z) -> normal = (-k*dh/dx, 1, -k*dh/dz), exacta per a qualsevol k.
+        // Al globus, els eixos x (columnes), y (amunt) i z (files, cap al sud) son els del lloc.
+        vec3 normal;
+        if (globus) {
+            vec3 up = normalize(amunt), ex = normalize(tx), ez = normalize(cross(ex, up));
+            normal = normalize(-exaggeration * g.x * ex + up - exaggeration * g.y * ez);
+        } else {
+            normal = normalize(vec3(-exaggeration * g.x, 1.0, -exaggeration * g.y));
+        }
+        vec3 terra = rampa(height) * (0.25 * llum_cel_aqui + 0.75 * llum_sol_aqui * max(dot(normal, sol), 0.0));
         // costa: la distancia filtrada es suau, aixi el pas terra -> mar no fa escales.
         // fwidth = quant canvia d en un pixel de pantalla -> transicio d'1 pixel (antialias)
         float w = max(fwidth(d), 1e-6);
