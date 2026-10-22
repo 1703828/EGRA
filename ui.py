@@ -55,7 +55,7 @@ def panell_controls(app):
     else:
         linies = ['Arrossegar o fletxes: mirar', f'Roda: zoom (ara x{app.camera.zoom():.1f})',
                   "Per canviar de punt: vista d'exploracio (V)"]
-    linies += ["P: l'eclipsi des del punt triat"]
+    linies += ['P: reproduir / pausar el temps']
     for linia in linies:
         imgui.bullet_text(linia)
 
@@ -70,13 +70,11 @@ def panell_ara(app):
     el = app.light.elevacio
     estat = "sota l'horitzo" if el < 0 else f'a {el:.1f} graus'
     imgui.text(f'Sol: azimut {app.light.azimut:.0f}, {estat}')
-    if app.vista == 1 and app.camera.seguir_sol:
-        imgui.text_disabled('Seguint el Sol (gira per deixar-ho)')
     if app.reproduint:
         imgui.text_disabled('Punt bloquejat mentre es reprodueix')
         imgui.text_disabled('(pausa per triar-ne un altre)')
-    if imgui.button("Veure l'eclipsi des del punt triat (P)", (-1.0, 0.0)):
-        app.eclipsi_des_d_aqui()
+    if imgui.button('Pausa (P)' if app.reproduint else 'Reproduir (P)', (-1.0, 0.0)):
+        app.reproduir_pausar()
 
 
 def panell_punt(app):
@@ -170,10 +168,8 @@ def barra_temps(app):
              | imgui.WindowFlags.NO_COLLAPSE | imgui.WindowFlags.NO_SAVED_SETTINGS)
     imgui.begin('Temps', False, flags)
     inici, final = m.interval()
-    if imgui.button('Pausa' if app.reproduint else 'Play', (70, 0)):
-        app.reproduint = not app.reproduint
-        if app.reproduint and app.hora >= final:
-            app.hora = inici
+    if imgui.button('Pausa (P)' if app.reproduint else 'Reproduir (P)', (110, 0)):
+        app.reproduir_pausar()
     imgui.same_line()
     if imgui.button('-5 min'):
         app.hora -= 5 / 60

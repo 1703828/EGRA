@@ -3,8 +3,7 @@ Camera d'observacio: els ulls de l'observador, 1,7 m sobre el terra (app.ulls())
 
 - Arrossegar amb el ratoli (boto esquerre) o les fletxes: mirar al voltant.
 - Roda: zoom (com uns prismatics): el Sol fa ~0,5 graus i sense zoom es veu molt petit.
-- Si 'seguir_sol' es True, la camera mira el Sol cada frame (ho activa la tecla P); qualsevol gir
-  manual ho desactiva.
+- La mirada conserva l'orientacio que deixa l'usuari: el Sol no se segueix automaticament.
 La camera no canvia mai la ubicacio de l'observador (app.observador): nomes mira i fa zoom. Per
 canviar de punt cal triar-lo a la camera d'exploracio (i no es pot durant la reproduccio).
 Unitats en km. X = est, Y = altitud, Z = sud. Gir = azimut cap on mira (graus des del nord, horari).
@@ -25,7 +24,6 @@ class CameraObservador:
         self.app = app
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]
         self.yaw, self.pitch = 0.0, 10.0   # azimut i elevacio cap on mira (graus)
-        self.seguir_sol = False
         self.fov = FOV
         self.position = glm.vec3(0.0)
         self.target = glm.vec3(0.0)        # punt del terra sota els peus (els eixos s'hi dibuixen)
@@ -48,7 +46,6 @@ class CameraObservador:
     def girar(self, d_gir, d_inclinacio):
         self.yaw = (self.yaw + d_gir) % 360.0
         self.pitch += d_inclinacio
-        self.seguir_sol = False
 
     def azimut_vista(self):
         return self.yaw % 360.0
@@ -72,8 +69,6 @@ class CameraObservador:
             self.fov = min(max(self.fov * 0.85 ** io.mouse_wheel, FOV_MIN), FOV)
 
     def update(self):
-        if self.seguir_sol:
-            self.mirar(self.app.light.azimut, self.app.light.elevacio)
         self.pitch = min(max(self.pitch, -89.0), 89.0)
         self.position = self.app.ulls()
         self.target = self.position - glm.vec3(0, ALCADA_ULLS_KM, 0)   # el terra sota els peus
