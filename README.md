@@ -4,9 +4,9 @@ Projecte de l'assignatura EGRA (Alícia Martí, Oriol Mota, Elena Gutiérrez).
 
 Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya,
 amb el model digital del terreny (MDT) de l'IGN i les dades oficials de l'eclipsi del CNIG.
-El programa funciona com un videojoc: un personatge camina pels Picos de Europa (MDT de 5 m), en
-tercera o en primera persona, i amb la barra de temps es veu com el Sol baixa cap a l'horitzó i la
-Lluna el tapa. La tecla **P** reprodueix l'eclipsi des del punt on som, mirant el Sol.
+Amb la càmera d'exploració es recorre el terreny dels Picos de Europa (MDT de 5 m) i, amb un doble
+clic, es tria un punt d'observació. Des d'aquell punt, a 1,7 m sobre el terra, es veu com el Sol baixa
+cap a l'horitzó i la Lluna el tapa. La tecla **P** reprodueix l'eclipsi des del punt triat, mirant el Sol.
 De moment es carrega una sola regió; més endavant volem un zoom progressiu (com Google Maps) en què el
 terreny guanyi detall a mesura que t'hi apropes.
 
@@ -51,28 +51,35 @@ python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif
 
 ## 2. Què es pot fer al programa
 
-### Controls (com en un videojoc)
+### Controls
 
-| Acció | Tercera persona | Primera persona |
+Hi ha dues vistes. La **d'exploració** és una càmera lliure per inspeccionar el terreny i triar el punt
+d'observació, que es marca amb una esfera taronja. La **d'observador** posa la càmera als ulls d'una
+persona en aquell punt, 1,7 m sobre el terra.
+
+| Acció | Exploració | Observador |
 |---|---|---|
-| Caminar | `W` `A` `S` `D` | `W` `A` `S` `D` |
-| Saltar / córrer | `Espai` / `Ctrl` | `Espai` / `Ctrl` |
-| Girar la càmera / mirar | arrossegar o fletxes | arrossegar o fletxes |
-| Zoom | roda (s'allunya del personatge) | roda (com uns prismàtics) |
-| Anar a un punt | doble clic al terreny | — |
+| Girar la càmera / mirar al voltant | arrossegar o fletxes | arrossegar o fletxes |
+| Desplaçar la càmera | botó dret (o Maj + esquerre), o `W` `A` `S` `D` (`Ctrl`: més ràpid) | — |
+| Zoom | roda (cap al punt del cursor) | roda (com uns prismàtics) |
+| Triar el punt d'observació | doble clic al terreny | — (cal tornar a l'exploració) |
 | Canviar de vista | `V` | `V` |
-| Veure l'eclipsi des d'aquí | `P` | `P` |
+| Veure l'eclipsi des del punt triat | `P` | `P` |
 
-Amb la `P` la càmera passa a primera persona, segueix el Sol amb una mica de zoom i el temps avança
+Amb la `P` la càmera passa a la vista d'observador, segueix el Sol amb una mica de zoom i el temps avança
 sol des de l'inici de l'eclipsi: ràpid a les fases parcials i lent a la totalitat. Si gires la
 càmera, deixa de seguir el Sol.
+
+**Mentre es reprodueix l'eclipsi, el punt d'observació queda bloquejat**: es pot mirar al voltant, fer
+zoom i moure la càmera d'exploració, però el doble clic no canvia el punt. Així el cel, el model i les
+dades del panell són sempre del mateix lloc. Per triar-ne un altre, cal posar la barra de temps en pausa.
 
 ### Panell i barra de temps
 
 - **Barra de temps** (a baix): play/pausa, ±5 min, velocitat (x1, x10, x60, x300 o *Auto*) i l'hora
   (CEST) amb la fase de l'eclipsi. A sota, les hores de contacte del CNIG en aquell punt.
 - **Ara mateix**: hora, fase, percentatge del Sol tapat per la Lluna i posició del Sol.
-- **Aquest punt (dades del CNIG)**: coordenades, hores de cada fase, posta del Sol, durada de la
+- **Punt d'observació (dades del CNIG)**: coordenades, hores de cada fase, posta del Sol, durada de la
   totalitat i visibilitat segons el relleu.
 - **Capes sobre el terreny**: enfosquiment màxim, durada de la totalitat i ombres del relleu del CNIG
   (amb opacitat i llegenda), i els límits de la franja de totalitat.
@@ -106,11 +113,11 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   sol.py                 El Sol: la llum de l'escena (Light del basecode amb azimut i elevació)
   terrain.py             El terreny: textures, graella de vèrtexs, faldilles i capes de l'eclipsi
   astres.py              Esferes de la Lluna, el Sol i la seva resplendor (halo i corona)
-  personatge.py          El personatge: camina i salta (es retirarà en una tasca a part)
-  camera_exploracio.py   Càmera orbital enganxada al terreny (tercera persona)
-  camera_observador.py   Càmera dels ulls del personatge (primera persona)
+  camera_exploracio.py   Càmera orbital per explorar el terreny i triar el punt d'observació
+  camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
   shaders/               gouraud i phong (originals) i terrain i esfera (nostres)
 dades/                   Lectura i càlcul de dades, sense OpenGL:
+  observador.py          La ubicació de l'observador (només dades: punt, latitud, longitud, altitud)
   data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
   model_eclipsi.py       On són el Sol i la Lluna a cada hora, vistos des d'un punt

@@ -1,12 +1,13 @@
 """
-Camera orbital al voltant d'un punt objectiu enganxat al terreny (T4). A la vista de joc es la
-camera en tercera persona: l'objectiu es el personatge.
+Camera d'exploracio: orbital al voltant d'un punt objectiu enganxat al terreny. Serveix per
+inspeccionar el terreny i triar el punt d'observacio; no esta lligada a cap personatge ni observador.
 
 Controls (es llegeixen de l'io d'imgui, que ja rep tots els esdeveniments de glfw):
   - arrossegar amb el boto esquerre:              gir i inclinacio
   - arrossegar amb el boto dret (o Maj + esquerre): desplacar l'objectiu sobre el terreny
   - roda:                                          zoom exponencial cap al punt del cursor
-  - doble clic sobre el terreny:                   centrar l'objectiu en aquell punt
+  - doble clic sobre el terreny:                   centrar l'objectiu en aquell punt (i el retorna,
+                                                   perque main.py hi pugui posar l'observador)
 Quan el cursor es sobre el panell (want_capture_mouse) la camera no reacciona.
 
 Unitats en km. X = est, Y = altitud, Z = sud. Gir 0 = camera al sud mirant al nord.
@@ -29,7 +30,6 @@ class CameraExploracio:
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]
         self.near, self.far = 0.01, 10.0
         self.dist_sol = 10.0           # on es dibuixa el Sol (darrere de tot)
-        self.alcada_objectiu = 0.0     # km per sobre del terra (p. ex. el cap del personatge)
         self.canviar_terreny(terrain)
 
     def canviar_terreny(self, terrain, punt=None):
@@ -90,7 +90,7 @@ class CameraExploracio:
         self.target.x = min(max(self.target.x, -mx), mx)
         self.target.z = min(max(self.target.z, -mz), mz)
         t.centre_curvatura = glm.vec2(self.target.x, self.target.z)  # la curvatura es mesura des d'aqui
-        self.target.y = t.altitud_mon(self.target.x, self.target.z) + self.alcada_objectiu
+        self.target.y = t.altitud_mon(self.target.x, self.target.z)
 
         # la camera no pot quedar sota el terra: si cal, pugem la inclinacio grau a grau
         marge = 0.02 * self.distance

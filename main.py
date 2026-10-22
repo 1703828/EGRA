@@ -4,13 +4,15 @@ Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode
 coordina l'escena: crea els objectes, fa avancar el temps i la llum i els dibuixa.
 
 Segueix l'estructura del repte 4: on_init crea la llum (el Sol), les cameres, els eixos i l'escena
-(el terreny, el personatge, la Lluna i el Sol); drawables() son els objectes als quals la camera
-escriu m_proj i m_view; render() els dibuixa i build_ui() crida el panell de ui.py.
+(el terreny, el marcador del punt d'observacio, la Lluna i el Sol); drawables() son els objectes als
+quals la camera escriu m_proj i m_view; render() els dibuixa i build_ui() crida el panell de ui.py.
 
-Ara mateix es com un videojoc: un personatge camina pel terreny (es retirara en una tasca a part).
-  Tercera persona  la camera el segueix (orbital, basecode/camera_exploracio.py)
-  Primera persona  la camera son els seus ulls (basecode/camera_observador.py)
-  Tecla P          primera persona mirant el Sol i l'eclipsi reproduit des d'aquell punt
+Dues vistes:
+  Exploracio   camera lliure per inspeccionar el terreny; doble clic: triar el punt d'observacio
+  Observador   els ulls de l'observador, 1,7 m sobre el terra: mirar al voltant i zoom
+  Tecla P      vista d'observador mirant el Sol i l'eclipsi reproduit des del punt triat
+La ubicacio de l'observador (dades/observador.py) es una dada: el marcador nomes la mostra. Durant la
+reproduccio esta bloquejada, perque el model, el panell i la vista siguin sempre del mateix punt.
 
 On es cada cosa:
   ui.py                            panell "Opcions" i barra de temps (slimgui)
@@ -18,10 +20,10 @@ On es cada cosa:
     sol.py                           el Sol: Light del basecode amb azimut i elevacio (self.light)
     terrain.py                       terreny (textures, graella, faldilles) + shaders/terrain.*
     astres.py                        esferes de la Lluna, el Sol i el halo + shaders/esfera.*
-    personatge.py                    el personatge (camina i salta)
-    camera_exploracio.py             camera orbital (tercera persona)
-    camera_observador.py             camera dels ulls del personatge (primera persona)
+    camera_exploracio.py             camera orbital per explorar el terreny
+    camera_observador.py             camera als ulls de l'observador
   dades/                           sense OpenGL:
+    observador.py                    la ubicacio de l'observador (nomes dades)
     model_eclipsi.py                 on son el Sol i la Lluna a cada hora, vistos des d'un punt
     data_io.py                       lectura dels MDT (data/mdt/), mascares, derivats i cache (data/cache/)
     eclipse_data.py                  dataset de l'eclipsi del CNIG (overlays i valors en un punt)
@@ -57,9 +59,9 @@ from basecode.engine import GraphicsEngineBase
 from basecode.axis import Axis
 from basecode.camera_exploracio import CameraExploracio
 from basecode.camera_observador import CameraObservador
-from basecode.personatge import Personatge
 from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
 from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
+from dades.observador import Observador, ALCADA_ULLS_KM
 from basecode.sol import Sol
 from dades.data_io import TERRENYS
 from basecode.terrain import Terrain, COLOR_CEL
@@ -71,8 +73,9 @@ REGIO = 'Picos'           # de moment, una sola regio (data_io.TERRENYS)
 
 COLOR_NIT = (0.02, 0.03, 0.08)     # cel a la totalitat / de nit
 COLOR_POSTA = (0.93, 0.70, 0.55)   # to del cel amb el Sol baix
-VELOCITAT_CAMINAR = 0.02           # km/s en primera persona (72 km/h: un "heroi" de videojoc)
+VELOCITAT_DESPLACAMENT = 0.02      # km/s minims de la camera d'exploracio amb WASD (de lluny va mes rapid)
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
+COLOR_MARCADOR = (0.95, 0.35, 0.15)
 
 
 def suau(a, b, x):
@@ -89,40 +92,41 @@ class GraphicsEngine(GraphicsEngineBase):
     def on_init(self):
         self.ctx.enable_only(mgl.DEPTH_TEST)  # sense CULL_FACE: el terreny es veu per sota tambe
         self.light = Sol()
-        self.axis = self.lluna = self.sol_visible = self.halo = self.personatge = None
+        self.axis = self.lluna = self.sol_visible = self.halo = self.marcador = None
 
         cami = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else next(c for n, c, _ in TERRENYS if n == REGIO)
         self.nom_regio = os.path.basename(cami) if len(sys.argv) > 1 else 'Picos de Europa (MDT 5 m)'
         t0 = time.time()
         self.terrain = Terrain(self, cami)
-        self.terrain.exaggeration = 1.0   # relleu real (a la vista de joc es camina per sobre)
+        self.terrain.exaggeration = 1.0   # relleu real
         print(f"Terreny carregat en {time.time() - t0:.1f} s")
-
-        # el personatge comenca al centre del terreny i la camera el mira des de darrere, cap al Sol
-        self.personatge = Personatge(self)
-        self.actualitzar_model(forcar=True)
-        self.hora = self.model.interval()[0]   # una mica abans de l'inici de l'eclipsi
-        self.light.azimut, self.light.elevacio = self.model.sol(self.hora)
-        self.camera_tercera = CameraExploracio(self, self.terrain)
-        self.camera_tercera.inicial = (0.0, 6.0, 0.6)   # gir, inclinacio, distancia (km)
-        self.camera_tercera.reset()
-        self.camera_tercera.mirar_azimut(self.light.azimut)
-        self.camera_primera = CameraObservador(self, self.personatge)
-        self.camera = self.camera_tercera
-        self.vista = 0   # index a ui.VISTES
-
-        self.axis = Axis(self, length=1.0)
-        self.axis.visible = False
-        self.lluna = Lluna(self)
-        self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=EMISSIVA)
-        self.halo = Esfera(self, color=(1.0, 0.95, 0.85), mode=HALO)
-        self.distancia_lluna = 2.0 * max(self.terrain.mida)  # km (la real, ~364000, no cap a l'escena)
 
         # temps de l'eclipsi (hores TU)
         self.reproduint = False
         self.velocitat = 60
         self.velocitat_auto = False
         self.tapada = 0.0
+
+        # l'observador comenca al centre del terreny; d'alla surten el model i les dades del CNIG
+        self.triar_punt(0.0, 0.0)
+        self.hora = self.model.interval()[0]   # una mica abans de l'inici de l'eclipsi
+        self.light.azimut, self.light.elevacio = self.model.sol(self.hora)
+        self.camera_exploracio = CameraExploracio(self, self.terrain)
+        self.camera_exploracio.inicial = (0.0, 6.0, 0.6)   # gir, inclinacio, distancia (km)
+        self.camera_exploracio.reset()
+        self.camera_exploracio.mirar_azimut(self.light.azimut)
+        self.camera_observador = CameraObservador(self)
+        self.camera = self.camera_exploracio
+        self.vista = 0   # index a ui.VISTES: 0 exploracio, 1 observador
+
+        self.axis = Axis(self, length=1.0)
+        self.axis.visible = False
+        self.marcador = Esfera(self, color=COLOR_MARCADOR)   # mostra on es l'observador (nomes dibuix)
+        self.marcador.ambient = 4.0                          # que no quedi negre a contrallum
+        self.lluna = Lluna(self)
+        self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=EMISSIVA)
+        self.halo = Esfera(self, color=(1.0, 0.95, 0.85), mode=HALO)
+        self.distancia_lluna = 2.0 * max(self.terrain.mida)  # km (la real, ~364000, no cap a l'escena)
 
         # resize: el nostre callback crida tambe l'anterior (si n'hi ha) per no trencar res
         self.resize_anterior = glfw.set_framebuffer_size_callback(self.window, self.on_resize)
@@ -131,9 +135,7 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def drawables(self):
         # els objectes que encara no existeixen (mentre es creen les cameres) son None
-        objectes = [self.axis, self.terrain, self.lluna, self.sol_visible, self.halo]
-        if self.personatge is not None:
-            objectes += self.personatge.objectes()
+        objectes = [self.axis, self.terrain, self.marcador, self.lluna, self.sol_visible, self.halo]
         return [obj for obj in objectes if obj is not None]
 
     def on_resize(self, window, amplada, alcada):
@@ -142,50 +144,55 @@ class GraphicsEngine(GraphicsEngineBase):
         if amplada == 0 or alcada == 0:  # finestra minimitzada
             return
         self.ctx.viewport = (0, 0, amplada, alcada)
-        self.camera_tercera.aspect_ratio = self.camera_primera.aspect_ratio = amplada / alcada
+        self.camera_exploracio.aspect_ratio = self.camera_observador.aspect_ratio = amplada / alcada
         self.camera.update()
 
-    # ------------------------------------------------------------ joc
+    # ------------------------------------------------------------ observador i vistes
 
-    def info_aqui(self):
-        """Coordenades i altitud del punt on es el personatge."""
-        return self.terrain.info_punt(self.personatge.x, self.personatge.z)
+    def triar_punt(self, x, z):
+        """Posa l'observador al punt (x, z) del terreny (km) i hi calcula, tot alhora, el model del Sol
+        i la Lluna i les dades del CNIG: aixi sempre corresponen al mateix punt.
+        Durant la reproduccio la ubicacio esta bloquejada: no canvia res i retorna False."""
+        if self.reproduint:
+            return False
+        mx, mz = 0.499 * self.terrain.mida.x, 0.499 * self.terrain.mida.y
+        x, z = min(max(x, -mx), mx), min(max(z, -mz), mz)
+        i = self.terrain.info_punt(x, z)
+        self.observador = Observador(x, z, i['lat'], i['lon'], i['altitud'])
+        self.model = ModelEclipsi(i['lat'], i['lon'])
+        self.cnig = eclipse_data.punt(i['lat'], i['lon']) if eclipse_data.disponible() else None
+        return True
 
-    def actualitzar_model(self, forcar=False):
-        """Model de l'eclipsi al punt del personatge; es refa quan s'ha mogut mes de 500 m."""
-        p = self.personatge
-        if not forcar and glm.length(glm.vec2(p.x, p.z) - self.punt_model) < 0.5:
-            return
-        info = self.info_aqui()
-        self.model = ModelEclipsi(info['lat'], info['lon'])
-        self.punt_model = glm.vec2(p.x, p.z)
-        self.cnig = eclipse_data.punt(info['lat'], info['lon']) if eclipse_data.disponible() else None
+    def ulls(self):
+        """Posicio dels ulls de l'observador al mon (km): 1,7 m sobre la superficie dibuixada."""
+        o = self.observador
+        return glm.vec3(o.x, self.terrain.altitud_mon(o.x, o.z) + ALCADA_ULLS_KM, o.z)
 
     def canviar_vista(self, vista):
         if vista == self.vista:
             return
         self.vista = vista
-        if vista == 1:  # mirant cap on mirava la camera en tercera persona
-            self.camera_primera.mirar(self.camera_tercera.azimut_vista(), 5.0)
-            self.camera = self.camera_primera
+        if vista == 1:  # mirant cap on mirava la camera d'exploracio
+            self.camera_observador.mirar(self.camera_exploracio.azimut_vista(), 5.0)
+            self.camera = self.camera_observador
         else:
-            self.camera_tercera.mirar_azimut(self.camera_primera.azimut_vista())
-            self.camera = self.camera_tercera
-        self.personatge.visible = vista == 0
+            self.camera_exploracio.mirar_azimut(self.camera_observador.azimut_vista())
+            self.camera = self.camera_exploracio
+        self.marcador.visible = vista == 0
 
     def eclipsi_des_d_aqui(self):
-        """Tecla P: primera persona mirant el Sol i l'eclipsi reproduit des d'aquest punt."""
-        self.actualitzar_model(forcar=True)
+        """Tecla P: vista d'observador mirant el Sol i l'eclipsi reproduit des del punt triat."""
         self.canviar_vista(1)
-        self.camera_primera.seguir_sol = True
-        self.camera_primera.fov = 20.0   # una mica de zoom: el Sol i el relleu del voltant
+        self.camera_observador.seguir_sol = True
+        self.camera_observador.fov = 20.0   # una mica de zoom: el Sol i el relleu del voltant
         if self.model.valid:
             self.hora = self.model.hores['c1'] - 1 / 60
         self.reproduint = True
         self.velocitat_auto = True
 
     def teclat(self, dt):
-        """WASD per caminar, Espai per saltar, fletxes per mirar, Ctrl per correr, V i P."""
+        """Exploracio: WASD desplacen la camera (Ctrl, mes rapid). Les dues vistes: fletxes per
+        mirar, V per canviar de vista i P per veure l'eclipsi des del punt triat."""
         if imgui.get_io().want_capture_keyboard:
             return
         tecla = lambda k: glfw.get_key(self.window, k) == glfw.PRESS
@@ -194,20 +201,15 @@ class GraphicsEngine(GraphicsEngineBase):
         if imgui.is_key_pressed(imgui.Key.KEY_P, False):
             self.eclipsi_des_d_aqui()
 
-        cam, p, t = self.camera, self.personatge, self.terrain
-        moviment = cam.endavant() * (tecla(glfw.KEY_W) - tecla(glfw.KEY_S)) \
-            + cam.dreta() * (tecla(glfw.KEY_D) - tecla(glfw.KEY_A))
-        if glm.length(moviment) > 0:
-            # en tercera persona la velocitat va amb el zoom: de lluny es corre mes
-            v = VELOCITAT_CAMINAR if self.vista == 1 else max(VELOCITAT_CAMINAR, 0.5 * cam.distance)
-            if tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL):
-                v *= 5
-            pas = glm.normalize(moviment) * v * dt
-            mx, mz = 0.499 * t.mida.x, 0.499 * t.mida.y
-            p.x = min(max(p.x + pas.x, -mx), mx)
-            p.z = min(max(p.z + pas.z, -mz), mz)
-        if tecla(glfw.KEY_SPACE):
-            p.saltar()
+        cam = self.camera
+        if self.vista == 0:
+            moviment = cam.endavant() * (tecla(glfw.KEY_W) - tecla(glfw.KEY_S)) \
+                + cam.dreta() * (tecla(glfw.KEY_D) - tecla(glfw.KEY_A))
+            if glm.length(moviment) > 0:
+                v = max(VELOCITAT_DESPLACAMENT, 0.5 * cam.distance)   # de lluny es va mes rapid
+                if tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL):
+                    v *= 5
+                cam.target += glm.normalize(moviment) * v * dt   # update() el mante dins del terreny
         dreta, amunt = tecla(glfw.KEY_RIGHT) - tecla(glfw.KEY_LEFT), tecla(glfw.KEY_UP) - tecla(glfw.KEY_DOWN)
         if dreta or amunt:
             cam.girar(VELOCITAT_GIR * dt * dreta, VELOCITAT_GIR * dt * amunt)
@@ -247,36 +249,29 @@ class GraphicsEngine(GraphicsEngineBase):
         self.halo.intensitat = max(0.35 * visible, 0.9 * corona)
 
     def situar_lluna(self):
-        """La Lluna a la seva direccio des de l'observador (els ulls o el cap del personatge)."""
-        p = self.personatge
-        if self.vista == 1:
-            observador = p.peus(p.ALCADA_REAL) + glm.vec3(0, p.ALCADA_REAL, 0)
-        else:
-            observador = p.peus() + glm.vec3(0, 0.9 * p.alcada, 0)
+        """La Lluna a la seva direccio vista des dels ulls de l'observador."""
         d = self.distancia_lluna
-        self.lluna.situar(observador + d * self.model.direccio_lluna(self.hora), d * RADI_ANGULAR_LLUNA)
+        self.lluna.situar(self.ulls() + d * self.model.direccio_lluna(self.hora), d * RADI_ANGULAR_LLUNA)
+
+    def situar_marcador(self):
+        """Esfera al punt de l'observador. Es dibuixa mes gran quan la camera s'allunya, perque es
+        vegi des de lluny (entre 1,7 m i 300 m de radi); no forma part de la dada de l'observador."""
+        o = self.observador
+        radi = min(max(0.04 * self.camera_exploracio.distance, ALCADA_ULLS_KM), 0.3)
+        terra = glm.vec3(o.x, self.terrain.altitud_mon(o.x, o.z), o.z)
+        self.marcador.situar(terra + glm.vec3(0, radi, 0), radi)
 
     def render(self):
         dt = min(self.dt, 0.1)
-        p = self.personatge
         self.teclat(dt)
-        if not self.reproduint:
-            self.actualitzar_model()
         self.avancar_temps(dt)
         self.actualitzar_llum()
-        p.actualitzar(dt)
-
-        if self.vista == 0:
-            cam = self.camera
-            # marcador visible des de lluny (com als videojocs), pero no gegant
-            p.alcada = max(p.ALCADA_REAL, min(0.1 * cam.distance, 0.3))
-            cam.alcada_objectiu = (0.6 + p.salt) * p.alcada
-            cam.target.x, cam.target.z = p.x, p.z
-        else:
+        if self.vista == 1:
             self.camera.processar_ratoli()
         self.situar_lluna()   # abans de la camera: el far l'ha d'incloure
         self.camera.update()
         cam = self.camera
+        self.situar_marcador()
         # el Sol i el halo "a l'infinit": a la direccio del Sol des de la camera, darrere de tot
         s = self.light.direccio()
         self.sol_visible.situar(cam.position + cam.dist_sol * s, cam.dist_sol * RADI_ANGULAR_SOL)
@@ -284,10 +279,10 @@ class GraphicsEngine(GraphicsEngineBase):
 
         self.ctx.clear(color=self.color_cel)
         self.terrain.render()
-        p.render()
+        self.marcador.render()
         self.lluna.render()
         self.sol_visible.render()
-        # eixos al personatge, amb una llargada proporcional al terreny
+        # eixos a l'objectiu de la camera, amb una llargada proporcional al terreny
         self.axis.m_model = glm.translate(cam.target) * glm.scale(glm.vec3(0.1 * max(self.terrain.mida)))
         self.axis.shader_program['m_model'].write(self.axis.m_model)
         self.axis.render()
@@ -295,9 +290,10 @@ class GraphicsEngine(GraphicsEngineBase):
 
         if self.vista == 0:
             # el ratoli es processa just despres de dibuixar: el depth buffer ja es ple.
-            # doble clic: el personatge hi va; arrossegar amb el boto dret: el personatge es desplaca
-            cam.processar_ratoli(self.punt_sota_cursor)
-            p.x, p.z = cam.target.x, cam.target.z
+            # doble clic: la camera s'hi centra i, si no s'esta reproduint, l'observador hi va
+            punt = cam.processar_ratoli(self.punt_sota_cursor)
+            if punt is not None:
+                self.triar_punt(punt.x, punt.z)
         # FPS: mitjana de cada mig segon (self.dt el calcula GraphicsEngineBase)
         self.frames += 1
         self.temps_fps += self.dt

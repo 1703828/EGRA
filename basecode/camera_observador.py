@@ -1,15 +1,18 @@
 """
-Camera en primera persona: els ulls del personatge (1,7 m sobre el terra).
+Camera d'observacio: els ulls de l'observador, 1,7 m sobre el terra (app.ulls()).
 
 - Arrossegar amb el ratoli (boto esquerre) o les fletxes: mirar al voltant.
 - Roda: zoom (com uns prismatics): el Sol fa ~0,5 graus i sense zoom es veu molt petit.
 - Si 'seguir_sol' es True, la camera mira el Sol cada frame (ho activa la tecla P); qualsevol gir
   manual ho desactiva.
-El moviment (WASD, salt) el fa el GraphicsEngine sobre el personatge; aqui nomes es mira.
+La camera no canvia mai la ubicacio de l'observador (app.observador): nomes mira i fa zoom. Per
+canviar de punt cal triar-lo a la camera d'exploracio (i no es pot durant la reproduccio).
 Unitats en km. X = est, Y = altitud, Z = sud. Gir = azimut cap on mira (graus des del nord, horari).
 """
 import glm
 from slimgui import imgui
+
+from dades.observador import ALCADA_ULLS_KM
 
 FOV = 60.0               # angle de visio vertical sense zoom (graus)
 FOV_MIN = 1.5            # zoom maxim: el Sol ocupa un terc de la pantalla
@@ -18,9 +21,8 @@ NEAR = 0.0005            # km (50 cm)
 
 
 class CameraObservador:
-    def __init__(self, app, personatge):
+    def __init__(self, app):
         self.app = app
-        self.personatge = personatge
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]
         self.yaw, self.pitch = 0.0, 10.0   # azimut i elevacio cap on mira (graus)
         self.seguir_sol = False
@@ -73,9 +75,8 @@ class CameraObservador:
         if self.seguir_sol:
             self.mirar(self.app.light.azimut, self.app.light.elevacio)
         self.pitch = min(max(self.pitch, -89.0), 89.0)
-        p = self.personatge
-        self.target = p.terra()
-        self.position = p.peus(p.ALCADA_REAL) + glm.vec3(0, p.ALCADA_REAL, 0)
+        self.position = self.app.ulls()
+        self.target = self.position - glm.vec3(0, ALCADA_ULLS_KM, 0)   # el terra sota els peus
 
         # far: la cantonada del terreny mes llunyana i la Lluna; el Sol es dibuixa encara mes lluny
         t = self.app.terrain

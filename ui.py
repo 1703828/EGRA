@@ -13,7 +13,7 @@ from basecode.terrain import (OVERLAYS, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, C
                               COLORS_DURADA, COLORS_OMBRES)
 from dades import eclipse_data
 
-VISTES = ['Tercera persona', 'Primera persona']
+VISTES = ['Exploracio', 'Observador']
 VELOCITATS = [1, 10, 60, 300]      # x temps real ('Auto' a mes: lent a la totalitat)
 COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
 
@@ -36,7 +36,7 @@ def build_ui(app):
     imgui.separator_text('Ara mateix')
     panell_ara(app)
 
-    if imgui.collapsing_header('Aquest punt (dades del CNIG)')[0]:
+    if imgui.collapsing_header("Punt d'observacio (dades del CNIG)")[0]:
         panell_punt(app)
     if imgui.collapsing_header('Capes sobre el terreny')[0]:
         panell_overlays(app)
@@ -49,12 +49,13 @@ def build_ui(app):
 
 
 def panell_controls(app):
-    linies = ['W A S D: caminar', 'Espai: saltar   Ctrl: correr']
     if app.vista == 0:
-        linies += ['Arrossegar o fletxes: girar', 'Roda: zoom   Doble clic: anar-hi']
+        linies = ['Arrossegar o fletxes: girar', 'Boto dret o W A S D: desplacar (Ctrl: rapid)',
+                  "Roda: zoom   Doble clic: triar el punt d'observacio"]
     else:
-        linies += ['Arrossegar o fletxes: mirar', f'Roda: zoom (ara x{app.camera.zoom():.1f})']
-    linies += ["P: l'eclipsi des d'aqui"]
+        linies = ['Arrossegar o fletxes: mirar', f'Roda: zoom (ara x{app.camera.zoom():.1f})',
+                  "Per canviar de punt: vista d'exploracio (V)"]
+    linies += ["P: l'eclipsi des del punt triat"]
     for linia in linies:
         imgui.bullet_text(linia)
 
@@ -71,13 +72,16 @@ def panell_ara(app):
     imgui.text(f'Sol: azimut {app.light.azimut:.0f}, {estat}')
     if app.vista == 1 and app.camera.seguir_sol:
         imgui.text_disabled('Seguint el Sol (gira per deixar-ho)')
-    if imgui.button("Veure l'eclipsi des d'aqui (P)", (-1.0, 0.0)):
+    if app.reproduint:
+        imgui.text_disabled('Punt bloquejat mentre es reprodueix')
+        imgui.text_disabled('(pausa per triar-ne un altre)')
+    if imgui.button("Veure l'eclipsi des del punt triat (P)", (-1.0, 0.0)):
         app.eclipsi_des_d_aqui()
 
 
 def panell_punt(app):
-    i = app.info_aqui()
-    imgui.text(f"{i['lat']:.4f}, {i['lon']:.4f}   {i['altitud']:.0f} m")
+    o = app.observador   # el model i aquestes dades (app.cnig) son d'aquest mateix punt
+    imgui.text(f"{o.lat:.4f}, {o.lon:.4f}   {o.altitud_m:.0f} m")
     e = app.cnig
     if e is None:
         imgui.text_disabled("Sense dades de l'eclipsi en aquest punt")

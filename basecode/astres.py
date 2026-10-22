@@ -1,6 +1,6 @@
 """
 Esferes de l'escena (fetes amb coordenades esferiques, com al repte 4): la Lluna, el Sol i la seva
-resplendor (halo / corona). Les peces del personatge (personatge.py) tambe son Esferes.
+resplendor (halo / corona). El marcador del punt d'observacio (main.py) tambe es una Esfera.
 
 - La Lluna es posa a la seva direccio vista des de l'observador (dades/model_eclipsi.py), a una distancia
   que es tria al panell, amb el radi que li dona la seva mida aparent real.
