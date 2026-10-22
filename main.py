@@ -51,8 +51,8 @@ from slimgui import imgui
 
 from basecode.engine import GraphicsEngineBase
 from basecode.axis import Axis
-from camera import Camera
-from camera_primera_persona import CameraPrimeraPersona
+from basecode.camera_exploracio import CameraExploracio
+from basecode.camera_observador import CameraObservador
 from basecode.personatge import Personatge
 from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
 from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
@@ -102,11 +102,11 @@ class GraphicsEngine(GraphicsEngineBase):
         self.actualitzar_model(forcar=True)
         self.hora = self.model.interval()[0]   # una mica abans de l'inici de l'eclipsi
         self.light.azimut, self.light.elevacio = self.model.sol(self.hora)
-        self.camera_tercera = Camera(self, self.terrain)
+        self.camera_tercera = CameraExploracio(self, self.terrain)
         self.camera_tercera.inicial = (0.0, 6.0, 0.6)   # gir, inclinacio, distancia (km)
         self.camera_tercera.reset()
         self.camera_tercera.mirar_azimut(self.light.azimut)
-        self.camera_primera = CameraPrimeraPersona(self, self.personatge)
+        self.camera_primera = CameraObservador(self, self.personatge)
         self.camera = self.camera_tercera
         self.vista = 0   # index a VISTES
 

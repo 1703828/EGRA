@@ -23,7 +23,7 @@ FACTOR_ZOOM = 0.85      # distancia x 0.85 per cada pas de roda
 PITCH_MIN, PITCH_MAX = -30.0, 89.0
 
 
-class Camera:
+class CameraExploracio:
     def __init__(self, app, terrain):
         self.app = app
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]

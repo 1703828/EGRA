@@ -28,7 +28,7 @@ ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
 sys.path.insert(0, os.path.join(ARREL, 'scripts'))
 from captura import AppSenseFinestra  # noqa: E402  (el mateix "app" minim que fa servir captura.py)
-from camera import Camera  # noqa: E402
+from basecode.camera_exploracio import CameraExploracio  # noqa: E402
 from basecode.terrain import Terrain, COLOR_CEL  # noqa: E402
 from basecode.shaders import SHADERS_DIR  # noqa: E402
 
@@ -157,7 +157,7 @@ def main():
     ctx.enable_only(mgl.DEPTH_TEST)
     app.terrain = terrain = Terrain(app, MDT)
     terrain.exaggeration = 1.0
-    app.camera = cam = Camera(app, terrain)
+    app.camera = cam = CameraExploracio(app, terrain)
     cam.yaw, cam.pitch, cam.distance = a.gir, a.inclinacio, a.distancia * max(terrain.mida)
     cam.update()   # calcula m_view i m_proj i les escriu al shader del terreny
 

@@ -1,7 +1,7 @@
 """
 Captura del terreny renderitzada fora de pantalla (sense finestra) i desada en PNG.
 
-Fa servir les mateixes classes Terrain i Camera que main.py, amb un context OpenGL
+Fa servir les mateixes classes Terrain i CameraExploracio que main.py, amb un context OpenGL
 "standalone" i un framebuffer propi (amb antialiasing 4x).
 
 Exemples (des de l'arrel del projecte):
@@ -19,7 +19,7 @@ from PIL import Image
 from pyproj import Transformer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from camera import Camera  # noqa: E402
+from basecode.camera_exploracio import CameraExploracio  # noqa: E402
 from basecode.sol import Sol  # noqa: E402
 from dades.data_io import TERRENYS  # noqa: E402
 from basecode.terrain import Terrain, COLOR_CEL, limits_utm, zones_de_detall  # noqa: E402
@@ -27,7 +27,7 @@ from dades import eclipse_data  # noqa: E402
 
 
 class AppSenseFinestra:
-    """El minim que necessiten Terrain i Camera: ctx, WIN_SIZE, light, camera i drawables()."""
+    """El minim que necessiten Terrain i CameraExploracio: ctx, WIN_SIZE, light, camera i drawables()."""
     def __init__(self, amplada, alcada):
         self.WIN_SIZE = (amplada, alcada)
         self.ctx = mgl.create_standalone_context(require=330)
@@ -73,7 +73,7 @@ def main():
         terrain.zones = zones_de_detall(terrain, llista, limits_utm(llista))
     if a.exageracio is not None:
         terrain.exaggeration = a.exageracio  # abans de la camera: l'objectiu s'enganxa a l'altitud exagerada
-    app.camera = camera = Camera(app, terrain)
+    app.camera = camera = CameraExploracio(app, terrain)
     camera.yaw, camera.pitch = a.gir, a.inclinacio
     camera.distance = a.distancia * max(terrain.mida)
     if a.objectiu:

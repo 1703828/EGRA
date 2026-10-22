@@ -17,7 +17,7 @@ VELOCITAT_RATOLI = 0.15  # graus per pixel arrossegat
 NEAR = 0.0005            # km (50 cm)
 
 
-class CameraPrimeraPersona:
+class CameraObservador:
     def __init__(self, app, personatge):
         self.app = app
         self.personatge = personatge
