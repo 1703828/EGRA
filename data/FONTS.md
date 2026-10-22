@@ -11,6 +11,9 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 | `picos_5m.tif` | 20 × 20 km centrats a 43,262, −4,949 | 5 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py picos` |
 | `asturias_25m.tif` | Astúries | 25 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py asturias` (no el fa servir el programa; es retirarà) |
 | `luarca_5m.tif` | 20 × 20 km centrats a 43,54, −6,54 | 5 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py luarca` (no el fa servir el programa; es retirarà) |
+| `zones/vic_5m.tif` | 20 × 20 km centrats a 41,9302, 2,2546 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py vic` |
+| `zones/escala_5m.tif` | 20 × 20 km centrats a 42,1250, 3,1330 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py escala` |
+| `zones/valles_5m.tif` | lat 41,39–41,63, lon 2,00–2,36 (31,7 × 28,5 km) | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py valles` |
 
 - **Font:** servei WCS de models digitals del terreny de l'IGN, `https://servicios.idee.es/wcs-inspire/mdt`
   (cobertures `Elevacion25830_200`, `_25` i `_5`), demanat en format ArcGrid per conservar els decimals.
@@ -20,7 +23,9 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - Les altituds són sobre el geoide (nivell del mar); el programa les posa sobre l'el·lipsoide WGS84
   sense corregir l'ondulació del geoide (~50 m a Espanya).
 - `data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif`: fulla 0011 original del MDT05 (CNIG), d'exemple.
-- Els MDT nous es desaran en una carpeta ignorada pel Git (tasca 4.1 del pla).
+- Els MDT nous són a `data/mdt/zones/`, ignorada pel Git (tasca 4.1 del pla). Les zones catalanes es
+  van descarregar el 22/10/2026 en EPSG:25830, el mateix CRS que la península: el servei les reprojecta
+  des del fus 31, i així totes les zones encaixen amb la península per coordenades UTM.
 
 ## Eclipsi (CNIG) — `data/eclipsi2026/`
 

@@ -4,8 +4,8 @@ Projecte de l'assignatura EGRA (Alícia Martí, Oriol Mota, Elena Gutiérrez).
 
 Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya.
 L'escena és un model geomètric coherent: la Terra (el·lipsoide WGS84 amb textura de la NASA), el
-relleu de la península (MDT de 200 m de l'IGN) amb els Picos de Europa com a zona de detall (5 m), i el
-Sol i la Lluna a les seves posicions i mides reals (efemèrides de JPL Horizons). L'ombra de la Lluna es
+relleu de la península (MDT de 200 m de l'IGN), una zona de detall de 5 m al voltant del punt
+d'observació (Picos de Europa, Vic, l'Escala o el Vallès) i el Sol i la Lluna a les seves posicions i mides reals (efemèrides de JPL Horizons). L'ombra de la Lluna es
 calcula per a cada punt de la superfície i es veu moure's sobre la Terra.
 
 Es pot observar l'eclipsi des d'un punt, a 1,7 m sobre el terra, o explorar lliurement des del terreny
@@ -33,6 +33,18 @@ Des de l'arrel del repositori:
 conda activate egra
 python main.py
 ```
+
+Les zones de detall de les ubicacions catalanes no són al Git (ocupen ~140 MB). Es descarreguen un
+cop (uns minuts) amb:
+
+```bash
+python scripts/descarregar_mdt.py vic
+python scripts/descarregar_mdt.py escala
+python scripts/descarregar_mdt.py valles     # Cerdanyola, la UAB i Montmeló
+```
+
+Sense aquests fitxers el programa funciona igual, però en aquestes ubicacions només hi ha el relleu de
+200 m (ho avisa a la consola).
 
 S'obre una finestra amb la vista des del terra (Picos de Europa, uns minuts abans del màxim), el
 panell i la barra de temps. La primera vegada es calculen uns fitxers auxiliars del terreny (uns
@@ -67,8 +79,25 @@ instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a e
 fins a veure la Terra, i es prem P: l'eclipsi continua amb la càmera a l'espai.
 
 Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i el model són sempre
-del mateix lloc). El botó **Veure la Terra des de l'espai** porta la càmera d'exploració a uns
-9.000 km, mirant l'ombra de la Lluna.
+del mateix lloc). Botons:
+
+- **Veure l'ombra des de l'espai**: porta la càmera d'exploració a 12.000 km, entre la vertical i el
+  Sol, mirant el punt on l'ombra de la Lluna és més fosca a l'hora actual. És un sol enquadrament: la
+  càmera no segueix l'ombra. Des de l'espai l'ombra real es distingeix poc (a Espanya l'eclipsi passa
+  a prop de la posta, i l'ombra cau a prop del límit entre el dia i la nit); la casella **Ressaltar
+  l'ombra amb línies (didàctic)** hi dibuixa les línies del 25, 50 i 75 % del Sol tapat i el límit de la
+  totalitat, sense canviar la foscor de l'ombra.
+- **Anar al màxim del punt seleccionat**: posa l'hora del màxim al punt d'observació i deixa el temps
+  pausat.
+- **Tornar al punt d'observació**: torna a la vista des del terra, amb la mirada que tenia.
+
+### Relleu: nivells de detall
+
+Al voltant del punt d'observació el relleu té més detall que lluny: la península sencera (un vèrtex
+cada ~1 km), la península a 200 m en ~100 km al voltant del punt, la zona de 5 m que conté el punt (un
+vèrtex cada ~20 m) i, en ~2,5 km al voltant del punt, un vèrtex per cada píxel de 5 m. A la vora de cada
+nivell, l'altura passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels
+triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
 
 ### Panell i barra de temps
 
@@ -157,6 +186,10 @@ data/
     asturias_25m.tif      Astúries, 25 m                       (8819 x 3807 px)
     picos_5m.tif          Picos de Europa, 20 x 20 km, 5 m     (4000 x 4000 px)
     luarca_5m.tif         Luarca, 20 x 20 km, 5 m              (4000 x 4000 px)
+    zones/                (no es puja al git) zones de detall de les ubicacions catalanes, 5 m
+      vic_5m.tif            Vic, 20 x 20 km                    (4000 x 4000 px)
+      escala_5m.tif         L'Escala, 20 x 20 km               (4000 x 4000 px)
+      valles_5m.tif         Cerdanyola, UAB i Montmeló, 31,7 x 28,5 km (6331 x 5692 px)
   mdt05/
     PNOA_MDT05_ETRS89_HU30_0011_LID.tif   Fulla 0011 (Luarca) del MDT05, 5 m (exemple de fulla original)
   eclipsi2026/          Dades oficials de l'eclipsi del 12/08/2026 (CNIG)
@@ -191,6 +224,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_textures.py` | Descarrega les textures de la Terra i la Lluna (NASA, `data/textures/`) |
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
+| `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se, botons, ombra); captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
 
 Descàrrega d'MDT (els de `data/mdt/` ja hi són; només cal per refer-los o per a zones noves):
 
@@ -199,6 +233,9 @@ python scripts/descarregar_mdt.py peninsula     # 200 m -> data/mdt/peninsula_20
 python scripts/descarregar_mdt.py asturias      #  25 m -> data/mdt/asturias_25m.tif
 python scripts/descarregar_mdt.py picos         #   5 m -> data/mdt/picos_5m.tif
 python scripts/descarregar_mdt.py luarca        #   5 m -> data/mdt/luarca_5m.tif
+python scripts/descarregar_mdt.py vic           #   5 m -> data/mdt/zones/vic_5m.tif
+python scripts/descarregar_mdt.py escala        #   5 m -> data/mdt/zones/escala_5m.tif
+python scripts/descarregar_mdt.py valles        #   5 m -> data/mdt/zones/valles_5m.tif
 python scripts/descarregar_mdt.py --res 5 --centre 43.30 -5.00 --sortida zona_5m.tif   # zona nova de 20 x 20 km
 ```
 

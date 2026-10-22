@@ -92,6 +92,7 @@ Darrera actualització: 2026-10-22 (`CLAUDE.md` nou; P12 resolta).
 | D36 | **Escena espacial coherent com a objectiu principal:** Terra, Sol i Lluna en un sol sistema de coordenades amb posicions reals (efemèrides), terreny de la península (Picos com a detall) posat sobre la Terra, ombra de la Lluna calculada per a cada punt de la superfície. Substitueix la Lluna a distància artificial (D22 queda superada per a la vista espacial). | 22/10 |
 | D37 | **Interfície senzilla:** reproduir/pausar, hora i velocitat; explorar / observar; escollir ubicació; tornar al punt; ajuda curta. Capes tècniques i depuració en un apartat avançat tancat. | 22/10 |
 | D38 | Autoritzades descàrregues de dades i textures de fonts fiables amb llicència compatible (documentant-ne la procedència i sense pujar fitxers grans al Git). | 22/10 |
+| D39 | (F10) Al mode globus, l'altura dels vèrtexs la calcula la CPU; nivells de detall amb pegats al voltant de l'observador i zones de 5 m de les ubicacions (una de carregada cada vegada); el pegat de 200 m de la península fa, de moment, el paper de l'anell de 25 m de la 4.3. | 22/10 |
 
 ### 1.2 Pendents
 
@@ -568,7 +569,7 @@ Cada tasca té aquests camps: **Tipus**, **Aprenem**, **Canvia**, **Depèn**, **
 - Comprovació: cada punt es pot obrir al mapa de la font i cau al lloc indicat (plaça, edifici).
 - Documentem: §10.3 i la web (O1.2).
 
-**0.2 Línia base de comportament** — Tipus: N (només scripts de prova). Estat: `FET` en part (22/10: `scripts/validar_model.py` i `scripts/validar_ombra.py` són al repositori; les proves del programa amb finestra amagada encara són fora)
+**0.2 Línia base de comportament** — Tipus: N (només scripts de prova). Estat: `FET` en part (22/10: `scripts/validar_model.py`, `scripts/validar_ombra.py` i `scripts/prova_vistes.py`, la prova del programa real a les sis ubicacions, són al repositori)
 - Aprenem: què vol dir "el mateix comportament" i com es demostra.
 - Canvia: s'afegeixen `scripts/validar_model.py` (contactes, convergència, horitzó) i captures de
   referència a `captures/referencia/`, i una llista de proves manuals a la web.
@@ -742,10 +743,10 @@ Per a la F3:
 
 | Tasca | Canvia | Depèn | Comprovació | Estat |
 |---|---|---|---|---|
-| 4.1 `data/FONTS.md` i política del `.gitignore` (MDT nous a una carpeta ignorada; Picos versionat) | Documentació i `.gitignore` | D21 | Cada fitxer de `data/` hi surt amb la seva comanda | `PENDENT` |
+| 4.1 `data/FONTS.md` i política del `.gitignore` (MDT nous a una carpeta ignorada; Picos versionat) | Documentació i `.gitignore` | D21 | Cada fitxer de `data/` hi surt amb la seva comanda | `FET` (MDT nous a `data/mdt/zones/`, ignorada) |
 | 4.2 Retirar Luarca, Astúries i la fulla `mdt05` | `TERRENYS`, scripts, README; retirar del git; esborrar `altres/` | 4.1, permís | `preparar_dades.py`, `captura.py` i `main.py` funcionen | `PENDENT` |
-| 4.3 Zona del Vallès | 5 m en ~25 km (Cerdanyola, UAB, Montmeló) + anell de 25 m fins a ~100 km (dos `Terrain`; el shader ja té les "zones" per amagar el llunyà on hi ha el proper) | 3.4, 0.3; l'equip fa la descàrrega | Horitzó del programa = script (≤ 0,05°); ombra del CNIG al màxim coherent | `PENDENT` |
-| 4.4 Vic i l'Escala | Ídem | 4.3 | Ídem | `PENDENT` |
+| 4.3 Zona del Vallès | 5 m en ~25 km (Cerdanyola, UAB, Montmeló) + anell de 25 m fins a ~100 km (dos `Terrain`; el shader ja té les "zones" per amagar el llunyà on hi ha el proper) | 3.4, 0.3; l'equip fa la descàrrega | Horitzó del programa = script (≤ 0,05°); ombra del CNIG al màxim coherent | `EN CURS` (F10: zona de 5 m de 31,7 × 28,5 km i pegats de detall; en lloc de l'anell de 25 m, un pegat de la península a 200 m de ~100 km. Falten 3.4 i 0.3) |
+| 4.4 Vic i l'Escala | Ídem | 4.3 | Ídem | `EN CURS` (F10: zones de 5 m de 20 × 20 km; falten 3.4 i 0.3) |
 
 - Aprenem: CRS, resolució, nivells de detall senzills, reproduïbilitat.
 - Documentem: fitxes de dades (O1.1) i resultats per ubicació (O1).
@@ -847,6 +848,76 @@ l'eclipsi a Espanya passa a prop de la posta, de manera que des de l'espai l'omb
 terminador i es distingeix poc del vespre.
 
 
+### F10 — Correccions de les vistes des del terra (prova de l'equip, 22/10/2026)
+
+L'equip va provar el programa i va trobar, a Vic, la UAB, Cerdanyola, Montmeló i l'Escala, el terra
+tallat gairebé en horitzontal i, a sota, una superfície blava amb textura, i l'avís del controlador
+`unit 0 GLD_TEXTURE_INDEX_2D is unloadable`. Abans de cap funcionalitat nova, es corregeixen les causes.
+
+| Tasca | Canvia | Estat |
+|---|---|---|
+| 10.1 | Retall dels triangles amb la profunditat logarítmica; textura de la unitat 0 al shader de les esferes | `FET` |
+| 10.2 | Altures calculades a la CPU (els ulls sobre els triangles dibuixats); zones de 5 m de Vic, l'Escala i el Vallès; pegats de detall al voltant de l'observador; transicions entre nivells; el mar de les zones de la costa | `FET` |
+| 10.3 | "Anar al màxim del punt seleccionat", "Veure l'ombra des de l'espai" i ressaltat didàctic opcional | `FET` |
+| 10.4 | `scripts/prova_vistes.py`: prova reproduïble a les sis ubicacions | `FET` |
+
+**Causes demostrades.**
+- *Tall blau.* Els vertex shaders escrivien la profunditat logarítmica a `gl_Position.z`. La GPU retalla
+  (clipping) cada triangle interpolant z **linealment** entre els vèrtexs; amb una z logarítmica, un
+  triangle gran que passa per darrere de la càmera es retallava fins a desenes de metres davant dels
+  ulls. A la península hi ha un vèrtex cada ~1 km: a Vic desapareixia el terra proper i es veia
+  l'interior del globus (Amèrica, mirant a l'oest). Un càlcul amb els triangles reals prediu el tall a
+  la fila 127 de la imatge (12 m davant dels ulls) i la captura el mostra a la 146; la diferència ve
+  de les altures aproximades del càlcul. Correcció: `gl_Position.z` és la de la projecció i la
+  profunditat logarítmica només la posa `gl_FragDepth`.
+- *Avís de textura.* El shader de les esferes declara el sampler de la textura de la Lluna per a tots
+  els modes; el Sol, la primera passada del primer fotograma, es dibuixava sense cap textura a la
+  unitat 0 (textura incompleta). Comprovat dibuixant cada passada per separat. Correcció: cada esfera
+  hi lliga una textura (d'1 píxel per al Sol i el halo).
+- *Ulls mal posats.* La prova de la F9 comparava l'altura dels ulls amb l'estimació de la CPU, no amb
+  el que es dibuixa. Llegint el depth buffer mirant avall, els ulls eren a 1,33 m (Picos), 2,7 m (Vic),
+  90 m (Cerdanyola) i 122 m (Montmeló) del terra dibuixat: la CPU (interpolació bilineal d'una mitjana
+  per blocs) i la GPU (mipmap de nivell fraccionari i triangles d'~1 km) calculaven l'altura de maneres
+  diferents. Correcció: al mode globus, l'altura de cada vèrtex la calcula la CPU (atribut `in_h`), que
+  després interpola sobre els mateixos triangles.
+
+**Nivells de detall (D39).** De lluny a prop: graella general de la península (~1 km entre vèrtexs);
+pegat de la península al voltant de l'observador (un vèrtex per píxel de 200 m, ~100 km); zona de 5 m
+que conté el punt (~20 m entre vèrtexs; Picos, Vic, l'Escala o el Vallès, carregada en triar el punt,
+0,5–1,6 s); pegat de la zona al voltant de l'observador (un vèrtex per píxel de 5 m, ~2,5 km). Cada
+nivell fa un forat al de sota; a la franja de la vora (12 %), l'altura passa suaument a la del nivell
+de sota, i unes faldilles de 30 m tapen les escletxes que quedin. Al mar de les zones de la costa,
+l'aigua passa al color del globus (mateixa textura i llum) cap a la vora. Només es manté carregada la
+zona de l'observador (~200 MB de GPU cadascuna).
+
+**Comprovat automàticament** (`python scripts/prova_vistes.py`, finestra amagada i també `--visible`):
+a les sis ubicacions, els ulls a 1,698–1,700 m dels triangles dibuixats (llegit del depth buffer); la
+superfície dibuixada coincideix amb el MDT original a ≤ 1 cm al punt; mirant a −30° i −60°, la meitat de
+baix de la imatge és terreny a menys de 56 m (Picos) o 4 m (la resta), sense cel ni globus; reproduir i
+pausar no mou els ulls ni la mirada; allunyar-se fins a més de 20.000 km sense canviar l'hora i tornar
+al mateix punt i mirada; "Anar al màxim" deixa l'hora del màxim pausada i la càmera quieta; el terra és
+més fosc al màxim que a l'inici; "Veure l'ombra des de l'espai" posa al centre de la imatge el punt més
+fosc de l'ombra (a ≤ 7 km); el punt no es pot canviar reproduint; picking a 0,01 m; velocitats; cap avís
+`UNSUPPORTED` del controlador. El mode pla (`captura.py`) dona la mateixa imatge que abans (0 píxels
+diferents) i l'exercici 1.0 continua `COINCIDEIX`.
+
+**Inspeccionat visualment** (captures a `captures/proves/`, una làmina per ubicació): les quatre
+direccions i cap als peus des del terra; 50 km, 800 km i 20.000 km; l'inici, el màxim i el final; l'ombra
+des de l'espai amb i sense línies; les unions entre nivells des de 0,4, 4, 30 i 250 km (també amb
+filferros) a Vic, l'Escala i Cerdanyola.
+
+**Provat per l'equip:** encara no. La prova `--visible` obre la finestra i hi mostra cada fotograma,
+però no fa servir el ratolí ni el teclat de debò.
+
+**Limitacions.** Des de l'espai, l'ombra real es distingeix poc: a Espanya l'eclipsi passa a prop de la
+posta, l'ombra cau a prop del terminador i sovint sobre el mar fosc; la umbra fa ~290 km i la penombra
+enfosqueix de manera gradual. Per això hi ha les línies didàctiques, opcionals i identificades. Entre
+10 i 50 km de l'observador el relleu ve del MDT de 200 m (l'anell de 25 m de la 4.3 és pendent). Amb
+el Sol baix, el terra es veu fosc: és el model d'il·luminació actual, no s'ha tocat. La textura del
+globus té píxels de ~20 km. En explorar una zona de 5 m que no és la de l'observador, només hi ha el
+relleu de 200 m.
+
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -879,3 +950,4 @@ terminador i es distingeix poc del vespre.
 | 22/10/2026 | 2.1–2.6 `VALIDAT` per l'equip (finestra i controls principals). Documentades la magnitud i la ubicació de les diferències d'imatge. |
 | 22/10/2026 | Web reescrita (un desplegable per subobjectiu, text seguit). Tasques 3.1 i 3.2 `FET`: personatge retirat, observador com a dada, bloqueig durant la reproducció. Commits locals, sense push. |
 | 22/10/2026 | Treball autònom (D32–D38). F9: P només reproduir/pausar, efemèrides de JPL i geodèsia WGS84, escena en coordenades terrestres amb la Terra, la península i Picos, Sol i Lluna reals, ombra de la Lluna per punt, càmeres noves i panell senzill. Comprovacions a la F9. 3.3–3.7 resoltes. `data/FONTS.md` creat (tasca 4.1, part de documentació). |
+| 22/10/2026 | F10 (prova de l'equip): correcció del tall blau (retall amb z logarítmica), de l'avís de textura i de l'altura dels ulls; zones de 5 m de Vic, l'Escala i el Vallès (D39); botons del màxim i de l'ombra des de l'espai; `scripts/prova_vistes.py`. 4.1 `FET`; 4.3 i 4.4 `EN CURS`. Commits locals, sense push. |
