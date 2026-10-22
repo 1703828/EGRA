@@ -138,7 +138,10 @@ def punt(lat, lon):
             classe = c if c in CLASSES_OMBRES else None
 
     return dict(elevacio=b[ELEVACIO], azimut=b[AZIMUT], enfosquiment=b[ENFOSQUIMENT], durada=durada,
-                maxim_tu=b[MAXIM], fases=fases, posta=hora_local(posta) if posta is not None else None,
+                maxim_tu=b[MAXIM], fases=fases,
+                # hores TU decimals (None si la fase no hi es): les fa servir model_eclipsi.py
+                hores_tu=dict(c1=b[INICI_PARCIAL], c2=b[INICI_TOTAL], maxim=b[MAXIM], c3=b[FINAL_TOTAL],
+                              c4=b[FINAL_PARCIAL], posta=posta), posta=hora_local(posta) if posta is not None else None,
                 classe_ombres=classe,
                 text_ombres=CLASSES_OMBRES.get(classe, "sense dades") if classe is not None else "sense dades")
 

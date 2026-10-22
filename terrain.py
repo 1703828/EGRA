@@ -2,14 +2,15 @@
 Terreny: MDT dibuixat amb un heightmap com a textura (T2-T6).
 
 - La geometria es una graella plana fixa (com a maxim MAX_VERTEXS x MAX_VERTEXS vertexs) amb
-  nomes coordenades UV; el vertex shader hi llegeix l'altura (shaders/terrain.vert).
+  nomes coordenades UV; el vertex shader hi llegeix l'altura (basecode/shaders/terrain.vert).
 - Les normals es fan al fragment shader amb el pendent a la resolucio del fitxer (5 m), i alla
   tambe hi ha la rampa de colors, el mar, les faldilles, la boira, les zones de detall i els
-  overlays de l'eclipsi (shaders/terrain.frag).
+  overlays de l'eclipsi (basecode/shaders/terrain.frag).
+- Segueix l'estructura dels objectes del repte 4 (get_vbo, get_vao, get_shader_program, on_init,
+  render, destroy); el Sol es app.light (sol.py) i la camera escriu m_proj i m_view.
 - Copies a la CPU de l'altitud per a la camera (enganxada al terreny) i el punt d'observacio.
 """
 import math
-import os
 
 import glm
 import numpy as np
@@ -21,7 +22,6 @@ from basecode import shaders
 import data_io
 import eclipse_data
 
-SHADERS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shaders')
 MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella
 MAX_ZONES = 4                   # rectangles de zones de detall que pot dibuixar el shader
 COLOR_CEL = (0.62, 0.76, 0.90)  # color del fons i de la boira
@@ -107,52 +107,25 @@ class Terrain:
         self.tex_ombres.repeat_x = self.tex_ombres.repeat_y = False
         self.tex_ombres.filter = (mgl.NEAREST, mgl.NEAREST)
 
-        # --- graella fixa, independent de la mida del fitxer (mante la proporcio del terreny)
-        n_cols, n_files = d['n_cols'], d['n_files']
-        vertices, indices = build_grid(n_cols, n_files)
-        vertices_f, indices_f = build_skirt(n_cols, n_files)
-        self.n_triangles = (len(indices) + len(indices_f)) // 3
-        print(f"Textures {cols}x{files} px, graella {n_cols}x{n_files} vertexs, "
-              f"{self.n_triangles} triangles (amb faldilles), altitud max {self.max_height:.0f} m")
-
-        self.shader_program = self.get_shader_program()
-        self.vbo = self.ctx.buffer(vertices)
-        self.ibo = self.ctx.buffer(indices)
-        # la graella nomes porta in_uv: in_base hi val 0 (valor per defecte d'un atribut sense buffer)
-        self.vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '2f', 'in_uv')],
-                                         index_buffer=self.ibo)
-        self.vbo_faldilla = self.ctx.buffer(vertices_f)
-        self.ibo_faldilla = self.ctx.buffer(indices_f)
-        self.vao_faldilla = self.ctx.vertex_array(
-            self.shader_program, [(self.vbo_faldilla, '2f 1f', 'in_uv', 'in_base')],
-            index_buffer=self.ibo_faldilla)
-
-        sp = self.shader_program
-        sp['tex_altitud'].value, sp['tex_gradient'].value, sp['tex_costa'].value = 0, 1, 2
-        sp['tex_eclipsi'].value, sp['tex_ombres'].value = 3, 4
-        sp['enfosquiment_min'].value = ENFOSQUIMENT_MIN
-        sp['colors_enfosquiment'].write(np.array(COLORS_ENFOSQUIMENT, 'f4').tobytes())
-        sp['color_totalitat'].value = COLOR_TOTALITAT
         # rang de la rampa de durada: el de la franja dins d'aquest terreny, arrodonit a 10 s
         dur = d['ecl_efem'][..., 1][d['ecl_efem'][..., 2] > 0.5].astype('f4') if d['ecl_ombres'].size else []
         self.durada_min = 10 * math.floor(dur.min() / 10) if len(dur) else 0.0
         self.durada_max = max(10 * math.ceil(dur.max() / 10), self.durada_min + 10) if len(dur) else 120.0
-        sp['durada_min'].value, sp['durada_max'].value = self.durada_min, self.durada_max
-        sp['colors_durada'].write(np.array(COLORS_DURADA, 'f4').tobytes())
-        sp['colors_ombres'].write(np.array(COLORS_OMBRES, 'f4').tobytes())
-        sp['m_model'].write(glm.mat4())
-        sp['mida_km'].write(self.mida)
-        sp['lod_vertexs'].value = d['lod_vertexs']
-        sp['cota_base'].value = self.cota_base
-        sp['escala_mar'].value = 0.03 * mida_km    # a aquesta distancia de la costa el mar ja es fosc
-        sp['color_cel'].value = COLOR_CEL
+
+        # --- objecte OpenGL, com els del repte 4: VBO/IBO + shader program + VAO + m_model
+        self.n_cols, self.n_files = d['n_cols'], d['n_files']  # graella fixa, independent de la mida del fitxer
+        self.lod_vertexs = d['lod_vertexs']
+        self.vbo, self.ibo, self.vbo_faldilla, self.ibo_faldilla = self.get_vbo()
+        self.shader_program = self.get_shader_program()
+        self.vao, self.vao_faldilla = self.get_vao()
+        self.m_model = self.get_model_matrix()
+        print(f"Textures {cols}x{files} px, graella {self.n_cols}x{self.n_files} vertexs, "
+              f"{self.n_triangles} triangles (amb faldilles), altitud max {self.max_height:.0f} m")
 
         self.visible = True
         self.wireframe = False
         # exageracio inicial segons l'escala: ~1.4 a 20 km, ~5 a 220 km, 10 a la peninsula
         self.exaggeration = min(10.0, max(1.0, (mida_km / 10) ** 0.5))
-        self.sun_azimuth = 135.0     # graus des del nord, sentit horari
-        self.sun_elevation = 35.0    # graus sobre l'horitzo
         self.boira = 0.35            # densitat relativa: la distancia es mesura en "mides de terreny"
         self.curvatura = False       # curvatura de la Terra (la posa el GraphicsEngine)
         self.centre_curvatura = glm.vec2(0.0)  # punt (x, z) sense caiguda: l'objectiu de la camera
@@ -161,6 +134,56 @@ class Terrain:
         self.overlay = 0             # index a OVERLAYS (0 = cap)
         self.opacitat = 0.6
         self.limits_totalitat = True
+        # llum de l'eclipsi (la posa el GraphicsEngine): 1, 1 i COLOR_CEL = dia normal
+        self.llum_sol = 1.0
+        self.llum_cel = 1.0
+        self.color_cel = COLOR_CEL
+        self.on_init()
+
+    # ------------------------------------------------------------ objecte OpenGL
+
+    def get_vertex_data(self):
+        """Graella i faldilles: (vertexs, indexs) de cadascuna."""
+        return build_grid(self.n_cols, self.n_files), build_skirt(self.n_cols, self.n_files)
+
+    def get_vbo(self):
+        (vertices, indices), (vertices_f, indices_f) = self.get_vertex_data()
+        self.n_triangles = (len(indices) + len(indices_f)) // 3
+        return (self.ctx.buffer(vertices), self.ctx.buffer(indices),
+                self.ctx.buffer(vertices_f), self.ctx.buffer(indices_f))
+
+    def get_vao(self):
+        # la graella nomes porta in_uv: in_base hi val 0 (valor per defecte d'un atribut sense buffer)
+        vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '2f', 'in_uv')],
+                                    index_buffer=self.ibo)
+        vao_faldilla = self.ctx.vertex_array(
+            self.shader_program, [(self.vbo_faldilla, '2f 1f', 'in_uv', 'in_base')],
+            index_buffer=self.ibo_faldilla)
+        return vao, vao_faldilla
+
+    def get_shader_program(self):
+        # el shader viu a basecode/shaders/terrain.vert i .frag (editable sense tocar Python)
+        return shaders.load_program(self.ctx, 'terrain')
+
+    def get_model_matrix(self):
+        return glm.mat4()
+
+    def on_init(self):
+        """Uniforms que no canvien. m_proj i m_view les escriu la camera (com set_camera al repte 4)."""
+        sp = self.shader_program
+        sp['tex_altitud'].value, sp['tex_gradient'].value, sp['tex_costa'].value = 0, 1, 2
+        sp['tex_eclipsi'].value, sp['tex_ombres'].value = 3, 4
+        sp['enfosquiment_min'].value = ENFOSQUIMENT_MIN
+        sp['colors_enfosquiment'].write(np.array(COLORS_ENFOSQUIMENT, 'f4').tobytes())
+        sp['color_totalitat'].value = COLOR_TOTALITAT
+        sp['durada_min'].value, sp['durada_max'].value = self.durada_min, self.durada_max
+        sp['colors_durada'].write(np.array(COLORS_DURADA, 'f4').tobytes())
+        sp['colors_ombres'].write(np.array(COLORS_OMBRES, 'f4').tobytes())
+        sp['m_model'].write(self.m_model)
+        sp['mida_km'].write(self.mida)
+        sp['lod_vertexs'].value = self.lod_vertexs
+        sp['cota_base'].value = self.cota_base
+        sp['escala_mar'].value = 0.03 * max(self.mida)  # a aquesta distancia de la costa el mar ja es fosc
 
     # ------------------------------------------------------------ consultes a la CPU
 
@@ -221,21 +244,17 @@ class Terrain:
         tex.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
         return tex
 
-    def sun_direction(self):
-        az, el = glm.radians(self.sun_azimuth), glm.radians(self.sun_elevation)
-        # nord = -Z, est = +X
-        return glm.vec3(glm.cos(el) * glm.sin(az), glm.sin(el), -glm.cos(el) * glm.cos(az))
-
     def render(self):
         if not self.visible:
             return
         cam = self.app.camera
         sp = self.shader_program
-        sp['m_proj'].write(cam.m_proj)
-        sp['m_view'].write(cam.m_view)
         sp['cam_pos'].write(cam.position)
         sp['exaggeration'].value = self.exaggeration
-        sp['sun_dir'].write(self.sun_direction())
+        sp['sun_dir'].write(self.app.light.direccio())
+        sp['llum_sol'].value = self.llum_sol
+        sp['llum_cel'].value = self.llum_cel
+        sp['color_cel'].value = tuple(self.color_cel)
         # la boira comenca a la vora del terreny mes propera a la camera (aprox. distancia - mida/2):
         # aixi, allunyar-se no afegeix boira i el terreny sencer sempre es veu
         sp['densitat_boira'].value = self.boira / max(self.mida)
@@ -265,10 +284,6 @@ class Terrain:
                     self.vao_faldilla, self.shader_program,
                     self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi, self.tex_ombres):
             obj.release()
-
-    def get_shader_program(self):
-        # shaders/terrain.vert i terrain.frag (es poden editar sense tocar el codi Python)
-        return shaders.load_program(self.ctx, 'terrain', SHADERS_DIR)
 
 
 def limits_utm(llista):

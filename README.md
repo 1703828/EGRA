@@ -4,9 +4,11 @@ Projecte de l'assignatura EGRA (Alícia Martí, Oriol Mota, Elena Gutiérrez).
 
 Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya,
 amb el model digital del terreny (MDT) de l'IGN i les dades oficials de l'eclipsi del CNIG.
-Ara mateix hi ha la **vista exterior** del terreny a diverses escales, amb les dades de l'eclipsi
-superposades. La posició del Sol i la Lluna al llarg del temps, la vista d'observador i la barra
-temporal són els passos següents.
+El programa funciona com un videojoc: un personatge camina pels Picos de Europa (MDT de 5 m), en
+tercera o en primera persona, i amb la barra de temps es veu com el Sol baixa cap a l'horitzó i la
+Lluna el tapa. La tecla **P** reprodueix l'eclipsi des del punt on som, mirant el Sol.
+De moment es carrega una sola regió; més endavant volem un zoom progressiu (com Google Maps) en què el
+terreny guanyi detall a mesura que t'hi apropes.
 
 ---
 
@@ -31,15 +33,15 @@ conda activate egra
 python main.py
 ```
 
-S'obre una finestra amb el terreny i un panell **Opcions**. La primera vegada que s'obre cada terreny
-es calculen uns fitxers auxiliars (5–7 s per terreny); a partir de llavors es carrega en menys d'un
+S'obre una finestra amb el terreny, el panell **Opcions** i la barra de temps. La primera vegada es
+calculen uns fitxers auxiliars del terreny (5–7 s); a partir de llavors es carrega en menys d'un
 segon. Si es vol, es poden calcular tots d'entrada amb:
 
 ```bash
 python scripts/preparar_dades.py
 ```
 
-També es pot obrir qualsevol altre MDT en EPSG:25830, que s'afegeix al selector:
+També es pot obrir un altre MDT en EPSG:25830 en lloc dels Picos:
 
 ```bash
 python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif
@@ -49,51 +51,76 @@ python main.py data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif
 
 ## 2. Què es pot fer al programa
 
-### Controls de la càmera
+### Controls (com en un videojoc)
 
-| Acció | Control |
-|---|---|
-| Girar la càmera | arrossegar amb el **botó esquerre** |
-| Desplaçar el punt on mira la càmera | arrossegar amb el **botó dret** (o **Maj + esquerre**) |
-| Zoom (cap al punt del cursor) | **roda** del ratolí |
-| Triar un punt d'observació (i centrar-hi la càmera) | **doble clic** sobre el terreny |
-| Tornar a la vista inicial | botó **Reiniciar camera** |
+| Acció | Tercera persona | Primera persona |
+|---|---|---|
+| Caminar | `W` `A` `S` `D` | `W` `A` `S` `D` |
+| Saltar / córrer | `Espai` / `Ctrl` | `Espai` / `Ctrl` |
+| Girar la càmera / mirar | arrossegar o fletxes | arrossegar o fletxes |
+| Zoom | roda (s'allunya del personatge) | roda (com uns prismàtics) |
+| Anar a un punt | doble clic al terreny | — |
+| Canviar de vista | `V` | `V` |
+| Veure l'eclipsi des d'aquí | `P` | `P` |
 
-### Panell d'opcions
+Amb la `P` la càmera passa a primera persona, segueix el Sol amb una mica de zoom i el temps avança
+sol des de l'inici de l'eclipsi: ràpid a les fases parcials i lent a la totalitat. Si gires la
+càmera, deixa de seguir el Sol.
 
-- **Terreny**: `Peninsula` (200 m), `Asturies` (25 m), `Picos` (5 m) i `Luarca` (5 m). Si el punt on
-  mira la càmera també és dins del terreny nou, la vista es manté al mateix lloc.
-- **Zones de detall**: rectangles de Picos i Luarca sobre la península i Astúries.
-- **Curvatura de la Terra**: el terreny es corba (a les cantonades de la península baixa uns 39 km).
-- **Camera**: gir, inclinació i distància; coordenades del punt on mira la càmera.
-- **Punt d'observacio** (doble clic): coordenades UTM i lat/lon, altitud i les dades de l'eclipsi en
-  aquell punt (posició del Sol al màxim, enfosquiment, hores de cada fase en hora local CEST, durada de la
-  totalitat i visibilitat segons el relleu). El botó **Sol al maxim de l'eclipsi** hi posa el Sol.
-- **Eclipsi sobre el terreny**: capes superposades (una de cada vegada, amb opacitat i llegenda):
-  enfosquiment màxim, durada de la totalitat i ombres del relleu del CNIG; i línia dels límits de la
-  franja de totalitat.
-- **Terreny**: exageració vertical, boira i filferros. **Sol**: azimut i elevació.
+### Panell i barra de temps
+
+- **Barra de temps** (a baix): play/pausa, ±5 min, velocitat (x1, x10, x60, x300 o *Auto*) i l'hora
+  (CEST) amb la fase de l'eclipsi. A sota, les hores de contacte del CNIG en aquell punt.
+- **Ara mateix**: hora, fase, percentatge del Sol tapat per la Lluna i posició del Sol.
+- **Aquest punt (dades del CNIG)**: coordenades, hores de cada fase, posta del Sol, durada de la
+  totalitat i visibilitat segons el relleu.
+- **Capes sobre el terreny**: enfosquiment màxim, durada de la totalitat i ombres del relleu del CNIG
+  (amb opacitat i llegenda), i els límits de la franja de totalitat.
+- **Avançat**: FPS, exageració vertical, boira, distància de la Lluna, filferros, curvatura, eixos,
+  zoom i el botó *Mirar des de darrere la Lluna*.
+
+### Com es calcula el cel (`model_eclipsi.py`)
+
+- **Sol**: algorisme de la NOAA per a la data i el punt, corregit perquè al màxim coincideixi amb
+  l'azimut i l'elevació del CNIG (la correcció és de menys de 0,1°).
+- **Lluna** (primera aproximació): es mou en línia recta respecte del Sol, en la direcció de
+  l'eclíptica, i passa a la distància mínima a l'hora del màxim. La velocitat i la distància mínima
+  s'ajusten amb les hores de contacte del CNIG en aquell punt; fora de la franja, amb l'enfosquiment
+  màxim. Es comprova que a l'inici i al final de la totalitat la Lluna tapa el 100 % del Sol.
+- **Mides**: el Sol i la Lluna tenen la seva mida aparent real (~0,5°). La Lluna es dibuixa a la
+  distància que es tria al panell; el Sol, "a l'infinit".
+- **Llum**: el terreny i el cel s'enfosqueixen segons la part del Sol que queda visible i segons
+  l'altura del Sol (crepuscle). A la totalitat es veu la corona.
 
 ---
 
 ## 3. Què hi ha a cada carpeta
 
 ```
-main.py              Programa principal: finestra, selecció de terrenys i panell d'opcions
-camera.py            Càmera orbital controlada amb el ratolí, enganxada al terreny
+main.py              Programa principal: el joc (teclat, temps, llum), el panell i la barra de temps
+sol.py               El Sol: la llum de l'escena (Light del basecode amb azimut i elevació)
+model_eclipsi.py     On són el Sol i la Lluna a cada hora, vistos des d'un punt
+camera.py            Càmera orbital enganxada al terreny (tercera persona)
+camera_primera_persona.py  Càmera dels ulls del personatge (primera persona)
+personatge.py        El personatge: camina i salta
+astres.py            Esferes de la Lluna, el Sol i la seva resplendor (halo i corona)
 terrain.py           El terreny: textures, graella de vèrtexs, faldilles i capes de l'eclipsi
-shaders/             Shaders del terreny (terrain.vert i terrain.frag)
 data_io.py           Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
 eclipse_data.py      Lectura de les dades de l'eclipsi del CNIG
 scripts/             Scripts per preparar dades i fer captures (veure secció 5)
-basecode/            Codi base de l'assignatura (el mateix dels reptes; no es modifica)
+basecode/            Codi base de l'assignatura (el del repte 4), amb tots els shaders a
+                     basecode/shaders/ (gouraud, phong, terrain i esfera)
+models/              Models .obj, cadascun a la seva carpeta (com al repte 4)
 data/                Dades (veure secció 4)
 requirements.txt     Llibreries de Python
 ```
 
-Com als reptes de classe, `main.py` defineix un `GraphicsEngine` que hereta del `GraphicsEngineBase` de
-`basecode/`, i cada objecte que es dibuixa té els seus buffers, el seu shader i un mètode `render()`.
-Els shaders són fitxers a part i es carreguen amb `basecode.shaders.load_program`.
+Com al repte 4, `main.py` defineix un `GraphicsEngine` que hereta del `GraphicsEngineBase` de
+`basecode/`: `on_init` crea la llum (el Sol, `self.light`), la càmera, els eixos i el terreny;
+`drawables()` són els objectes als quals la càmera escriu `m_proj` i `m_view`; `render()` els dibuixa i
+`build_ui()` fa el panell. Cada objecte té `get_vbo`, `get_vao`, `get_shader_program`, `on_init`,
+`render` i `destroy`. Els shaders són fitxers de `basecode/shaders/` i es carreguen amb
+`basecode.shaders.load_program(ctx, nom)`.
 
 Unitats i coordenades de l'escena: quilòmetres, amb X = est, Y = altitud i Z = sud. Les dades fan
 servir el sistema ETRS89 / UTM 30N (EPSG:25830).

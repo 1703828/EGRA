@@ -20,16 +20,22 @@ from pyproj import Transformer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from camera import Camera  # noqa: E402
+from sol import Sol  # noqa: E402
 from data_io import TERRENYS  # noqa: E402
 from terrain import Terrain, COLOR_CEL, limits_utm, zones_de_detall  # noqa: E402
 import eclipse_data  # noqa: E402
 
 
 class AppSenseFinestra:
-    """El minim que necessiten Terrain i Camera: ctx, WIN_SIZE i camera."""
+    """El minim que necessiten Terrain i Camera: ctx, WIN_SIZE, light, camera i drawables()."""
     def __init__(self, amplada, alcada):
         self.WIN_SIZE = (amplada, alcada)
         self.ctx = mgl.create_standalone_context(require=330)
+        self.light = Sol()
+        self.terrain = None
+
+    def drawables(self):
+        return [self.terrain]
 
 
 def main():
@@ -59,8 +65,8 @@ def main():
     app = AppSenseFinestra(*a.mida)
     ctx = app.ctx
     ctx.enable_only(mgl.DEPTH_TEST)
-    terrain = Terrain(app, a.fitxer)
-    terrain.sun_azimuth, terrain.sun_elevation = a.azimut, a.elevacio
+    app.terrain = terrain = Terrain(app, a.fitxer)
+    app.light.azimut, app.light.elevacio = a.azimut, a.elevacio
     terrain.curvatura = a.curvatura
     if a.zones:
         llista = [t for t in TERRENYS if os.path.exists(t[1])]
@@ -83,7 +89,7 @@ def main():
     if a.sol_maxim:
         info = terrain.info_punt(camera.target.x, camera.target.z)
         e = eclipse_data.punt(info['lat'], info['lon'])
-        terrain.sun_azimuth, terrain.sun_elevation = e['azimut'], e['elevacio']
+        app.light.azimut, app.light.elevacio = e['azimut'], e['elevacio']
         print(f"Sol al maxim de l'eclipsi a {info['lat']:.4f}, {info['lon']:.4f}: "
               f"azimut {e['azimut']:.1f}, elevacio {e['elevacio']:.1f}")
     if a.boira is not None:

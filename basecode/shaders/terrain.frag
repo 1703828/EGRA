@@ -10,6 +10,8 @@ uniform float exaggeration;
 uniform vec3 sun_dir;
 uniform vec3 cam_pos;
 uniform vec3 color_cel;
+uniform float llum_sol;         // fraccio del Sol que no tapa la Lluna (1 = sense eclipsi)
+uniform float llum_cel;         // brillantor del cel (llum ambient): baixa a la totalitat i de nit
 uniform float densitat_boira;   // 1/km
 uniform float inici_boira;      // km: fins a aquesta distancia no hi ha boira
 uniform float escala_mar;       // km
@@ -90,7 +92,7 @@ void main() {
     float d = texture(tex_costa, uv).r;          // km a la costa (mar > 0, terra < 0)
     // aigua: mes clara a prop de la costa, mes fosca mar endins; menys llum amb el Sol baix
     vec3 aigua = mix(vec3(0.16, 0.42, 0.58), vec3(0.04, 0.14, 0.32), 1.0 - exp(-max(d, 0.0) / escala_mar));
-    aigua *= 0.5 + 0.5 * max(sol.y, 0.0);
+    aigua *= (0.5 + 0.5 * max(sol.y, 0.0)) * llum_cel;
     vec3 color;
 
     if (es_faldilla) {
@@ -98,13 +100,13 @@ void main() {
         vec3 n = normalize(cross(dFdx(pos_mon), dFdy(pos_mon)));
         if (dot(n, cam_pos - pos_mon) < 0.0) n = -n;
         vec3 paret = d > 0.0 ? aigua * 0.6 : mix(vec3(0.45, 0.35, 0.25), vec3(0.22, 0.16, 0.11), base);
-        color = paret * (0.35 + 0.65 * max(dot(n, sol), 0.0));
+        color = paret * (0.35 * llum_cel + 0.65 * llum_sol * max(dot(n, sol), 0.0));
     } else {
         float height = texture(tex_altitud, uv).r;
         vec2 g = texture(tex_gradient, uv).rg;   // (dh/dx, dh/dz) a resolucio completa
         // superficie y = k*h(x,z) -> normal = (-k*dh/dx, 1, -k*dh/dz), exacta per a qualsevol k
         vec3 normal = normalize(vec3(-exaggeration * g.x, 1.0, -exaggeration * g.y));
-        vec3 terra = rampa(height) * (0.25 + 0.75 * max(dot(normal, sol), 0.0));
+        vec3 terra = rampa(height) * (0.25 * llum_cel + 0.75 * llum_sol * max(dot(normal, sol), 0.0));
         // costa: la distancia filtrada es suau, aixi el pas terra -> mar no fa escales.
         // fwidth = quant canvia d en un pixel de pantalla -> transicio d'1 pixel (antialias)
         float w = max(fwidth(d), 1e-6);

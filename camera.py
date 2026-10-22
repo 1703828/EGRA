@@ -1,5 +1,6 @@
 """
-Camera orbital al voltant d'un punt objectiu enganxat al terreny (T4).
+Camera orbital al voltant d'un punt objectiu enganxat al terreny (T4). A la vista de joc es la
+camera en tercera persona: l'objectiu es el personatge.
 
 Controls (es llegeixen de l'io d'imgui, que ja rep tots els esdeveniments de glfw):
   - arrossegar amb el boto esquerre:              gir i inclinacio
@@ -9,6 +10,7 @@ Controls (es llegeixen de l'io d'imgui, que ja rep tots els esdeveniments de glf
 Quan el cursor es sobre el panell (want_capture_mouse) la camera no reacciona.
 
 Unitats en km. X = est, Y = altitud, Z = sud. Gir 0 = camera al sud mirant al nord.
+Inclinacio negativa: la camera queda per sota de l'objectiu i mira amunt (si el terra ho permet).
 """
 import math
 
@@ -18,6 +20,7 @@ from slimgui import imgui
 FOV = 50.0              # angle de visio vertical (graus)
 VELOCITAT_GIR = 0.3     # graus per pixel arrossegat
 FACTOR_ZOOM = 0.85      # distancia x 0.85 per cada pas de roda
+PITCH_MIN, PITCH_MAX = -30.0, 89.0
 
 
 class Camera:
@@ -25,6 +28,8 @@ class Camera:
         self.app = app
         self.aspect_ratio = app.WIN_SIZE[0] / app.WIN_SIZE[1]
         self.near, self.far = 0.01, 10.0
+        self.dist_sol = 10.0           # on es dibuixa el Sol (darrere de tot)
+        self.alcada_objectiu = 0.0     # km per sobre del terra (p. ex. el cap del personatge)
         self.canviar_terreny(terrain)
 
     def canviar_terreny(self, terrain, punt=None):
@@ -53,17 +58,39 @@ class Camera:
         yaw, pitch = glm.radians(self.yaw), glm.radians(self.pitch)
         return glm.vec3(glm.cos(pitch) * glm.sin(yaw), glm.sin(pitch), glm.cos(pitch) * glm.cos(yaw))
 
+    def endavant(self):
+        """Direccio horitzontal en que mira la camera (de la camera cap a l'objectiu)."""
+        yaw = glm.radians(self.yaw)
+        return -glm.vec3(glm.sin(yaw), 0, glm.cos(yaw))
+
+    def dreta(self):
+        yaw = glm.radians(self.yaw)
+        return glm.vec3(glm.cos(yaw), 0, -glm.sin(yaw))
+
+    def girar(self, d_gir, d_inclinacio):
+        """Fletxes: girar al voltant de l'objectiu (graus). d_gir > 0 gira la vista a la dreta i
+        d_inclinacio > 0 mira mes amunt (la camera baixa)."""
+        self.yaw = (self.yaw - d_gir + 180.0) % 360.0 - 180.0
+        self.pitch -= d_inclinacio
+
+    def azimut_vista(self):
+        """Azimut (graus des del nord) cap on mira la camera."""
+        return (-self.yaw) % 360.0
+
+    def mirar_azimut(self, azimut):
+        self.yaw = (-azimut + 180.0) % 360.0 - 180.0
+
     def update(self):
         t = self.terrain
         self.distance = min(max(self.distance, self.dist_min), self.dist_max)
-        self.pitch = min(max(self.pitch, 1.0), 89.0)
+        self.pitch = min(max(self.pitch, PITCH_MIN), PITCH_MAX)
 
         # objectiu dins del terreny i enganxat a la seva altitud (amb l'exageracio actual)
         mx, mz = t.mida.x / 2, t.mida.y / 2
         self.target.x = min(max(self.target.x, -mx), mx)
         self.target.z = min(max(self.target.z, -mz), mz)
         t.centre_curvatura = glm.vec2(self.target.x, self.target.z)  # la curvatura es mesura des d'aqui
-        self.target.y = t.altitud_mon(self.target.x, self.target.z)
+        self.target.y = t.altitud_mon(self.target.x, self.target.z) + self.alcada_objectiu
 
         # la camera no pot quedar sota el terra: si cal, pugem la inclinacio grau a grau
         marge = 0.02 * self.distance
@@ -80,10 +107,21 @@ class Camera:
             for cz in (-mz, mz):
                 for cy in (t.cota_base - t.caiguda(cx, cz), t.altitud_max_mon()):
                     lluny = max(lluny, glm.length(glm.vec3(cx, cy, cz) - self.position))
-        self.far = max(lluny * 1.2, self.near * 10)
+        # la Lluna (si n'hi ha) tambe ha de cabre; el Sol es dibuixa encara mes lluny
+        lluna = getattr(self.app, 'lluna', None)
+        marge_far = 1.2
+        if lluna is not None and lluna.visible:
+            lluny = max(lluny, glm.length(lluna.centre - self.position) + lluna.escala.x)
+            marge_far = 1.6
+        self.dist_sol = 1.4 * lluny
+        self.far = max(lluny * marge_far, self.near * 10)
 
         self.m_view = glm.lookAt(self.position, self.target, glm.vec3(0, 1, 0))
         self.m_proj = glm.perspective(glm.radians(FOV), self.aspect_ratio, self.near, self.far)
+        # com set_camera del repte 4: totes les matrius noves a tots els objectes de l'escena
+        for obj in self.app.drawables():
+            obj.shader_program['m_proj'].write(self.m_proj)
+            obj.shader_program['m_view'].write(self.m_view)
 
     def desprojectar(self, px, py, profunditat, amplada, alcada):
         """Pixel del framebuffer (origen a baix a l'esquerra) + profunditat (0..1) -> punt del mon."""
