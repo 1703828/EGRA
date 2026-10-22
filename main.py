@@ -1,26 +1,30 @@
 """
 Projecte EGRA -- Simulacio de l'eclipsi total del 12/08/2026 sobre terreny real.
-Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode de classe) i panell.
+Programa principal: GraphicsEngine (subclasse de GraphicsEngineBase del basecode de classe), que
+coordina l'escena: crea els objectes, fa avancar el temps i la llum i els dibuixa.
 
 Segueix l'estructura del repte 4: on_init crea la llum (el Sol), les cameres, els eixos i l'escena
 (el terreny, el personatge, la Lluna i el Sol); drawables() son els objectes als quals la camera
-escriu m_proj i m_view; render() els dibuixa i build_ui() fa el panell "Opcions" i la barra de temps.
+escriu m_proj i m_view; render() els dibuixa i build_ui() crida el panell de ui.py.
 
-Es com un videojoc (model de la plantilla de joc d'Spline): un personatge camina pel terreny.
-  Tercera persona  la camera el segueix (orbital, camera.py)
-  Primera persona  la camera son els seus ulls (camera_primera_persona.py)
+Ara mateix es com un videojoc: un personatge camina pel terreny (es retirara en una tasca a part).
+  Tercera persona  la camera el segueix (orbital, basecode/camera_exploracio.py)
+  Primera persona  la camera son els seus ulls (basecode/camera_observador.py)
   Tecla P          primera persona mirant el Sol i l'eclipsi reproduit des d'aquell punt
 
-Moduls:
-  sol.py                    el Sol: Light del basecode amb azimut i elevacio (self.light)
-  model_eclipsi.py          on son el Sol i la Lluna a cada hora, vistos des d'un punt
-  camera.py                 camera orbital (tercera persona)
-  camera_primera_persona.py camera dels ulls del personatge
-  personatge.py             el personatge (camina i salta)
-  astres.py                 esferes de la Lluna i el Sol + basecode/shaders/esfera.vert i .frag
-  terrain.py                terreny (textures, graella, faldilles) + basecode/shaders/terrain.vert i .frag
-  data_io.py                lectura dels MDT (data/mdt/), mascares, derivats i cache .npz (data/cache/)
-  eclipse_data.py           dataset de l'eclipsi del CNIG (overlays i valors en un punt)
+On es cada cosa:
+  ui.py                            panell "Opcions" i barra de temps (slimgui)
+  basecode/                        codi de classe (sense canvis) + els nostres objectes grafics:
+    sol.py                           el Sol: Light del basecode amb azimut i elevacio (self.light)
+    terrain.py                       terreny (textures, graella, faldilles) + shaders/terrain.*
+    astres.py                        esferes de la Lluna, el Sol i el halo + shaders/esfera.*
+    personatge.py                    el personatge (camina i salta)
+    camera_exploracio.py             camera orbital (tercera persona)
+    camera_observador.py             camera dels ulls del personatge (primera persona)
+  dades/                           sense OpenGL:
+    model_eclipsi.py                 on son el Sol i la Lluna a cada hora, vistos des d'un punt
+    data_io.py                       lectura dels MDT (data/mdt/), mascares, derivats i cache (data/cache/)
+    eclipse_data.py                  dataset de l'eclipsi del CNIG (overlays i valors en un punt)
 
 Executa:  python main.py                    (Picos de Europa, data/mdt/picos_5m.tif)
           python main.py data/mdt/xxx.tif   (un altre MDT en EPSG:25830)
@@ -58,20 +62,17 @@ from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
 from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
 from basecode.sol import Sol
 from dades.data_io import TERRENYS
-from basecode.terrain import (Terrain, COLOR_CEL, OVERLAYS, ENFOSQUIMENT_MIN,
-                     COLORS_ENFOSQUIMENT, COLOR_TOTALITAT, COLORS_DURADA, COLORS_OMBRES)
+from basecode.terrain import Terrain, COLOR_CEL
 from dades import eclipse_data
+import ui
 
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
 REGIO = 'Picos'           # de moment, una sola regio (data_io.TERRENYS)
-VISTES = ['Tercera persona', 'Primera persona']
 
 COLOR_NIT = (0.02, 0.03, 0.08)     # cel a la totalitat / de nit
 COLOR_POSTA = (0.93, 0.70, 0.55)   # to del cel amb el Sol baix
-VELOCITATS = [1, 10, 60, 300]      # x temps real ('Auto' a mes: lent a la totalitat)
 VELOCITAT_CAMINAR = 0.02           # km/s en primera persona (72 km/h: un "heroi" de videojoc)
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
-COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
 
 
 def suau(a, b, x):
@@ -108,7 +109,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.camera_tercera.mirar_azimut(self.light.azimut)
         self.camera_primera = CameraObservador(self, self.personatge)
         self.camera = self.camera_tercera
-        self.vista = 0   # index a VISTES
+        self.vista = 0   # index a ui.VISTES
 
         self.axis = Axis(self, length=1.0)
         self.axis.visible = False
@@ -323,184 +324,7 @@ class GraphicsEngine(GraphicsEngineBase):
     # ------------------------------------------------------------ panell
 
     def build_ui(self):
-        imgui.set_window_size((340, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
-        imgui.text_colored((1.0, 0.85, 0.4, 1.0), 'ECLIPSI TOTAL - 12/08/2026')
-        imgui.text_disabled(self.nom_regio)
-
-        imgui.separator_text('Vista  (tecla V)')
-        for i, nom in enumerate(VISTES):
-            if i > 0:
-                imgui.same_line()
-            if imgui.radio_button(nom, self.vista == i):
-                self.canviar_vista(i)
-        if imgui.collapsing_header('Controls', None, imgui.TreeNodeFlags.DEFAULT_OPEN)[0]:
-            self.panell_controls()
-
-        imgui.separator_text('Ara mateix')
-        self.panell_ara()
-
-        if imgui.collapsing_header('Aquest punt (dades del CNIG)')[0]:
-            self.panell_punt()
-        if imgui.collapsing_header('Capes sobre el terreny')[0]:
-            self.panell_overlays()
-        if imgui.collapsing_header('Avancat')[0]:
-            self.panell_avancat()
-        imgui.spacing()
-        imgui.text_disabled('MDT i eclipsi (c) IGN / CNIG (CC BY 4.0)')
-
-        self.barra_temps()
-
-    def panell_controls(self):
-        linies = ['W A S D: caminar', 'Espai: saltar   Ctrl: correr']
-        if self.vista == 0:
-            linies += ['Arrossegar o fletxes: girar', 'Roda: zoom   Doble clic: anar-hi']
-        else:
-            linies += ['Arrossegar o fletxes: mirar', f'Roda: zoom (ara x{self.camera.zoom():.1f})']
-        linies += ["P: l'eclipsi des d'aqui"]
-        for linia in linies:
-            imgui.bullet_text(linia)
-
-    def panell_ara(self):
-        m = self.model
-        fase = m.fase(self.hora)
-        imgui.text(f'{eclipse_data.hora_local(self.hora)} CEST')
-        imgui.same_line()
-        imgui.text_colored(COLOR_FASE.get(fase, (0.8, 0.8, 0.8, 1.0)), fase)
-        imgui.progress_bar(self.tapada, (-1.0, 0.0), f'Sol tapat: {self.tapada * 100:.1f} %')
-        el = self.light.elevacio
-        estat = "sota l'horitzo" if el < 0 else f'a {el:.1f} graus'
-        imgui.text(f'Sol: azimut {self.light.azimut:.0f}, {estat}')
-        if self.vista == 1 and self.camera.seguir_sol:
-            imgui.text_disabled('Seguint el Sol (gira per deixar-ho)')
-        if imgui.button("Veure l'eclipsi des d'aqui (P)", (-1.0, 0.0)):
-            self.eclipsi_des_d_aqui()
-
-    def panell_punt(self):
-        i = self.info_aqui()
-        imgui.text(f"{i['lat']:.4f}, {i['lon']:.4f}   {i['altitud']:.0f} m")
-        e = self.cnig
-        if e is None:
-            imgui.text_disabled("Sense dades de l'eclipsi en aquest punt")
-            return
-        if imgui.begin_table('fases', 2, imgui.TableFlags.ROW_BG | imgui.TableFlags.BORDERS_INNER_H):
-            files = [(nom, hora if visible else f'{hora} (Sol post)') for nom, hora, visible in e['fases']]
-            files += [('Posta del Sol', e['posta']),
-                      ('Durada totalitat', f"{e['durada']:.1f} s" if e['durada'] else 'no n\'hi ha'),
-                      ('Enfosquiment max.', f"{e['enfosquiment'] * 100:.2f} %")]
-            for nom, valor in files:
-                imgui.table_next_row()
-                imgui.table_next_column()
-                imgui.text(nom)
-                imgui.table_next_column()
-                imgui.text(valor)
-            imgui.end_table()
-        imgui.text_wrapped(f"Relleu (CNIG): {e['text_ombres']}")
-        imgui.text_disabled('Hores en CEST (TU + 2)')
-
-    def panell_overlays(self):
-        """Overlays de l'eclipsi (un de cada vegada), opacitat i llegenda dels colors."""
-        t = self.terrain
-        for i, nom in enumerate(OVERLAYS):
-            if imgui.radio_button(nom, t.overlay == i):
-                t.overlay = i
-        if t.overlay:
-            _, t.opacitat = imgui.slider_float('Opacitat', t.opacitat, 0, 1)
-        _, t.limits_totalitat = imgui.checkbox('Limits de la totalitat', t.limits_totalitat)
-
-        def llegenda(color, text):
-            imgui.color_button(f'##{text}', (*color, 1.0), imgui.ColorEditFlags.NO_TOOLTIP, (14, 14))
-            imgui.same_line()
-            imgui.text(text)
-
-        if t.overlay == 1:
-            passos = [ENFOSQUIMENT_MIN + (1 - ENFOSQUIMENT_MIN) * k / 3 for k in range(4)]
-            for color, valor in zip(COLORS_ENFOSQUIMENT, passos):
-                llegenda(color, f'{valor * 100:.1f} %')
-            llegenda(COLOR_TOTALITAT, 'totalitat (100 %)')
-        elif t.overlay == 2:
-            for k, color in enumerate(COLORS_DURADA):
-                llegenda(color, f'{t.durada_min + (t.durada_max - t.durada_min) * k / 4:.0f} s')
-            imgui.text_disabled('  linies cada 10 s; nomes dins la franja')
-        elif t.overlay == 3:
-            for classe, color in enumerate(COLORS_OMBRES):
-                llegenda(color, f'{classe}: {eclipse_data.CLASSES_OMBRES[classe]}')
-            imgui.text_disabled('  sense color: sense dades')
-
-    def panell_avancat(self):
-        t, cam = self.terrain, self.camera
-        imgui.text(f'FPS: {self.fps:.0f} ({1000 / max(self.fps, 1e-6):.1f} ms)   '
-                   f'triangles: {t.n_triangles / 1e6:.2f} M')
-        _, t.exaggeration = imgui.slider_float('Exageracio Y', t.exaggeration, 1, 20)
-        _, t.boira = imgui.slider_float('Boira', t.boira, 0, 1)
-        mida = max(t.mida)
-        _, self.distancia_lluna = imgui.slider_float('Distancia Lluna (km)', self.distancia_lluna,
-                                                     0.5 * mida, 364200, '%.0f', imgui.SliderFlags.LOGARITHMIC)
-        imgui.text_disabled('  real ~364200 km (la mida aparent\n  sempre es la real)')
-        _, t.wireframe = imgui.checkbox('Filferros', t.wireframe)
-        imgui.same_line()
-        _, t.curvatura = imgui.checkbox('Curvatura', t.curvatura)
-        imgui.same_line()
-        _, self.axis.visible = imgui.checkbox('Eixos', self.axis.visible)
-        if self.vista == 0:
-            _, cam.distance = imgui.slider_float('Zoom (km)', cam.distance, cam.dist_min, cam.dist_max,
-                                                 '%.2f', imgui.SliderFlags.LOGARITHMIC)
-            if imgui.button('Mirar des de darrere la Lluna', (-1.0, 0.0)):
-                # la camera a la banda del Sol, mes lluny que la Lluna i una mica mes amunt
-                cam.yaw = (180.0 - self.light.azimut + 180.0) % 360.0 - 180.0
-                cam.pitch = self.light.elevacio + 3.0
-                cam.distance = min(1.3 * self.distancia_lluna, cam.dist_max)
-        imgui.text(f'near {cam.near * 1000:.1f} m  far {cam.far:.0f} km')
-
-    def barra_temps(self):
-        """Finestra de la barra de temps, a baix al mig (com un reproductor de video)."""
-        m = self.model
-        io = imgui.get_io()
-        w, h = io.display_size
-        imgui.set_next_window_pos((w / 2, h - 12), imgui.Cond.ALWAYS, (0.5, 1.0))
-        imgui.set_next_window_size((min(w - 40, 760), 0), imgui.Cond.ALWAYS)
-        imgui.set_next_window_bg_alpha(0.85)
-        flags = (imgui.WindowFlags.NO_TITLE_BAR | imgui.WindowFlags.NO_RESIZE | imgui.WindowFlags.NO_MOVE
-                 | imgui.WindowFlags.NO_COLLAPSE | imgui.WindowFlags.NO_SAVED_SETTINGS)
-        imgui.begin('Temps', False, flags)
-        inici, final = m.interval()
-        if imgui.button('Pausa' if self.reproduint else 'Play', (70, 0)):
-            self.reproduint = not self.reproduint
-            if self.reproduint and self.hora >= final:
-                self.hora = inici
-        imgui.same_line()
-        if imgui.button('-5 min'):
-            self.hora -= 5 / 60
-        imgui.same_line()
-        if imgui.button('+5 min'):
-            self.hora += 5 / 60
-        imgui.same_line()
-        imgui.text('   Velocitat:')
-        for v in VELOCITATS:
-            imgui.same_line()
-            if imgui.radio_button(f'x{v}', not self.velocitat_auto and self.velocitat == v):
-                self.velocitat, self.velocitat_auto = v, False
-        imgui.same_line()
-        if imgui.radio_button('Auto', self.velocitat_auto):
-            self.velocitat_auto = True
-
-        self.hora = min(max(self.hora, inici), final)
-        imgui.push_item_width(-1.0)
-        text = f'{eclipse_data.hora_local(self.hora)} CEST  -  {m.fase(self.hora)}'
-        canviat, minuts = imgui.slider_float('##hora', (self.hora - inici) * 60, 0, (final - inici) * 60,
-                                             text.replace('%', '%%'))
-        imgui.pop_item_width()
-        if canviat:
-            self.hora = inici + minuts / 60
-        if m.valid:
-            hh, hl = m.hores, eclipse_data.hora_local
-            text = f"Inici {hl(hh['c1'])[:5]}"
-            if hh['c2'] is not None:
-                text += f"   |   Totalitat {hl(hh['c2'])} - {hl(hh['c3'])}"
-            text += f"   |   Final {hl(hh['c4'])[:5]}"
-            if hh['posta'] is not None:
-                text += f"   |   Posta {hl(hh['posta'])[:5]}"
-            imgui.text_disabled(text)
-        imgui.end()
+        ui.build_ui(self)   # el panell i la barra de temps son a ui.py
 
 
 if __name__ == '__main__':
