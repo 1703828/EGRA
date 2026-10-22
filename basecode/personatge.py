@@ -4,7 +4,7 @@ amb el teclat i salta. La camera en tercera persona el segueix i la de primera p
 """
 import glm
 
-from astres import Esfera
+from .astres import Esfera
 
 
 class Personatge:

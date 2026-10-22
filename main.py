@@ -53,8 +53,8 @@ from basecode.engine import GraphicsEngineBase
 from basecode.axis import Axis
 from camera import Camera
 from camera_primera_persona import CameraPrimeraPersona
-from personatge import Personatge
-from astres import Esfera, Lluna, EMISSIVA, HALO
+from basecode.personatge import Personatge
+from basecode.astres import Esfera, Lluna, EMISSIVA, HALO
 from dades.model_eclipsi import ModelEclipsi, RADI_ANGULAR_SOL, RADI_ANGULAR_LLUNA
 from basecode.sol import Sol
 from dades.data_io import TERRENYS

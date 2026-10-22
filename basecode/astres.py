@@ -13,8 +13,8 @@ import glm
 import moderngl as mgl
 import numpy as np
 
-from basecode import shaders
-from basecode.objects import GouraudObject
+from . import shaders
+from .objects import GouraudObject
 from dades.model_eclipsi import RADI_ANGULAR_SOL  # mides aparents: les defineix el model de l'eclipsi
 
 # modes del shader basecode/shaders/esfera.frag
