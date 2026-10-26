@@ -82,6 +82,7 @@ COLOR_NIT = (0.02, 0.03, 0.08)     # cel a la totalitat / de nit
 COLOR_POSTA = (0.93, 0.70, 0.55)   # to del cel amb el Sol baix
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
 ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
+HORA_ABANS_C1 = 1.0                # l'arrencada es aquest nombre d'hores abans de C1 (temps TU del model)
 
 
 def suau(a, b, x):
@@ -139,7 +140,9 @@ class GraphicsEngine(GraphicsEngineBase):
         # --- punt d'observacio (dada independent): Picos de Europa
         nom, lat, lon = UBICACIONS[0]
         self.triar_punt(lat, lon, nom)
-        self.hora = self.model.hores['maxim'] - 5 / 60 if self.model.valid else self.ef.inici
+        # arrencada: pausat, una hora abans del primer contacte (C1) calculat pel model en aquest punt.
+        # Nomes en arrencar: canviar d'ubicacio despres no toca el temps
+        self.hora = max(self.model.hores['c1'] - HORA_ABANS_C1, self.ef.inici) if self.model.valid else self.ef.inici
         self.actualitzar_astres()
 
         # --- cameres: comencem mirant cap al Sol des del terra

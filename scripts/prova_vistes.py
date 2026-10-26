@@ -168,6 +168,12 @@ def main():
                 n += 1
         return pitjor, fora, esquena, n
 
+    # arrencada: pausat a C1 - 1 h del punt inicial (abans de cap fotograma)
+    m0, hl = app.model, eclipse_data.hora_local
+    ok(not app.reproduint and app.hora == m0.hores['c1'] - programa.HORA_ABANS_C1
+       and app.ef.inici <= app.hora <= app.ef.final,
+       f"arrencada pausada a {hl(app.hora)}, una hora abans de C1 ({hl(m0.hores['c1'])}) a {app.observador.nom}, "
+       f"dins de la barra de temps ({hl(app.ef.inici)}-{hl(app.ef.final)})")
     co, ce = app.camera_observador, app.camera_exploracio
     for k, (nom, lat, lon) in enumerate(programa.UBICACIONS):
         print(f'\n== {nom}')
@@ -306,6 +312,11 @@ def main():
     ok(v0 < 10 and np.linalg.norm(ce.posicio - p0) > 0, f'a {ce.alcada_sobre_terra():.1f} km del terra, W va a {v0:.2f} km/s')
     ce.posicio = ce.posicio + 20000 * ce.posicio / np.linalg.norm(ce.posicio)
     ok(ce.velocitat() > 1000, f'a {ce.alcada_sobre_terra():,.0f} km, W va a {ce.velocitat():,.0f} km/s')
+    h = app.hora
+    for nom, lat, lon in programa.UBICACIONS[1:4]:
+        app.triar_ubicacio(lat, lon, nom)
+        fotograma()
+    ok(app.hora == h and not app.reproduint, "canviar d'ubicacio (llista) no canvia l'hora ni posa en marxa el temps")
     cam, ulls = ce.posicio.copy(), app.ulls()
     nom, lat, lon = programa.UBICACIONS[1]
     app.triar_punt(lat, lon, nom)
