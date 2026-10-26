@@ -62,31 +62,56 @@ python scripts/preparar_dades.py
 
 Hi ha dues vistes. **Observar des del terra** posa la càmera als ulls d'una persona al punt
 d'observació, 1,7 m sobre el terra: els ulls no es mouen i la mirada es queda on la deixes (el Sol no
-se segueix sol). **Explorar** és una càmera lliure que es pot moure del terreny fins a l'espai; la
-velocitat s'adapta a l'altura.
+se segueix sol). **Explorar** és una càmera lliure que es pot moure del terreny fins a l'espai.
 
 | Acció | Explorar | Observar des del terra |
 |---|---|---|
 | Girar la mirada | ratolí capturat (veure a sota), arrossegar o fletxes | ratolí capturat, arrossegar o fletxes (els ulls no es mouen) |
-| Moure's | `W` `A` `S` `D` (endavant, enrere, costats), `E` / `Q` (pujar, baixar), `Ctrl`: més ràpid | — |
-| Roda o dos dits amunt/avall al trackpad | avançar o retrocedir (mou la càmera; cada pas canvia l'altura ~35 %) | zoom (com uns prismàtics) |
+| Endavant / enrere on mires | `E` / `Q` | `E` / `Q`: passa a explorar, sense moure la càmera, i comença a moure's |
+| Moure's en horitzontal | `W` `A` `S` `D` (endavant, enrere, costats) | — |
+| Més ràpid | `Ctrl` (x5) | — |
+| Roda o dos dits amunt/avall al trackpad | endavant / enrere on mires (mou la càmera) | zoom (com uns prismàtics) |
+| Triar la Terra, la Lluna o el Sol | `1` `2` `3` (o al panell) | `1` `2` `3` |
+| Mirar l'astre triat (un sol cop) | `F` | `F` (gira el cap) |
+| Apropar-s'hi | `G` | `G` (passa a explorar) |
 | Triar el punt d'observació | doble clic al terreny amb el ratolí lliure (la càmera no es mou), o la llista del panell | la llista del panell |
 | Capturar / alliberar el ratolí | clic a l'escena / `Esc` | clic a l'escena / `Esc` |
 | Canviar de vista | `V` | `V` |
 | Reproduir / pausar el temps | `P` | `P` |
+| Tornar als ulls (1,7 m) | botó *Tornar al punt d'observació* | — |
+
+`W` i `S` també fan anar endavant i enrere, però en horitzontal (com caminant); `E` i `Q` segueixen la
+mirada en tres dimensions: si mires el Sol, `E` t'hi acosta; si mires amunt des del terra, surts cap al
+cel. Mirant a terra, `E` s'hi acosta però no el travessa. El programa no torna sol als ulls en passar a
+prop del terra: cal el botó *Tornar al punt d'observació*.
 
 **Mirar amb el ratolí (com en un joc en primera persona).** Un clic a l'escena (fora del panell) captura
-el ratolí: el cursor s'amaga i moure el ratolí gira la mirada sense haver de prémer cap botó. `Esc`
-l'allibera per tornar a fer servir el panell; amb el ratolí lliure, `Esc` tanca el programa, com abans.
-Canviar a una altra finestra també l'allibera. El clic espera 0,3 s abans de capturar: si n'arriba un
-segon, és un doble clic (triar el punt). La mirada vertical es limita a ±89° i no hi ha inèrcia.
+el ratolí: el cursor s'amaga, al centre apareix un punt de mira petit i moure el ratolí (o un dit al
+trackpad) gira la mirada sense prémer cap botó ni topar amb la vora. Quan no el mous, la mirada no es
+mou. `Esc` l'allibera per fer servir el panell; `Esc` no tanca el programa (es tanca amb el botó de la
+finestra o Cmd+Q). Canviar a una altra finestra també l'allibera. El clic espera 0,3 s abans de capturar:
+si n'arriba un segon, és un doble clic (triar el punt). La sensibilitat és la mateixa a prop del terra i a
+l'espai i no depèn dels fotogrames per segon.
+
+**Velocitat.** És proporcional a la distància a la superfície més propera (el terra, la Lluna o el Sol):
+precisa a prop i ràpida a l'espai, i es redueix a mesura que t'acostes a un astre. Mantenint `E` cap amunt
+des del terra s'arriba a 20.000 km en ~15 s (~3 s amb `Ctrl`). La roda fa el mateix a passos: cada pas
+acosta o allunya un 35 % de la distància a la superfície (com a molt 3 passos per fotograma).
+
+**Astres.** El panell té un selector compacte Terra / Lluna / Sol amb dues accions. *Mirar* orienta la
+càmera cap a l'astre un sol cop i no la mou. *Apropar-s'hi* la porta, en un viatge de 1–3,5 s, fins a una
+distància des d'on l'astre es veu sencer (ocupa el 80 % del camp de visió més estret de la finestra); el
+camí no travessa cap astre ni el terra, i qualsevol moviment (tecles, ratolí, roda) el cancel·la allà on
+és. En acabar, la càmera queda quieta, sense seguir l'astre. Cap de les dues canvia l'hora. Sota els
+botons es veu la distància a la superfície de l'astre triat.
 
 **Trackpad del Mac:** lliscar amb dos dits amunt o avall fa el mateix que la roda. El gest de pessigar no
 funciona: GLFW, la llibreria de finestres, no el rep a macOS (veure el pla, tasca 12.4).
 
 **Espai de navegació.** La càmera d'exploració no pot sortir d'un cub fix que conté la Terra, la Lluna i
-el Sol durant tot l'interval de la barra de temps. A prop d'una cara se'n veu la paret (translúcida, amb
-ratlles blaves); a la paret només s'atura el moviment cap a fora. Dimensions (sistema ECEF, km):
+el Sol durant tot l'interval de la barra de temps; a la paret només s'atura el moviment cap a fora i es pot
+lliscar al llarg de la cara. Les parets no es veuen: *Avançat → Depuració → Mostrar el cub de navegació*
+les mostra (translúcides, amb ratlles). Dimensions (sistema ECEF, km):
 
 | | Valor |
 |---|---|
@@ -110,7 +135,8 @@ fins a veure la Terra, i es prem P: l'eclipsi continua amb la càmera a l'espai.
 
 Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i el model són sempre
 del mateix lloc). Quan es tria una ubicació de la llista, la càmera d'exploració es posa a sobre del lloc
-nou, perquè en passar a explorar (V) es parteixi d'allà.
+nou, perquè en passar a explorar (V) es parteixi d'allà. (`E` o `Q` des del terra, en canvi, comencen a
+explorar des dels ulls.)
 
 Ubicacions de la llista (coordenades verificades el 26/10/2026, font a `PLA_DE_TREBALL.md` §10.3): Picos
 de Europa (centre de la zona de 5 m, totalitat), plaça Major de Vic, ajuntament de l'Escala, ajuntament de
@@ -153,7 +179,7 @@ Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m
 - **Avançat** (tancat per defecte): FPS i posició de la càmera, les dades del CNIG del punt amb les
   hores del nostre model al costat, les capes del CNIG sobre el terreny (enfosquiment, durada, ombres
   del relleu i límits de la totalitat), l'interruptor de les ombres del relleu i eines de depuració
-  (exageració del relleu, filferros).
+  (exageració del relleu, filferros, mostrar el cub de navegació).
 - **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar, de 16:00 a
   23:30 (hora d'estiu). A sota, les hores de l'eclipsi al punt triat.
 
@@ -191,7 +217,7 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
   ombres_relleu.py       Ombres del relleu (shadow mapping) a la zona de 5 m
   paret_cub.py           Les parets translúcides del cub de navegació
-  control_ratoli.py      Ratolí capturat per mirar, roda i trackpad
+  control_ratoli.py      Ratolí capturat per mirar (amb el punt de mira), roda i trackpad
   sol.py                 La llum de l'escena (Light del basecode)
   camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
   camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
@@ -203,7 +229,7 @@ dades/                   Lectura i càlcul de dades, sense OpenGL:
   geodesia.py            Latitud, longitud i altitud <-> coordenades terrestres (WGS84)
   model_eclipsi.py       Part del Sol tapada, contactes i centre de l'ombra
   observador.py          La ubicació de l'observador i la llista d'ubicacions
-  navegacio.py           El cub de navegació (límits de la càmera d'exploració)
+  navegacio.py           El cub de navegació i els trajectes dels viatges als astres
   data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
 scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
@@ -278,6 +304,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
 | `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `prova_navegacio.py` | Recorreguts de navegació (del terra al cel amb E, E/Q girant, mirar i apropar-se al Sol, la Lluna i la Terra, cancel·lar, sensibilitat, velocitat, P, tornar al punt): comprova salts, sobrepassaments i suavitat |
 | `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat, panell, P i roda |
 | `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |
 | `validar_horitzo.py` | Horitzó cap al Sol a les sis ubicacions: calculat sobre el MDT i sobre els triangles dibuixats, i llegit de la imatge; si el relleu tapa el Sol al màxim |

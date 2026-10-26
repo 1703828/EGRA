@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-26 (F12: arrencada, cub de navegació, ratolí capturat, roda i trackpad).
+Darrera actualització: 2026-10-26 (F13: navegació usable — mirada estable, E/Q segons la mirada, astres, velocitat).
 
 ---
 
@@ -100,6 +100,10 @@ Darrera actualització: 2026-10-26 (F12: arrencada, cub de navegació, ratolí c
 | D44 | (F12, equip) Arrencada pausada a C1 − 60 min del model al punt inicial; canviar d'ubicació no toca el temps. | 26/10 |
 | D45 | (F12, equip) Espai de navegació: cub fix amb la Terra, la Lluna i el Sol a tot l'interval, en el mateix sistema que l'escena (ECEF); marge mínim d'un radi solar, ampliat fins que el Sol hi capiga sencer des de la paret. Parets translúcides visibles a prop. | 26/10 |
 | D46 | (F12, equip) Mirada amb el ratolí capturat: un clic a l'escena captura, Esc o perdre el focus alliberen; el doble clic amb el ratolí lliure continua triant el punt. Esc amb el ratolí lliure continua tancant el programa (comportament anterior conservat). | 26/10 |
+| D48 | (F13, equip) La mirada de l'exploració és una orientació fixa del món (no relativa a l'horitzó del lloc). Punt de mira al centre amb el ratolí capturat. Esc només allibera el ratolí i no tanca el programa (substitueix l'últim punt de D46). | 26/10 |
+| D49 | (F13, equip) E/Q: endavant i enrere en la direcció de la mirada (abans, pujar i baixar). Des de l'observació, E/Q passen a l'exploració conservant posició, orientació i camp de visió; no es torna sol als ulls. W/S es mantenen (endavant i enrere en horitzontal). | 26/10 |
+| D50 | (F13, equip) Selector Terra / Lluna / Sol amb "Mirar" (orientar un cop) i "Apropar-s'hi" (viatge breu, cancel·lable, fins a veure l'astre sencer). Tecles lliures triades: 1 2 3, F i G. | 26/10 |
+| D51 | (F13, equip) Velocitat i roda segons la distància a la superfície més propera (terra, Lluna o Sol). Parets del cub amagades per defecte (opció de depuració); el cub continua limitant (modifica D45). | 26/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
@@ -186,10 +190,11 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
   programes.py                    carregar shaders amb #define
   shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra, paret (nostres)
 dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
-                                observador.py, navegacio.py, data_io.py, eclipse_data.py
+                                observador.py, navegacio.py (cub i trajectes), data_io.py, eclipse_data.py
 scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
                                 exercici_fotograma, validar_model, validar_ombra, prova_vistes,
-                                comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls
+                                comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls,
+                                prova_navegacio
 models/                         .obj, com al repte 4
 data/                           MDT, CNIG, efemerides, textures, cache (veure data/FONTS.md)
 docs/                           web de seguiment
@@ -1183,6 +1188,94 @@ distància.
 **Següent pendent:** les proves de l'equip; si es vol el pessic natiu, autoritzar PyObjC (D47); ancorar les
 ratlles de la paret al món (ara es mouen amb la càmera).
 
+### F13 — Navegació usable (26/10/2026, prova de l'equip: "costa orientar-se, trobar el Sol i acostar-s'hi")
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 13.1 | C | Mirada de l'exploració com a orientació fixa del món; punt de mira; Esc només allibera (D48) | `FET` |
+| 13.2 | C | E/Q segons la mirada i pas automàtic a l'exploració (D49) | `FET` |
+| 13.3 | N | Mirar / apropar-se a la Terra, la Lluna i el Sol (D50) | `FET` |
+| 13.4 | C | Velocitat i roda segons la superfície més propera (D51) | `FET` |
+| 13.5 | C | Parets del cub amagades per defecte (D51) | `FET` |
+| 13.6 | N (prova) | `scripts/prova_navegacio.py` | `FET` |
+| 13.7 | doc | README, pla i web | `FET` |
+
+**Causes trobades en revisar la implementació anterior.**
+- *La mirada derivava en moure's.* La càmera d'exploració guardava rumb i inclinació respecte de
+  l'horitzó del lloc on era, i a l'espai aquest horitzó és perpendicular a la direcció cap al centre de la
+  Terra. En moure's, aquesta direcció canvia i el vector real de la mirada girava sol: avançant cap al Sol, la
+  mirada se n'anava apartant. Ara la mirada és un vector fix en ECEF (`davant_ecef`) que només canvia quan
+  l'usuari gira; `rumb` i `inclinacio` es calculen a partir d'ell. Girar continua fent voltar la mirada al
+  voltant de la vertical del lloc (com en un joc en primera persona), amb inclinació limitada a ±89,99°;
+  l'"amunt" de la imatge és la vertical projectada perpendicular a la mirada, i si són gairebé paral·leles es
+  conserva el de l'últim fotograma (sense salts).
+- *Velocitat i roda només segons l'altura sobre la Terra.* A prop del Sol l'altura és de 1,5·10⁸ km i cada
+  pas era enorme. Ara compten el terra, la Lluna i el Sol (vegeu 13.4).
+- *Salts del ratolí.* No s'hi han trobat coordenades absolutes: el gir ja era relatiu i el primer fotograma
+  després de capturar no compta. S'hi ha afegit un límit de 400 punts per fotograma (48°): un esdeveniment
+  anòmal (recentrat del cursor, primer esdeveniment després de recuperar el focus) no pot fer saltar la
+  mirada. El moviment del ratolí no es multiplica per `dt` (la sensibilitat no depèn dels FPS); les fletxes
+  i el teclat sí.
+- *El look-at amb coordenades enormes.* La vista ja es calcula amb la càmera a l'origen (tot relatiu a la
+  càmera); només calia que la direcció no depengués de la posició.
+
+**13.1–13.2.** Punt de mira: un punt blanc de 2 px amb vora fosca al centre de la finestra, dibuixat amb la
+llista de primer pla d'imgui, només amb el ratolí capturat. `E`/`Q` fan `moure(…, avant_mirada)` amb el
+vector de la mirada. Des de l'observació, `passar_a_exploracio()` posa la càmera d'exploració als ulls,
+amb la mateixa direcció i el mateix camp de visió (que després torna a 50° en ~0,25 s, sense salt);
+l'altura mínima sobre el terra passa de 2 m a 1 m perquè els ulls (1,7 m) no hi quedin per sota.
+
+**13.3.** `dades/navegacio.py`: `distancia_enquadrar` (l'astre ocupa el 80 % del camp de visió més estret,
+vertical o horitzontal segons la proporció de la finestra) i `planificar_trajecte`. El camí és relatiu al
+centre del destí, que es pot moure (la Lluna, si el temps corre): direcció interpolada esfèricament i
+distància interpolada en escala logarítmica (a distàncies astronòmiques, cada instant redueix la distància
+en la mateixa proporció; amb una interpolació lineal, l'astre seria un punt quasi tot el viatge i creixeria
+de cop al final). Temps suavitzat amb un polinomi de grau 5 (velocitat i acceleració nul·les als extrems).
+Durada: 1,2 s + 0,25 s per cada factor *e* de canvi de distància (de 1,2 a 3,5 s). Obstacles: la Lluna i el
+Sol (distància al centre) i el terra (altitud geodèsica ≥ 10 km o la inicial); si el camí recte els
+travessa, la direcció final es gira de 20° en 20° allunyant-la'n. La mirada gira cap a l'astre durant el
+primer 35 % del viatge. Qualsevol entrada de moviment (tecles de moviment, ratolí capturat, arrossegar,
+roda) el cancel·la. "Mirar" des del terra gira el cap (±89°).
+
+**13.4.** Velocitat = 1,2 km/s per km de distància a la superfície més propera (mínim 5 m/s); com que es
+pren el mínim de les tres distàncies, no salta quan canvia quin astre és el més proper. Cap pas pot ser més
+llarg que la meitat d'aquesta distància (encara que el fotograma duri 0,1 s amb `Ctrl`) i, després de
+cada moviment, la càmera es treu del terra (1 m) i de la Lluna i el Sol (1 km). Roda: n passos multipliquen
+la distància a la superfície per 1,35⁻ⁿ (com a molt 3 per fotograma; els increments fraccionaris del
+trackpad es tracten igual), dividint pel cosinus entre la mirada i la direcció cap a l'astre (mínim 0,3).
+
+**Comprovat automàticament** (`python scripts/prova_navegacio.py`, ~15 s, amb el teclat i el ratolí
+simulats; desa el recorregut fotograma a fotograma):
+- E des de l'observació: la matriu de vista, la posició i el camp de visió són els dels ulls; primer pas
+  0,0 m; la mirada no canvia en 10 s d'avançar; puja sempre (de 500 m a ~73 km en 10 s mirant a 60°); el pas
+  canvia com a molt ×1,012 d'un fotograma al següent; el punt, l'hora i la reproducció no canvien.
+- Girat 90°: E i Q es mouen en la direcció nova (< 0,01°). Mirant a terra, E no baixa d'1,00 m.
+- F orienta cap al Sol, la Lluna i la Terra (≤ 0,008°) sense moure la càmera. G: Sol (de 151.584.827 a
+  2.034.968 km del centre, 2,3 s), Lluna (de 149.185.860 a 5.080 km, 3,5 s) i Terra (de 371.888 a
+  18.648 km, 1,9 s): la distància no oscil·la ni es passa del final; el canvi del pas entre fotogrames és
+  ≤ 2,6 % del pas màxim i comença i acaba a poc a poc; cap astre ni el terra travessats; l'astre ocupa el
+  80 % del camp més estret i la càmera queda quieta.
+- W durant un viatge el cancel·la: en aquell fotograma la càmera només fa el pas de W i després queda quieta.
+- 50 punts de ratolí giren 6,0000° a 10 m i a 10 milions de km.
+- Anant de la Terra a la Lluna, el pas canvia com a molt ×1,014 entre fotogrames; fotogrames de 0,1 s amb
+  `Ctrl` no travessen la Lluna; un pas de roda a 1.000 km la deixa a 741 km.
+- P no mou ni gira la càmera; tornar al punt: ulls a 1,700 m del terra dibuixat.
+- Per defecte, la paret del cub no es veu; amb l'opció de depuració, sí.
+- I amb el bucle real (`prova_vistes.py`): Esc allibera el ratolí i un segon Esc no tanca el programa.
+`prova_controls.py`, `prova_vistes.py`, `validar_horitzo.py` i `validar_ombres_relleu.py` continuen
+correctes; el mode pla, igual (0 píxels diferents); l'exercici 1.0, `COINCIDEIX`.
+
+**Inspeccionat visualment:** el Sol centrat a mig viatge, i el Sol, la Lluna i la Terra sencers en arribar.
+La Terra, si s'hi arriba des de la Lluna a l'hora de l'eclipsi, es veu fosca: la càmera mira la Terra
+seguint el con de l'ombra de la Lluna i el disc visible és sobretot penombra (no és un error).
+
+**Limitacions:** el punt de mira i la captura real del cursor no es poden veure a la finestra amagada de les
+proves; el ratolí i el trackpad físics no s'han provat aquí. Si la mirada és gairebé vertical, el gir
+horitzontal fa voltar la imatge (com en un joc). Les parets, quan es mostren, tenen ratlles que es mouen
+amb la càmera.
+
+**Provat per l'equip:** encara no.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -1220,3 +1313,4 @@ ratlles de la paret al món (ara es mouen amb la càmera).
 | 26/10/2026 | Prova de l'equip de la F11 registrada (només el que es va provar). 11.2 `VALIDAT`. Error de l'interruptor de les ombres trobat per l'equip i corregit (11.7, `FET`, pendent de tornar-lo a provar). |
 | 26/10/2026 | Segona prova de l'equip: l'interruptor de les ombres del relleu funciona (11.7 `VALIDAT`). |
 | 26/10/2026 | F12 (petició de l'equip): arrencada a C1 − 1 h, cub de navegació (1,647 UA), mirada amb el ratolí capturat, roda i trackpad, correcció del halo (12.0). D44–D47. Commits locals, sense push. |
+| 26/10/2026 | F13 (prova de l'equip): mirada de l'exploració fixa al món, punt de mira, E/Q segons la mirada amb pas automàtic a l'exploració, Mirar / Apropar-s'hi (Terra, Lluna, Sol), velocitat segons la superfície més propera, parets del cub amagades, Esc no tanca. D48–D51. `scripts/prova_navegacio.py`. Commits locals, sense push. |
