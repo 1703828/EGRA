@@ -102,9 +102,12 @@ class Esfera(GouraudObject):
         if self.mode == HALO:  # es suma al que hi ha darrere (es transparent)
             self.ctx.enable(mgl.BLEND)
             self.ctx.blend_func = mgl.SRC_ALPHA, mgl.ONE
-            self.ctx.depth_mask = False
+            # sense escriure profunditat: a ModernGL la mascara de profunditat es del framebuffer actiu
+            # (ctx.fbo), no del context
+            fbo = self.ctx.fbo
+            fbo.depth_mask = False
             self.vao.render()
-            self.ctx.depth_mask = True
+            fbo.depth_mask = True
             self.ctx.disable(mgl.BLEND)
         else:
             self.vao.render()
