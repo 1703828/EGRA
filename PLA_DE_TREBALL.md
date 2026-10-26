@@ -1220,3 +1220,4 @@ ratlles de la paret al món (ara es mouen amb la càmera).
 | 26/10/2026 | Prova de l'equip de la F11 registrada (només el que es va provar). 11.2 `VALIDAT`. Error de l'interruptor de les ombres trobat per l'equip i corregit (11.7, `FET`, pendent de tornar-lo a provar). |
 | 26/10/2026 | Segona prova de l'equip: l'interruptor de les ombres del relleu funciona (11.7 `VALIDAT`). |
 | 26/10/2026 | F12 (petició de l'equip): arrencada a C1 − 1 h, cub de navegació (1,647 UA), mirada amb el ratolí capturat, roda i trackpad, correcció del halo (12.0). D44–D47. Commits locals, sense push. |
+| 26/10/2026 | La F13 (mirada fixa al món, E/Q segons la mirada, Mirar/Apropar-s'hi, velocitat segons l'astre més proper, parets amagades) **revertida a petició de l'equip**: els controls nous no eren intuïtius i preferia els d'abans, amb les tecles. Es torna a l'estat de la F12 (commits de revert, sense reescriure l'historial). |
