@@ -101,13 +101,19 @@ def panell_punt(app):
 
 
 def panell_ajuda(app):
-    linies = ['P: reproduir o pausar el temps', 'V: explorar / observar des del terra',
-              'Arrossegar o fletxes: girar la mirada']
-    if app.vista == 0:
-        linies += ['W A S D: moure\'s   E / Q: pujar / baixar', 'Roda: endavant / enrere   Ctrl: rapid',
-                   "Doble clic: triar el punt d'observacio"]
+    if app.ratoli.capturat:
+        imgui.text_colored((0.5, 0.9, 0.6, 1.0), 'Mirada amb el ratoli. Esc: alliberar-lo')
     else:
-        linies += [f'Roda: zoom (ara x{app.camera.zoom():.1f})']
+        imgui.text_colored(COLOR_SUAU, "Clic a l'escena: mirar movent el ratoli")
+    linies = ['P: reproduir o pausar el temps', 'V: explorar / observar des del terra',
+              'Ratoli (capturat), arrossegar o fletxes: girar la mirada',
+              'Esc: alliberar el ratoli (amb el ratoli lliure, tanca)']
+    if app.vista == 0:
+        linies += ['W A S D: moure\'s   E / Q: pujar / baixar   Ctrl: rapid',
+                   'Roda o dos dits amunt/avall: endavant / enrere',
+                   "Doble clic (ratoli lliure): triar el punt d'observacio"]
+    else:
+        linies += [f'Roda o dos dits amunt/avall: zoom (ara x{app.camera.zoom():.1f})']
     for linia in linies:
         imgui.bullet_text(linia)
 

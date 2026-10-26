@@ -121,17 +121,21 @@ def main():
     pen = app.peninsula
     costa = np.frombuffer(pen.tex_costa.read(), 'f2').reshape(pen.alt.shape)
 
-    def es_veu_el_globus(lat, lon):
+    def es_veu_el_globus(lat, lon, r):
         """True si en aquest punt hi pot haver el globus en lloc de relleu: fora de la zona de 5 m (que
-        dibuixa el seu mar) i al mar o fora d'Espanya a la peninsula (amb 0,5 km de marge a la costa, per
-        la textura filtrada)."""
+        dibuixa el seu mar) i al mar o fora d'Espanya a la peninsula. Marge a la costa i a la frontera: el
+        shader llegeix la distancia a la costa amb mipmaps, i vist de lluny la vora on deixa de dibuixar es
+        desplaca; es pren 0,5 km mes un 2 % de la distancia r (a 100 km, 2,5 km: un texel del nivell de
+        mipmap 3 o 4 de la textura de 200 m)."""
         if app.zona is not None and app.zona.conte(lat, lon):
             return False
         u, v = pen.latlon_a_uv(lat, lon)
         if not (0 <= u <= 1 and 0 <= v <= 1):
             return True
         files, cols = costa.shape
-        return costa[min(int(v * files), files - 1), min(int(u * cols), cols - 1)] > -0.5
+        return costa[min(int(v * files), files - 1), min(int(u * cols), cols - 1)] > -(0.5 + 0.02 * r)
+
+    exemples = []   # pixels fora de la superficie (per diagnosticar)
 
     def coherencia_superficie(n_x=16, n_y=12):
         """Desprojecta una graella de pixels de la camera d'exploracio i, per a cada un que es la Terra,
@@ -161,8 +165,15 @@ def main():
                 esquena += np.dot(amunt, (punt - ce.posicio) / r) > 0.02
                 dif = alt_p - app.altitud_terra_km(lat_p, lon_p)
                 relleu = abs(dif) <= 0.035 + 2e-6 * r
-                globus = -(0.12 + 2.1e-5 * r) <= alt_p <= 2e-6 * r and es_veu_el_globus(lat_p, lon_p)
-                fora += not (relleu or globus)
+                globus = -(0.12 + 2.1e-5 * r) <= alt_p <= 2e-6 * r and es_veu_el_globus(lat_p, lon_p, r)
+                if not (relleu or globus):
+                    fora += 1
+                    u, v = pen.latlon_a_uv(lat_p, lon_p)
+                    dins_pen = 0 <= u <= 1 and 0 <= v <= 1
+                    exemples.append(f'lat {lat_p:.4f} lon {lon_p:.4f}: {alt_p * 1000:.0f} m, relleu '
+                                    f'{(alt_p - dif) * 1000:.0f} m, a {r:.1f} km, costa '
+                                    f'{costa[min(int(v * costa.shape[0]), costa.shape[0] - 1), min(int(u * costa.shape[1]), costa.shape[1] - 1)] if dins_pen else "-"} km, '
+                                    f'zona {app.zona is not None and app.zona.conte(lat_p, lon_p)}')
                 if not globus and abs(dif) > abs(pitjor):
                     pitjor = dif
                 n += 1
@@ -241,6 +252,9 @@ def main():
                 break
         ok(alcades == [50, 800, 20000] and app.hora == h1,
            f'allunyar-se fins a {ce.alcada_sobre_terra():,.0f} km sense canviar l\'hora')
+        for e in exemples[:3]:
+            print('      fora:', e)
+        exemples.clear()
         ok(fora == 0 and esquena == 0, f'pujant, {n_total} pixels de terra: {fora} fora de la superficie dibuixada, '
                                        f'{esquena} vistos per sota (pitjor {pitjor[0] * 1000:+.1f} m, a {pitjor[1]:,.1f} km)')
         cam, mirada_ce, h2 = ce.posicio.copy(), (ce.rumb, ce.inclinacio), app.hora
@@ -371,9 +385,11 @@ def bucle_real(app, programa, ok):
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('reproduint')] + tecla(imgui.Key.KEY_P) + [  # 4. P
               desa('pausa')] + [None] * 10 + [desa('pausa_despres')] + \
              tecla(imgui.Key.KEY_V) + [None, desa('exploracio')] + [                # 5. explorar i allunyar-se
-              (lambda: io.add_mouse_wheel_event(0.0, -1.0)) for _ in range(90)] + [None, desa('espai')] + \
+              (lambda: app.ratoli.on_scroll(app.window, 0.0, -1.0)) for _ in range(40)] + [None, desa('espai')] + \
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('espai_reproduint')] + tecla(imgui.Key.KEY_P) + [  # 6
-              lambda: app.tornar_al_punt(), None, desa('tornada')]                  # 7. tornar al punt
+              lambda: app.tornar_al_punt(), None, desa('tornada'),                  # 7. tornar al punt
+              lambda: app.ratoli.capturar(), None, lambda: premudes.add(glfw.KEY_ESCAPE), None,   # Esc
+              lambda: estat.__setitem__('esc', app.ratoli.capturat), lambda: premudes.discard(glfw.KEY_ESCAPE), None]
     # despres, les capes i els filferros de l'apartat Avancat, i canviar de zona (per als avisos de textures)
     for capa in (1, 2, 3, 0):
         passos += [lambda c=capa: [setattr(t, 'overlay', c) for t in app.terrenys()], None]
@@ -423,6 +439,8 @@ def bucle_real(app, programa, ok):
     t = e['tornada']
     ok(t['vista'] == 1 and np.allclose(t['ulls'], e['inici']['ulls']) and t['mirada'] == e['ratoli']['mirada'],
        "7. tornar al punt d'observacio: els mateixos ulls i la mirada que s'havia deixat")
+    ok(e['esc'] is False and n[0] >= len(passos),
+       'Esc amb el ratoli capturat: l\'allibera i el programa continua (amb el ratoli lliure, Esc tanca, com abans)')
 
 
 if __name__ == '__main__':

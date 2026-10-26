@@ -13,6 +13,11 @@ vertexs), un pegat de la peninsula al voltant de l'observador (200 m, ~100 km), 
 (~20 m entre vertexs) i un pegat de la zona al voltant de l'observador (5 m, ~2,5 km). Cada nivell
 fa un forat al de sota i, a la vora, la seva altura passa suaument a la del de sota.
 
+Espai de navegacio: un cub fix que conte la Terra, la Lluna i el Sol (dades/navegacio.py); la camera
+d'exploracio no en pot sortir i, a prop, se'n veuen les parets (basecode/paret_cub.py).
+Ratoli: un clic a l'escena captura el ratoli per mirar sense premer cap boto; Esc l'allibera
+(basecode/control_ratoli.py). GraphicsEngine.run() es el bucle del basecode amb un sol canvi per a l'Esc.
+
 Tres coses independents:
   - el temps de simulacio (self.hora, TU): nomes canvia quan es reprodueix (tecla P);
   - el punt d'observacio (self.observador): nomes canvia quan se'n tria un (i no durant la reproduccio);
@@ -63,17 +68,21 @@ import rasterio
 from slimgui import imgui
 
 from basecode.engine import GraphicsEngineBase
-from basecode.camera_exploracio import CameraExploracio, COEF_LOG, direccio_mirada
+from basecode.camera_exploracio import CameraExploracio, COEF_LOG, direccio_mirada, FOV as FOV_EXPLORACIO
 from basecode.camera_observador import CameraObservador
 from basecode.astres import Esfera, Lluna, SOL, HALO
 from basecode.sol import Sol
 from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
 from basecode.ombres_relleu import OmbresRelleu
+from basecode.paret_cub import ParetCub
+from basecode.control_ratoli import ControlRatoli
+from basecode import window as winmod
 from dades.data_io import TERRENYS, ZONES_DETALL
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
+from dades.navegacio import cub_navegacio
 from dades import eclipse_data, geodesia
 import ui
 
@@ -105,7 +114,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.light = Sol()
         self.coef_log = COEF_LOG
         self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
-        self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = None
+        self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = self.paret = None
 
         # --- territori: la peninsula sencera posada sobre la Terra; la zona de detall de 5 m es
         # carrega quan es tria un punt d'observacio que hi es (triar_punt)
@@ -145,6 +154,11 @@ class GraphicsEngine(GraphicsEngineBase):
         self.hora = max(self.model.hores['c1'] - HORA_ABANS_C1, self.ef.inici) if self.model.valid else self.ef.inici
         self.actualitzar_astres()
 
+        # --- espai de navegacio: fix durant la sessio, calculat amb tot l'interval de les efemerides
+        self.cub = cub_navegacio(self.ef, FOV_EXPLORACIO)
+        self.ratoli = ControlRatoli(self)
+        self.esc_premuda = False
+
         # --- cameres: comencem mirant cap al Sol des del terra
         az, el = self.model.sol(self.hora)
         self.camera_observador = CameraObservador(self)
@@ -157,6 +171,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.lluna = Lluna(self)
         self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=SOL)
         self.halo = Esfera(self, color=(1.0, 0.95, 0.85), mode=HALO)
+        self.paret = ParetCub(self, self.cub)
         self.color_cel, self.densitat_boira = COLOR_CEL, 0.0
 
         # resize: el nostre callback crida tambe l'anterior (si n'hi ha) per no trencar res
@@ -165,7 +180,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.fps, self.frames, self.temps_fps = 0.0, 0, 0.0
 
     def drawables(self):
-        objectes = [self.terra, self.peninsula, self.zona, self.lluna, self.sol_visible, self.halo]
+        objectes = [self.terra, self.peninsula, self.zona, self.lluna, self.sol_visible, self.halo, self.paret]
         return [obj for obj in objectes if obj is not None]
 
     def on_resize(self, window, amplada, alcada):
@@ -381,13 +396,43 @@ class GraphicsEngine(GraphicsEngineBase):
         self.lluna.atmosfera = self.atmosfera > 0.3
         self.lluna.radi_sol = float(self.radi_sol_camera)
 
+    def run(self):
+        """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb una sola diferencia: Esc
+        primer allibera el ratoli si es capturat; amb el ratoli lliure, Esc tanca el programa, com abans."""
+        while not winmod.should_close(self.window):
+            glfw.poll_events()
+            if winmod.is_escape_pressed(self.window):
+                if self.ratoli.capturat:
+                    self.ratoli.alliberar()
+                    self.esc_premuda = True      # cal deixar anar Esc abans que pugui tancar
+                elif not self.esc_premuda:
+                    break
+            else:
+                self.esc_premuda = False
+            self.get_time()
+            self.ui_renderer.new_frame()
+            imgui.new_frame()
+            self.render()
+            imgui.set_next_window_pos((10, 10), imgui.Cond.FIRST_USE_EVER)
+            imgui.begin('Opcions')
+            self.build_ui()
+            imgui.end()
+            imgui.render()
+            self.ui_renderer.render(imgui.get_draw_data())
+            glfw.swap_buffers(self.window)
+        self._shutdown()
+
     def render(self):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
         self.avancar_temps(dt)
         self.actualitzar_astres()
+        # ratoli: amb el ratoli capturat, el moviment gira la mirada; la roda va a la camera activa
+        dx, dy, roda = self.ratoli.fotograma(glfw.get_time())
+        if dx or dy:
+            self.camera.girar_ratoli(dx, dy)
         if self.vista == 1:
-            self.camera.processar_ratoli()
+            self.camera.processar_ratoli(roda, self.ratoli.capturat)
         self.camera.update()
         self.actualitzar_cel()
         self.situar_astres()
@@ -399,12 +444,13 @@ class GraphicsEngine(GraphicsEngineBase):
         self.terra.render()
         for t in self.terrenys():
             t.render()
-        self.halo.render()   # l'ultim: es transparent
+        self.paret.render()  # translucides: despres dels objectes opacs
+        self.halo.render()
 
         if self.vista == 0:
             # el ratoli es processa just despres de dibuixar: el depth buffer ja es ple.
             # doble clic: si no s'esta reproduint, l'observador va al punt clicat
-            punt = self.camera.processar_ratoli(self.punt_sota_cursor)
+            punt = self.camera.processar_ratoli(self.punt_sota_cursor, roda, self.ratoli.capturat)
             if punt is not None:
                 lat, lon, _ = geodesia.geodesiques(punt)
                 self.triar_punt(float(lat), float(lon))

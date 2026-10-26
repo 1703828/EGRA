@@ -3,12 +3,16 @@ Camera d'observacio: els ulls de l'observador, 1,7 m sobre el terra (app.ulls(),
 
 - La posicio no es mou: nomes es gira el cap. La mirada conserva l'orientacio que deixa l'usuari;
   el Sol no se segueix automaticament.
-- Arrossegar amb el ratoli (boto esquerre) o les fletxes: mirar al voltant.
-- Roda: zoom com uns prismatics (camp de visio). El Sol fa ~0,5 graus i sense zoom es veu petit.
+- Arrossegar amb el ratoli (boto esquerre), moure'l amb la mirada capturada (main.py) o les fletxes:
+  mirar al voltant.
+- Roda (o lliscar amb dos dits al trackpad): zoom com uns prismatics (camp de visio), sense moure els
+  ulls. El Sol fa ~0,5 graus i sense zoom es veu petit.
 Rumb = graus des del nord en sentit horari; inclinacio = graus sobre l'horitzo del lloc.
 """
 import glm
 from slimgui import imgui
+
+from .control_ratoli import SENSIBILITAT
 
 from .camera_exploracio import matrius
 
@@ -25,6 +29,12 @@ class CameraObservador:
         self.fov = FOV
         self.posicio = app.ulls()
 
+    def girar_ratoli(self, dx, dy):
+        """Moviment del ratoli capturat (punts de pantalla): mateixa sensibilitat que en arrossegar, i menor
+        amb zoom. Cap inercia: la mirada nomes canvia quan el ratoli es mou."""
+        v = SENSIBILITAT * self.fov / FOV
+        self.girar(dx * v, -dy * v)
+
     def girar(self, d_rumb, d_inclinacio):
         self.rumb = (self.rumb + d_rumb) % 360.0
         self.inclinacio = min(max(self.inclinacio + d_inclinacio, -89.0), 89.0)
@@ -35,17 +45,20 @@ class CameraObservador:
     def zoom(self):
         return FOV / self.fov
 
-    def processar_ratoli(self):
+    def processar_ratoli(self, roda, capturat):
+        """Roda (passos d'aquest fotograma, main.py): zoom. Amb el cursor lliure, arrossegar gira el cap;
+        amb la mirada capturada, el gir el fa main.py."""
+        if roda:
+            roda = min(max(roda, -3.0), 3.0)   # un gest rapid no fa salts
+            self.fov = min(max(self.fov * 0.85 ** roda, FOV_MIN), FOV)
         io = imgui.get_io()
-        if io.want_capture_mouse:
+        if capturat or io.want_capture_mouse:
             return
         if imgui.is_mouse_dragging(imgui.MouseButton.LEFT, 0.0):
             dx, dy = io.mouse_delta
             if dx or dy:  # amb zoom, el ratoli gira menys (com amb uns prismatics)
                 v = VELOCITAT_RATOLI * self.fov / FOV
                 self.girar(dx * v, -dy * v)
-        if io.mouse_wheel != 0:
-            self.fov = min(max(self.fov * 0.85 ** io.mouse_wheel, FOV_MIN), FOV)
 
     def update(self):
         self.posicio = self.app.ulls()
