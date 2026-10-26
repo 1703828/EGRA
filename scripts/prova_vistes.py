@@ -389,7 +389,9 @@ def bucle_real(app, programa, ok):
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('espai_reproduint')] + tecla(imgui.Key.KEY_P) + [  # 6
               lambda: app.tornar_al_punt(), None, desa('tornada'),                  # 7. tornar al punt
               lambda: app.ratoli.capturar(), None, lambda: premudes.add(glfw.KEY_ESCAPE), None,   # Esc
-              lambda: estat.__setitem__('esc', app.ratoli.capturat), lambda: premudes.discard(glfw.KEY_ESCAPE), None]
+              lambda: estat.__setitem__('esc', app.ratoli.capturat), lambda: premudes.discard(glfw.KEY_ESCAPE), None,
+              lambda: premudes.add(glfw.KEY_ESCAPE), None, None, lambda: premudes.discard(glfw.KEY_ESCAPE),  # 2n Esc
+              lambda: estat.__setitem__('esc2', n[0]), None]
     # despres, les capes i els filferros de l'apartat Avancat, i canviar de zona (per als avisos de textures)
     for capa in (1, 2, 3, 0):
         passos += [lambda c=capa: [setattr(t, 'overlay', c) for t in app.terrenys()], None]
@@ -439,8 +441,8 @@ def bucle_real(app, programa, ok):
     t = e['tornada']
     ok(t['vista'] == 1 and np.allclose(t['ulls'], e['inici']['ulls']) and t['mirada'] == e['ratoli']['mirada'],
        "7. tornar al punt d'observacio: els mateixos ulls i la mirada que s'havia deixat")
-    ok(e['esc'] is False and n[0] >= len(passos),
-       'Esc amb el ratoli capturat: l\'allibera i el programa continua (amb el ratoli lliure, Esc tanca, com abans)')
+    ok(e['esc'] is False and 'esc2' in e and n[0] >= len(passos),
+       'Esc amb el ratoli capturat l\'allibera; un segon Esc, amb el ratoli lliure, no tanca el programa')
 
 
 if __name__ == '__main__':

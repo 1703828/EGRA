@@ -36,6 +36,8 @@ def build_ui(app):
             imgui.same_line()
         if imgui.radio_button(nom, app.vista == i):
             app.canviar_vista(i)
+    imgui.separator_text('Astres')
+    panell_astres(app)
     if imgui.button("Veure l'ombra des de l'espai", (-1.0, 0.0)):
         app.veure_ombra_des_de_lespai()
     _, app.ressaltar_ombra = imgui.checkbox("Ressaltar l'ombra amb linies (didactic)", app.ressaltar_ombra)
@@ -56,6 +58,45 @@ def build_ui(app):
     imgui.text_disabled('Textures: NASA')
 
     barra_temps(app)
+    punt_de_mira(app)
+
+
+def panell_astres(app):
+    """Desti (Terra, Lluna o Sol), les dues accions i la distancia a la superficie del desti."""
+    for i, nom in enumerate(app.ASTRES):
+        if i > 0:
+            imgui.same_line()
+        if imgui.radio_button(f'{nom} ({i + 1})', app.desti == i):
+            app.desti = i
+    if imgui.button('Mirar  (F)', (150, 0)):
+        app.mirar_astre()
+    imgui.same_line()
+    if imgui.button("Apropar-s'hi  (G)", (-1.0, 0.0)):
+        app.apropar_astre()
+    text = f'{app.ASTRES[app.desti]}: a {format_distancia(app.distancia_desti())} de la superficie'
+    if app.camera_exploracio.viatge is not None:
+        text += '  (viatjant)'
+    imgui.text_colored(COLOR_SUAU, text)
+
+
+def format_distancia(km):
+    """Distancia llegible: m, km o milions de km."""
+    if km < 1.0:
+        return f'{km * 1000:.0f} m'
+    if km < 1e6:
+        return f'{km:,.0f} km'.replace(',', '.')
+    return f'{km / 1e6:.1f} milions de km'.replace('.', ',')
+
+
+def punt_de_mira(app):
+    """Amb el ratoli capturat, un punt petit i discret al centre de la imatge (no es mou: es la direccio de
+    la mirada)."""
+    if not app.ratoli.capturat:
+        return
+    w, h = imgui.get_io().display_size
+    dl = imgui.get_foreground_draw_list()
+    dl.add_circle_filled((w / 2, h / 2), 3.0, imgui.color_convert_float4_to_u32((0.0, 0.0, 0.0, 0.5)))
+    dl.add_circle_filled((w / 2, h / 2), 2.0, imgui.color_convert_float4_to_u32((1.0, 1.0, 1.0, 0.85)))
 
 
 def panell_temps(app):
@@ -107,9 +148,11 @@ def panell_ajuda(app):
         imgui.text_colored(COLOR_SUAU, "Clic a l'escena: mirar movent el ratoli")
     linies = ['P: reproduir o pausar el temps', 'V: explorar / observar des del terra',
               'Ratoli (capturat), arrossegar o fletxes: girar la mirada',
-              'Esc: alliberar el ratoli (amb el ratoli lliure, tanca)']
+              'Esc: alliberar el ratoli (tancar: boto de la finestra o Cmd+Q)',
+              'E / Q: endavant / enrere on mires (des del terra, passa a explorar)',
+              "1 2 3: Terra, Lluna, Sol   F: mirar-lo   G: apropar-s'hi"]
     if app.vista == 0:
-        linies += ['W A S D: moure\'s   E / Q: pujar / baixar   Ctrl: rapid',
+        linies += ['W A S D: moure\'s en horitzontal   Ctrl: rapid',
                    'Roda o dos dits amunt/avall: endavant / enrere',
                    "Doble clic (ratoli lliure): triar el punt d'observacio"]
     else:
@@ -142,6 +185,8 @@ def panell_avancat(app):
         if canviat:
             for terreny in app.terrenys():
                 terreny.wireframe = filferros
+        _, app.mostrar_cub = imgui.checkbox('Mostrar el cub de navegacio', app.mostrar_cub)
+        imgui.text_colored(COLOR_SUAU, "(parets del limit on es pot anar; es veuen a prop)")
         imgui.tree_pop()
 
 
