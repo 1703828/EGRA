@@ -10,15 +10,18 @@ from dataclasses import dataclass
 
 ALCADA_ULLS_KM = 0.0017   # els ulls, 1,7 m per sobre del terra
 
-# ubicacions que es poden triar al panell. Coordenades provisionals: el centre aproximat de cada lloc
-# (la tasca 0.3 del pla les ha de verificar amb una font cartografica)
+# ubicacions que es poden triar al panell: un lloc concret de cada poble (tasca 0.3 del pla, consultat el
+# 26/10/2026). Ajuntaments: geocodificador de l'ICGC (eines.icgc.cat/geocodificador), que coincideix a
+# menys de 20 m amb OpenStreetMap. Places: centre del poligon de la placa a OpenStreetMap (l'ICGC hi dona
+# el primer portal, a la vora). 4 decimals = ~10 m. Picos: centre de la zona de 5 m (cas de totalitat,
+# sense lloc concret). Datum ETRS89 = WGS84 a aquesta precisio.
 UBICACIONS = [
     ('Picos de Europa (totalitat)', 43.2620, -4.9490),
-    ('Vic, placa Major', 41.9302, 2.2546),
-    ("L'Escala", 42.1250, 3.1330),
-    ('Cerdanyola del Valles', 41.4912, 2.1406),
-    ('Montmelo', 41.5517, 2.2483),
-    ('UAB, placa Civica', 41.5020, 2.1040),
+    ('Vic, placa Major', 41.9303, 2.2540),
+    ("L'Escala, ajuntament", 42.1248, 3.1322),
+    ('Cerdanyola, ajuntament', 41.4910, 2.1407),
+    ('Montmelo, ajuntament', 41.5517, 2.2479),
+    ('UAB, placa Civica', 41.5019, 2.1039),
 ]
 
 

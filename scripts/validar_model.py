@@ -21,12 +21,13 @@ from pyproj import Transformer
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dades import eclipse_data  # noqa: E402
 from dades.model_eclipsi import ModelEclipsi  # noqa: E402
+from dades.observador import UBICACIONS  # noqa: E402
 
 MDT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'mdt', 'peninsula_200m.tif')
-# coordenades provisionals (tasca 0.3: verificar-les amb una font cartografica)
-PUNTS = [('Picos', 43.262, -4.949), ('Burgos', 42.3439, -3.6969), ('Valencia', 39.4699, -0.3763),
-         ('Palma', 39.5696, 2.6502), ('Vic', 41.9302, 2.2546), ("L'Escala", 42.1250, 3.1330),
-         ('Cerdanyola', 41.4912, 2.1406), ('Montmelo', 41.5517, 2.2483), ('UAB', 41.5020, 2.1040)]
+# les sis ubicacions del programa (dades/observador.py) i tres punts mes de comprovacio (centres de ciutat
+# aproximats: nomes serveixen per comparar el model amb el CNIG en altres llocs)
+PUNTS = [(nom.split(',')[0].split(' (')[0], lat, lon) for nom, lat, lon in UBICACIONS] + [
+    ('Burgos', 42.3439, -3.6969), ('Valencia', 39.4699, -0.3763), ('Palma', 39.5696, 2.6502)]
 
 
 def altitud_km(lat, lon):
@@ -36,7 +37,7 @@ def altitud_km(lat, lon):
 
 
 def main():
-    print(f"{'Punt':10s} {'C1':>7s} {'C2':>7s} {'max':>7s} {'C3':>7s} {'C4':>7s}  {'tapat':>6s}  {'elev.':>6s}   (diferencies amb el CNIG, en segons; tapat i elevacio: model - CNIG)")
+    print(f"{'Punt':16s} {'C1':>7s} {'C2':>7s} {'max':>7s} {'C3':>7s} {'C4':>7s}  {'tapat':>6s}  {'elev.':>6s}   (diferencies amb el CNIG, en segons; tapat i elevacio: model - CNIG)")
     pitjor = {}
     for nom, lat, lon in PUNTS:
         m = ModelEclipsi(lat, lon, altitud_km(lat, lon))
@@ -52,7 +53,7 @@ def main():
             cols.append(f"{d:+7.1f}")
         tapat = (m.fraccio_tapada(m.hores['maxim']) - cnig['enfosquiment']) * 100
         _, el = m.sol(m.hores['maxim'])
-        print(f"{nom:10s} {' '.join(cols)}  {tapat:+5.2f}%  {el - cnig['elevacio']:+6.3f}°")
+        print(f"{nom:16s} {' '.join(cols)}  {tapat:+5.2f}%  {el - cnig['elevacio']:+6.3f}°")
     print('Diferencia maxima (s):', ', '.join(f'{k} {v:.1f}' for k, v in pitjor.items()))
 
 
