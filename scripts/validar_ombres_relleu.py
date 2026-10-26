@@ -120,6 +120,21 @@ def main():
         factor = np.frombuffer(objectiu.read(components=3), 'u1').reshape(H, W, 3)[..., 0] / 255.0
         prof = np.frombuffer(objectiu.read(components=1, attachment=-1, dtype='f4'), 'f4').reshape(H, W)
         Image.fromarray((factor[::-1] * 255).astype('u1')).save(os.path.join(SORTIDA, f'ombres_relleu_{k}_factor.png'))
+
+        # interruptor d'Avancat, com el fa servir l'equip: en pausa (l'hora no canvia), apagar i encendre
+        # diverses vegades nomes amb app.ombres.actiu. Ha d'haver-hi ombra quan es ences i cap quan no.
+        def pixels_ombra():
+            fotograma()
+            return int((np.frombuffer(objectiu.read(components=3), 'u1').reshape(H, W, 3)[..., 0] < 26).sum())
+        estats = []
+        for actiu in (False, True, False, True):
+            app.ombres.actiu = actiu
+            estats.append(pixels_ombra())
+        # apagades, alguns pixels foscos que no son terreny de la zona (cel, globus): en queden 0-3
+        ok_interruptor = max(estats[0], estats[2]) <= 10 and estats[1] == estats[3] > 1000
+        print(f"Interruptor (apagar, encendre, apagar, encendre en pausa): pixels a l'ombra {estats}")
+        if not ok_interruptor:
+            errors.append(f'{nom}: interruptor de les ombres')
         app.ombres.depuracio = False
         fotograma()
         Image.frombytes('RGB', (W, H), objectiu.read(components=3)).transpose(Image.FLIP_TOP_BOTTOM).save(

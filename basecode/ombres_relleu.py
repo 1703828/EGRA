@@ -99,7 +99,9 @@ class OmbresRelleu:
         app, zona = self.app, self.app.zona
         o = app.observador
         if not self.actiu or zona is None or not zona.conte(o.lat, o.lon):
-            self.valid = False
+            # sense mapa: cal oblidar la clau perque, en tornar-les a encendre (en pausa, la mateixa
+            # hora), el mapa es torni a calcular i valid torni a ser True
+            self.valid, self.clau = False, None
             return
         pegat = zona.pegat
         if zona is not self.zona or pegat is not self.pegat:
