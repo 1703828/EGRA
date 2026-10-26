@@ -14,13 +14,9 @@ vertexs), un pegat de la peninsula al voltant de l'observador (200 m, ~100 km), 
 fa un forat al de sota i, a la vora, la seva altura passa suaument a la del de sota.
 
 Espai de navegacio: un cub fix que conte la Terra, la Lluna i el Sol (dades/navegacio.py); la camera
-d'exploracio no en pot sortir. Les parets (basecode/paret_cub.py) nomes es veuen com a opcio de depuracio.
-Ratoli: un clic a l'escena captura el ratoli per mirar sense premer cap boto (amb un punt de mira al
-centre); Esc l'allibera i no tanca el programa (basecode/control_ratoli.py). GraphicsEngine.run() es el
-bucle del basecode amb aquest canvi per a l'Esc.
-Astres: es pot triar la Terra, la Lluna o el Sol i mirar-lo (orientar la camera un cop) o apropar-s'hi
-(un viatge breu fins a veure'l sencer, que qualsevol moviment cancel·la). E i Q, des de l'observacio,
-passen a l'exploracio sense moure la camera.
+d'exploracio no en pot sortir i, a prop, se'n veuen les parets (basecode/paret_cub.py).
+Ratoli: un clic a l'escena captura el ratoli per mirar sense premer cap boto; Esc l'allibera
+(basecode/control_ratoli.py). GraphicsEngine.run() es el bucle del basecode amb un sol canvi per a l'Esc.
 
 Tres coses independents:
   - el temps de simulacio (self.hora, TU): nomes canvia quan es reprodueix (tecla P);
@@ -96,7 +92,6 @@ COLOR_POSTA = (0.93, 0.70, 0.55)   # to del cel amb el Sol baix
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
 ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
 HORA_ABANS_C1 = 1.0                # l'arrencada es aquest nombre d'hores abans de C1 (temps TU del model)
-ASTRES = ['Terra', 'Lluna', 'Sol']  # destins de "Mirar" i "Apropar-s'hi" (tecles 1, 2 i 3)
 
 
 def suau(a, b, x):
@@ -114,7 +109,6 @@ def v3(a):
 
 
 class GraphicsEngine(GraphicsEngineBase):
-    ASTRES = ASTRES
     def on_init(self):
         self.ctx.enable_only(mgl.DEPTH_TEST)  # sense CULL_FACE: el terreny es veu per sota tambe
         self.light = Sol()
@@ -163,8 +157,7 @@ class GraphicsEngine(GraphicsEngineBase):
         # --- espai de navegacio: fix durant la sessio, calculat amb tot l'interval de les efemerides
         self.cub = cub_navegacio(self.ef, FOV_EXPLORACIO)
         self.ratoli = ControlRatoli(self)
-        self.mostrar_cub = False      # parets del cub: nomes com a opcio de depuracio (Avancat)
-        self.desti = 2                # index a ASTRES: el Sol
+        self.esc_premuda = False
 
         # --- cameres: comencem mirant cap al Sol des del terra
         az, el = self.model.sol(self.hora)
@@ -331,89 +324,26 @@ class GraphicsEngine(GraphicsEngineBase):
             self.hora, self.reproduint = self.ef.final, False
 
     def teclat(self, dt):
-        """P reproduir/pausar, V canviar de vista, fletxes girar la mirada; 1 2 3 triar la Terra, la Lluna o
-        el Sol, F mirar-lo, G apropar-s'hi. A l'exploracio, W A S D desplacen la camera en horitzontal i E / Q
-        endavant i enrere en la direccio de la mirada (Ctrl: mes rapid). E o Q des de l'observacio passen a
-        l'exploracio. Qualsevol tecla de moviment cancel·la un viatge. Retorna si hi ha hagut moviment."""
+        """P reproduir/pausar, V canviar de vista, fletxes girar la mirada; a l'exploracio, W A S D
+        desplacen la camera i E / Q la pugen o baixen (Ctrl: mes rapid)."""
         if imgui.get_io().want_capture_keyboard:
-            return False
+            return
         tecla = lambda k: glfw.get_key(self.window, k) == glfw.PRESS
         if imgui.is_key_pressed(imgui.Key.KEY_V, False):
             self.canviar_vista(1 - self.vista)
         if imgui.is_key_pressed(imgui.Key.KEY_P, False):
             self.reproduir_pausar()
-        for i, k in enumerate((imgui.Key.KEY_1, imgui.Key.KEY_2, imgui.Key.KEY_3)):
-            if imgui.is_key_pressed(k, False):
-                self.desti = i
-        if imgui.is_key_pressed(imgui.Key.KEY_F, False):
-            self.mirar_astre()
-        if imgui.is_key_pressed(imgui.Key.KEY_G, False):
-            self.apropar_astre()
-        dreta, amunt = tecla(glfw.KEY_RIGHT) - tecla(glfw.KEY_LEFT), tecla(glfw.KEY_UP) - tecla(glfw.KEY_DOWN)
-        endavant, costat = tecla(glfw.KEY_W) - tecla(glfw.KEY_S), tecla(glfw.KEY_D) - tecla(glfw.KEY_A)
-        avant_mirada = tecla(glfw.KEY_E) - tecla(glfw.KEY_Q)
-        if avant_mirada and self.vista == 1:
-            self.passar_a_exploracio()
-        moviment = bool(dreta or amunt or (self.vista == 0 and (endavant or costat or avant_mirada)))
-        if moviment:
-            self.camera_exploracio.viatge = None
         cam = self.camera
+        dreta, amunt = tecla(glfw.KEY_RIGHT) - tecla(glfw.KEY_LEFT), tecla(glfw.KEY_UP) - tecla(glfw.KEY_DOWN)
         if dreta or amunt:
             cam.girar(VELOCITAT_GIR * dt * dreta * cam.fov / 60.0, VELOCITAT_GIR * dt * amunt * cam.fov / 60.0)
-        if self.vista == 0 and (endavant or costat or avant_mirada):
-            rapid = 5.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
-            cam.moure(endavant, costat, avant_mirada, dt * rapid)
-        return moviment
-
-    # ------------------------------------------------------------ astres: mirar-los i apropar-s'hi
-
-    def astre(self, i=None):
-        """(nom, centre ECEF, radi) de l'astre i (per defecte, el desti triat) a l'hora actual."""
-        i = self.desti if i is None else i
-        return [('Terra', np.zeros(3), geodesia.A_KM), ('Lluna', self.lluna_ecef, RADI_LLUNA_KM),
-                ('Sol', self.sol_ecef, RADI_SOL_KM)][i]
-
-    def distancia_desti(self):
-        """km de la camera activa a la superficie del desti (a la Terra, l'altura sobre el terra)."""
-        nom, centre, radi = self.astre()
-        if nom == 'Terra':
-            lat, lon, alt = geodesia.geodesiques(self.camera.posicio)
-            return float(alt) - self.altitud_terra_km(float(lat), float(lon))
-        return float(np.linalg.norm(centre - self.camera.posicio)) - radi
-
-    def passar_a_exploracio(self):
-        """De l'observacio a l'exploracio sense cap salt: la camera d'exploracio es posa als ulls, amb la
-        mateixa mirada i el mateix camp de visio (que despres torna a poc a poc al de l'exploracio). El punt
-        d'observacio, l'hora i la reproduccio no canvien."""
-        co, ce = self.camera_observador, self.camera_exploracio
-        ce.posicio = co.posicio.copy()
-        lat, lon, _ = ce.geodesiques()
-        ce.davant_ecef = direccio_mirada(lat, lon, co.rumb, co.inclinacio)
-        ce.fov, ce.amunt_vista, ce.viatge = co.fov, None, None
-        self.canviar_vista(0)
-        ce.update()
-
-    def mirar_astre(self):
-        """Orienta la camera activa cap al desti, un sol cop (sense seguir-lo despres). No la desplaca."""
-        _, centre, _ = self.astre()
-        if self.vista == 1:
-            o = self.camera_observador
-            lat, lon, _ = geodesia.geodesiques(o.posicio)
-            o.mirar(*geodesia.azimut_elevacio(centre - o.posicio, float(lat), float(lon)))
-            o.inclinacio = min(max(o.inclinacio, -89.0), 89.0)
-        else:
-            self.camera_exploracio.viatge = None
-            self.camera_exploracio.mirar_cap_a(centre)
-
-    def apropar_astre(self):
-        """Viatge fins a veure el desti sencer (amb marge), sense travessar els altres astres. Des de
-        l'observacio, primer passa a l'exploracio sense moure la camera. No canvia l'hora."""
-        if self.vista == 1:
-            self.passar_a_exploracio()
-        i = self.desti
-        # obstacles: la Lluna i el Sol que no son el desti (el terra es comprova a part, per altitud)
-        obstacles = [(self.astre(k)[1], self.astre(k)[2]) for k in (1, 2) if k != i]
-        self.camera_exploracio.iniciar_viatge(lambda: self.astre(i)[1], self.astre(i)[2], obstacles)
+        if self.vista == 0:
+            endavant = tecla(glfw.KEY_W) - tecla(glfw.KEY_S)
+            costat = tecla(glfw.KEY_D) - tecla(glfw.KEY_A)
+            vertical = tecla(glfw.KEY_E) - tecla(glfw.KEY_Q)
+            if endavant or costat or vertical:
+                rapid = 5.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
+                cam.moure(endavant, costat, vertical, dt * rapid)
 
     # ------------------------------------------------------------ escena a cada instant
 
@@ -468,12 +398,17 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def run(self):
         """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb una sola diferencia: Esc
-        nomes allibera el ratoli, i no tanca el programa (un segon Esc no el tanca per accident). Es tanca
-        amb el boto de la finestra o Cmd+Q, que posen glfw.window_should_close."""
+        primer allibera el ratoli si es capturat; amb el ratoli lliure, Esc tanca el programa, com abans."""
         while not winmod.should_close(self.window):
             glfw.poll_events()
             if winmod.is_escape_pressed(self.window):
-                self.ratoli.alliberar()
+                if self.ratoli.capturat:
+                    self.ratoli.alliberar()
+                    self.esc_premuda = True      # cal deixar anar Esc abans que pugui tancar
+                elif not self.esc_premuda:
+                    break
+            else:
+                self.esc_premuda = False
             self.get_time()
             self.ui_renderer.new_frame()
             imgui.new_frame()
@@ -489,23 +424,15 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def render(self):
         dt = min(self.dt, 0.1)
-        self.actualitzar_astres()
-        moviment = self.teclat(dt)
+        self.teclat(dt)
         self.avancar_temps(dt)
         self.actualitzar_astres()
         # ratoli: amb el ratoli capturat, el moviment gira la mirada; la roda va a la camera activa
         dx, dy, roda = self.ratoli.fotograma(glfw.get_time())
-        io = imgui.get_io()
-        arrossegant = (not io.want_capture_mouse and imgui.is_mouse_dragging(imgui.MouseButton.LEFT, 0.0)
-                       and any(io.mouse_delta))
-        if self.vista == 0 and (moviment or dx or dy or roda or arrossegant):
-            self.camera_exploracio.viatge = None      # qualsevol entrada de moviment cancel·la el viatge
         if dx or dy:
             self.camera.girar_ratoli(dx, dy)
         if self.vista == 1:
             self.camera.processar_ratoli(roda, self.ratoli.capturat)
-        else:
-            self.camera_exploracio.actualitzar(dt)
         self.camera.update()
         self.actualitzar_cel()
         self.situar_astres()

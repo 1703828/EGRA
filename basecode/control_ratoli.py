@@ -10,12 +10,8 @@ Control de la mirada amb el ratoli capturat (com als jocs en primera persona) i 
   acceleracio, nomes existeix a Windows i Linux; si el sistema el te, s'activa.)
 - Un clic d'un doble clic no captura: el clic espera el temps del doble clic (0,3 s) abans de capturar,
   i si arriba el segon clic es un doble clic (triar el punt).
-- Esc (main.py, run) o perdre el focus de la finestra alliberen el ratoli; Esc no tanca el programa
-  (es tanca amb el boto de la finestra o Cmd+Q). En capturar, el primer moviment es compta des d'on es el
-  cursor en aquell moment, i el moviment d'un sol fotograma es limita a MOVIMENT_MAXIM: un esdeveniment
-  anomal (el recentrat del cursor, el primer despres de recuperar el focus) no pot fer saltar la mirada.
-- El moviment del ratoli no es multiplica pel temps del fotograma: la sensibilitat es la mateixa a
-  qualsevol nombre de fotogrames per segon. Al trackpad, moure un dit es el mateix moviment del cursor.
+- Esc (main.py, run) o perdre el focus de la finestra alliberen el ratoli. En capturar, el primer
+  moviment es compta des d'on es el cursor en aquell moment: no hi ha salts.
 - Mentre es capturat, imgui no rep el ratoli (ConfigFlags.NO_MOUSE): el cursor invisible no pot clicar el
   panell.
 - La roda i el lliscament amb dos dits del trackpad arriben a GLFW com el mateix esdeveniment de
@@ -28,7 +24,6 @@ from slimgui import imgui
 
 SENSIBILITAT = 0.12        # graus per punt de pantalla de moviment del ratoli capturat (sense zoom)
 MOVIMENT_CLIC = 4.0        # punts: si el ratoli es mou mes entre premer i deixar anar, es arrossegar
-MOVIMENT_MAXIM = 400.0     # punts per fotograma com a molt (48 graus): mes es un esdeveniment anomal
 
 
 class ControlRatoli:
@@ -79,8 +74,6 @@ class ControlRatoli:
                 self.ultima = (x, y)
             dx, dy = x - self.ultima[0], y - self.ultima[1]
             self.ultima = (x, y)
-            if abs(dx) > MOVIMENT_MAXIM or abs(dy) > MOVIMENT_MAXIM:
-                return 0.0, 0.0, roda
             return dx, dy, roda
         io = imgui.get_io()
         if io.want_capture_mouse:        # el cursor es sobre el panell: el panell fa servir el ratoli

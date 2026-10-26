@@ -1,7 +1,6 @@
 """
 Les parets del cub de navegacio (dades/navegacio.py): sis cares translucides amb ratlles diagonals que
-apareixen quan la camera s'hi acosta. Es una opcio de depuracio (Avancat), amagada per defecte: el cub
-continua limitant el moviment encara que no es vegi.
+apareixen quan la camera s'hi acosta, per indicar on s'acaba l'espai on es pot anar.
 
 Cada cara son dos triangles. Les cantonades es calculen a la CPU en doble precisio relatives a la camera
 (com la resta de l'escena) i es tornen a escriure al VBO a cada fotograma. L'opacitat de cada cara depen de
@@ -38,8 +37,6 @@ class ParetCub:
         self.opacitat = np.zeros(6)
 
     def render(self):
-        if not self.app.mostrar_cub:     # opcio de depuracio (Avancat): per defecte, no es veu
-            return
         rel = self.app.camera.posicio
         lim = (self.cub.minim - rel, self.cub.maxim - rel)       # km, en doble precisio
         distancies = self.cub.distancia_a_les_parets(rel)         # x-, y-, z-, x+, y+, z+
