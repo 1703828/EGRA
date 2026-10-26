@@ -330,7 +330,7 @@ def bucle_real(app, programa, ok):
     """La sequencia que fa l'equip, amb el bucle real del programa (GraphicsEngineBase.run: el panell es
     dibuixa a cada fotograma) i el teclat i el ratoli simulats: les tecles P i V i el ratoli entren com a
     esdeveniments d'imgui (els mateixos que envia GLFW); les fletxes, que el programa llegeix amb
-    glfw.get_key, es simulen substituint aquesta funcio. Triar la ubicacio crida app.triar_punt, que es el
+    glfw.get_key, es simulen substituint aquesta funcio. Triar la ubicacio crida app.triar_ubicacio, que es el
     que fa el desplegable del panell. Comprova l'estat (no les imatges: llegir el framebuffer de la finestra
     de macOS no es fiable)."""
     from basecode import window as winmod
@@ -350,7 +350,7 @@ def bucle_real(app, programa, ok):
                                                    hora=app.hora, reproduint=app.reproduint, vista=app.vista))
 
     nom, lat, lon = programa.UBICACIONS[3]
-    passos = [lambda: app.triar_punt(lat, lon, nom), lambda: app.canviar_vista(1),   # 1. triar la ubicacio
+    passos = [lambda: app.triar_ubicacio(lat, lon, nom), lambda: app.canviar_vista(1),   # 1. triar la ubicacio
               lambda: co.mirar(200.0, 5.0), desa('inici'),
               lambda: premudes.add(glfw.KEY_RIGHT)] + [None] * 15 + [             # 3. girar amb les fletxes
               lambda: premudes.clear(), desa('fletxes'),
@@ -360,7 +360,7 @@ def bucle_real(app, programa, ok):
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('reproduint')] + tecla(imgui.Key.KEY_P) + [  # 4. P
               desa('pausa')] + [None] * 10 + [desa('pausa_despres')] + \
              tecla(imgui.Key.KEY_V) + [None, desa('exploracio')] + [                # 5. explorar i allunyar-se
-              (lambda: io.add_mouse_wheel_event(0.0, -1.0)) for _ in range(40)] + [None, desa('espai')] + \
+              (lambda: io.add_mouse_wheel_event(0.0, -1.0)) for _ in range(90)] + [None, desa('espai')] + \
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('espai_reproduint')] + tecla(imgui.Key.KEY_P) + [  # 6
               lambda: app.tornar_al_punt(), None, desa('tornada')]                  # 7. tornar al punt
     # despres, les capes i els filferros de l'apartat Avancat, i canviar de zona (per als avisos de textures)
@@ -401,6 +401,9 @@ def bucle_real(app, programa, ok):
     ok(not p['reproduint'] and pd['hora'] == p['hora'], '4. tecla P altra vegada: el temps es congela')
     x, s, sr = e['exploracio'], e['espai'], e['espai_reproduint']
     alt = float(np.linalg.norm(s['cam'])) - 6371.0
+    sobre = float(np.linalg.norm(x['cam'] - x['ulls']))
+    ok(x['vista'] == 0 and sobre < 20.0, f"5. tecla V: l'exploracio comenca a {sobre:.1f} km dels ulls, "
+                                          f"sobre la ubicacio triada")
     ok(x['vista'] == 0 and alt > 5000 and s['hora'] == p['hora'],
        f"5. tecla V i roda: la camera d'exploracio puja a ~{alt:,.0f} km sense canviar l'hora")
     ok(sr['reproduint'] and sr['hora'] > s['hora'] and np.array_equal(sr['cam'], s['cam'])

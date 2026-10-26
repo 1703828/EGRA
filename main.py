@@ -228,6 +228,15 @@ class GraphicsEngine(GraphicsEngineBase):
         self.marcador_fins = glfw.get_time() + 2.5   # avis discret al panell durant uns segons
         return True
 
+    def triar_ubicacio(self, lat, lon, nom):
+        """Desplegable del panell: l'observador va a la ubicacio i la camera d'exploracio se situa a sobre,
+        perque en passar a explorar (V) es parteixi del lloc triat. La mirada als ulls es conserva.
+        (El doble clic explorant crida nomes triar_punt: la camera es queda on es.)"""
+        if self.triar_punt(lat, lon, nom):
+            self.posar_exploracio_sobre_el_punt()
+            return True
+        return False
+
     def ulls(self):
         """Posicio dels ulls de l'observador (ECEF, km): 1,7 m sobre els triangles que es dibuixen en
         aquell punt (es torna a calcular: l'exageracio de depuracio pot canviar el relleu)."""

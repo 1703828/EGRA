@@ -86,7 +86,7 @@ def panell_punt(app):
         for i, (nom, lat, lon) in enumerate(UBICACIONS):
             clicat, _ = imgui.selectable(nom, i == actual)
             if clicat:
-                app.triar_punt(lat, lon, nom)
+                app.triar_ubicacio(lat, lon, nom)
         imgui.end_combo()
     if app.reproduint:
         imgui.text_colored(COLOR_SUAU, 'Bloquejat mentre es reprodueix (pausa amb P)')
