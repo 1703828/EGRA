@@ -69,6 +69,7 @@ from basecode.astres import Esfera, Lluna, SOL, HALO
 from basecode.sol import Sol
 from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
+from basecode.ombres_relleu import OmbresRelleu
 from dades.data_io import TERRENYS, ZONES_DETALL
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
@@ -122,6 +123,7 @@ class GraphicsEngine(GraphicsEngineBase):
                 print(f"AVIS: falta la zona de detall '{nom}': python scripts/descarregar_mdt.py {ordre}")
         self.nom_zona = None
         self.terra = Terra(self)
+        self.ombres = OmbresRelleu(self)   # ombres del relleu (shadow mapping) a la zona de 5 m
         print(f"Escena carregada en {time.time() - t0:.1f} s")
 
         # --- temps de l'eclipsi (hores TU): independent de la camera
@@ -387,6 +389,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.actualitzar_cel()
         self.situar_astres()
 
+        self.ombres.actualitzar()   # passada des del Sol (nomes si han canviat l'hora o el punt)
         self.ctx.clear(*self.color_cel)
         self.sol_visible.render()
         self.lluna.render()
@@ -408,6 +411,9 @@ class GraphicsEngine(GraphicsEngineBase):
         if self.temps_fps >= 0.5:
             self.fps = self.frames / self.temps_fps
             self.frames, self.temps_fps = 0, 0.0
+
+    def on_destroy(self):
+        self.ombres.destroy()
 
     def punt_sota_cursor(self):
         """Picking: llegeix la profunditat del pixel sota el cursor i la desprojecta.

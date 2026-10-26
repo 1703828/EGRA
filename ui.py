@@ -123,6 +123,8 @@ def panell_avancat(app):
     if imgui.tree_node('Capes sobre el terreny'):
         panell_capes(app)
         imgui.tree_pop()
+    _, app.ombres.actiu = imgui.checkbox('Ombres del relleu (zona de 5 m)', app.ombres.actiu)
+    imgui.text_colored(COLOR_SUAU, 'On una muntanya tapa el Sol (no es la Lluna)')
     if imgui.tree_node('Depuracio'):
         t = app.peninsula
         canviat, exag = imgui.slider_float('Exageracio', t.exaggeration, 1, 20)

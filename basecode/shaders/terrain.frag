@@ -51,6 +51,14 @@ uniform sampler2D tex_terra;    // textura de la Terra (NASA Blue Marble)
 uniform vec3 cam_ecef;          // posicio de la camera (ECEF, km; float32 n'hi ha prou per a la textura)
 uniform float atmosfera;        // 1 dins de l'atmosfera, 0 a l'espai (el contorn blau, nomes des de fora)
 uniform bool ressaltar_ombra;
+// ombres del relleu (shadow mapping, basecode/ombres_relleu.py)
+uniform sampler2DShadow tex_ombra;  // profunditat vista des del Sol; compara per maquinari
+uniform bool ombres_relleu;         // aquest terreny rep ombres (la zona de 5 m)
+uniform mat4 m_llum;                // posicio relativa a l'ancora -> coordenades de clip de la llum
+uniform vec3 cam_menys_ancora;      // camera - ancora (km)
+uniform float desplacament_normal;  // km: el punt es mira una mica fora de la superficie (acne)
+uniform float biaix_profunditat;    // i una mica mes a prop del Sol (unitats de profunditat)
+uniform bool depuracio_ombra;       // depuracio (scripts): el color es el factor d'ombra del relleu
 #endif
 
 // rampa hipsometrica absoluta: la mateixa altitud te el mateix color a tots els fitxers
@@ -144,6 +152,24 @@ vec3 color_globus(vec3 up, vec3 sol, float visible) {
 #endif
 
 #ifdef PROFUNDITAT_LOG
+// Ombra del relleu: 1 si el Sol arriba a aquest punt, 0 si una muntanya el tapa (entremig a la vora).
+// El punt es passa a l'espai de la llum i la seva distancia al Sol es compara amb la del mapa. Per evitar
+// que la superficie s'ombregi a si mateixa ("acne": el mapa te texels de ~10 m i amb el Sol baix cada un
+// cobreix un tros inclinat de terreny), el punt es desplaca una mica en la direccio de la normal i se li
+// resta un marge petit. 3 x 3 lectures (cada una ja barreja 2 x 2 texels) suavitzen la vora.
+float llum_relleu(vec3 normal) {
+    if (!ombres_relleu) return 1.0;
+    vec4 q = m_llum * vec4(pos_mon + cam_menys_ancora + normal * desplacament_normal, 1.0);
+    vec3 s = q.xyz / q.w * 0.5 + 0.5;
+    if (any(lessThan(s, vec3(0.0))) || any(greaterThan(s, vec3(1.0)))) return 1.0;   // fora del mapa
+    vec2 texel = 1.0 / vec2(textureSize(tex_ombra, 0));
+    float llum = 0.0;
+    for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++)
+            llum += texture(tex_ombra, vec3(s.xy + vec2(i, j) * texel, s.z - biaix_profunditat));
+    return llum / 9.0;
+}
+
 // Ressaltat didactic de l'ombra (opcional, desactivat per defecte): linies on la Lluna tapa el 25, el 50
 // i el 75 % del Sol (groc) i el limit de la totalitat (lila), nomes on el Sol es sobre l'horitzo (pes).
 // Nomes dibuixa linies: no canvia ni la mida ni la foscor de l'ombra. df = fwidth(f), calculat abans de
@@ -216,7 +242,14 @@ void main() {
         } else {
             normal = normalize(vec3(-exaggeration * g.x, 1.0, -exaggeration * g.y));
         }
-        vec3 terra = rampa(height) * (0.25 * llum_cel_aqui + 0.75 * llum_sol_aqui * max(dot(normal, sol), 0.0));
+        float relleu = 1.0;     // ombra del relleu: nomes la llum directa del Sol, no la del cel
+#ifdef PROFUNDITAT_LOG
+        relleu = llum_relleu(normal);
+#endif
+        vec3 terra = rampa(height) * (0.25 * llum_cel_aqui + 0.75 * llum_sol_aqui * relleu * max(dot(normal, sol), 0.0));
+#ifdef PROFUNDITAT_LOG
+        if (depuracio_ombra) { fragColor = vec4(vec3(relleu), 1.0); return; }
+#endif
         // costa: la distancia filtrada es suau, aixi el pas terra -> mar no fa escales.
         // fwidth = quant canvia d en un pixel de pantalla -> transicio d'1 pixel (antialias)
         float w = max(fwidth(d), 1e-6);

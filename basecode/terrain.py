@@ -534,6 +534,7 @@ class Terrain:
         sp['ressaltar_ombra'].value = app.ressaltar_ombra
         app.terra.textura.use(5)
         sp['tex_terra'].value = 5
+        app.ombres.aplicar(sp, self)   # ombres del relleu (nomes les rep la zona de 5 m)
         sp['profunditat_faldilla'].value = FALDILLA_GLOBUS_KM
         for i, tex in enumerate((self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi, self.tex_ombres)):
             tex.use(i)
