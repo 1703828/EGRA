@@ -43,6 +43,25 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - **Com es reprodueix:** `python scripts/descarregar_efemerides.py`.
 - **Ús:** dades públiques de NASA/JPL.
 
+## Comprovació externa (NASA) — `data/nasa/`
+
+- `circumstancies_nasa.csv` (2 kB, al Git): circumstàncies locals de l'eclipsi (tipus, magnitud,
+  enfosquiment, C1–C4 i màxim en TU, altura i azimut del Sol) a les sis ubicacions i a Burgos, València i
+  Palma, calculades el 26/10/2026 amb el codi del calculador de la NASA.
+- **Font:** <https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html> i el seu
+  `SEcirc.js`. "Eclipse Predictions by Fred Espenak, NASA's GSFC"; calculador de Xavier Jubier.
+- **Com es reprodueix:** `python scripts/comparar_nasa.py --calcular` (descarrega la pàgina i el codi a
+  `data/cache/nasa/`, que no és al Git, i l'executa amb JavaScriptCore, `osascript`, només a macOS).
+- **Convencions:** ΔT = 71,4 s; observador a 0 m; altura del Sol geomètrica (sense refracció); vora mitjana
+  de la Lluna; valors sense arrodonir (el globus del mapa els arrodoneix a 0,1 s i 0,1°).
+
+## Coordenades de les ubicacions — `dades/observador.py`
+
+Consultades el 26/10/2026. Ajuntaments (l'Escala, Cerdanyola, Montmeló): geocodificador de l'ICGC,
+`https://eines.icgc.cat/geocodificador/cerca?text=...`, comparat amb OpenStreetMap (Nominatim) a menys de
+20 m. Places (plaça Major de Vic, plaça Cívica de la UAB): centre del polígon d'OpenStreetMap (© col·laboradors
+d'OpenStreetMap, ODbL). Detall a `PLA_DE_TREBALL.md` §10.3.
+
 ## Textures — `data/textures/`
 
 | Fitxer | Font | Llicència | Com es reprodueix |

@@ -70,7 +70,7 @@ velocitat s'adapta a l'altura.
 | Girar la mirada | arrossegar o fletxes | arrossegar o fletxes |
 | Moure's | `W` `A` `S` `D` (endavant, enrere, costats), `E` / `Q` (pujar, baixar), `Ctrl`: més ràpid | — |
 | Roda | avançar o retrocedir (mou la càmera) | zoom (com uns prismàtics) |
-| Triar el punt d'observació | doble clic al terreny, o la llista del panell | la llista del panell |
+| Triar el punt d'observació | doble clic al terreny (la càmera no es mou), o la llista del panell | la llista del panell |
 | Canviar de vista | `V` | `V` |
 | Reproduir / pausar el temps | `P` | `P` |
 
@@ -79,7 +79,14 @@ instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a e
 fins a veure la Terra, i es prem P: l'eclipsi continua amb la càmera a l'espai.
 
 Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i el model són sempre
-del mateix lloc). Botons:
+del mateix lloc). Quan es tria una ubicació de la llista, la càmera d'exploració es posa a sobre del lloc
+nou, perquè en passar a explorar (V) es parteixi d'allà.
+
+Ubicacions de la llista (coordenades verificades el 26/10/2026, font a `PLA_DE_TREBALL.md` §10.3): Picos
+de Europa (centre de la zona de 5 m, totalitat), plaça Major de Vic, ajuntament de l'Escala, ajuntament de
+Cerdanyola, ajuntament de Montmeló i plaça Cívica de la UAB.
+
+Botons:
 
 - **Veure l'ombra des de l'espai**: porta la càmera d'exploració a 12.000 km, entre la vertical i el
   Sol, mirant el punt on l'ombra de la Lluna és més fosca a l'hora actual. És un sol enquadrament: la
@@ -99,6 +106,15 @@ vèrtex cada ~20 m) i, en ~2,5 km al voltant del punt, un vèrtex per cada píxe
 nivell, l'altura passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels
 triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
 
+### Ombres del relleu
+
+Dins de la zona de 5 m de l'observador (16 km al voltant del punt), les muntanyes fan ombra amb la
+tècnica del *shadow mapping* (`basecode/ombres_relleu.py`): primer es dibuixa el relleu vist des del Sol
+en una textura de profunditat i, després, cada punt del terreny mira si és més lluny del Sol que el que hi
+ha guardat. L'ombra del relleu només treu la llum directa del Sol; la del cel continua. És diferent de
+l'ombra de la Lluna (la part del Sol que tapa la Lluna, a tota una regió). Es pot apagar a **Avançat**.
+Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m no en fan.
+
 ### Panell i barra de temps
 
 - **Panell**: reproduir o pausar, hora, fase, part del Sol tapada al punt triat i velocitat (x1 a x1000,
@@ -106,7 +122,8 @@ triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
   clic al terreny i *Tornar al punt d'observació*); una ajuda curta dels controls.
 - **Avançat** (tancat per defecte): FPS i posició de la càmera, les dades del CNIG del punt amb les
   hores del nostre model al costat, les capes del CNIG sobre el terreny (enfosquiment, durada, ombres
-  del relleu i límits de la totalitat) i eines de depuració (exageració del relleu, filferros).
+  del relleu i límits de la totalitat), l'interruptor de les ombres del relleu i eines de depuració
+  (exageració del relleu, filferros).
 - **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar, de 16:00 a
   23:30 (hora d'estiu). A sota, les hores de l'eclipsi al punt triat.
 
@@ -119,8 +136,10 @@ triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
   és l'àrea on se solapen (`dades/model_eclipsi.py`). Els contactes (C1–C4), el màxim i la posta
   surten d'aquesta geometria; **no s'ajusten a cap dada del CNIG**.
 - **Comprovació**: `python scripts/validar_model.py` compara les hores amb el CNIG a 9 punts (totes a
-  ≤ 1,2 s) i `python scripts/validar_ombra.py` comprova que l'eix de l'ombra cau dins de la umbra
-  publicada pel CNIG.
+  ≤ 1,2 s), `python scripts/validar_ombra.py` comprova que l'eix de l'ombra cau dins de la umbra
+  publicada pel CNIG i `python scripts/comparar_nasa.py` compara amb el calculador de la NASA amb les
+  seves convencions (observador a 0 m, Sol sense refracció): hores a 2–4 s, explicades pel radi de la
+  Lluna i el ΔT (pla, F11).
 - **A l'escena**: la llum i l'ombra de la Lluna es calculen per a cada punt del terreny i de la Terra
   amb la mateixa fórmula, de manera que l'ombra es veu moure's i la resta de la cara de dia segueix
   il·luminada.
@@ -140,12 +159,13 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   terra.py               La Terra (el·lipsoide amb textura, dia i nit, ombra de la Lluna)
   terrain.py             Relleu d'un MDT: mode globus (posat sobre la Terra) i mode pla (scripts)
   astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
+  ombres_relleu.py       Ombres del relleu (shadow mapping) a la zona de 5 m
   sol.py                 La llum de l'escena (Light del basecode)
   camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
   camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
   camera_orbital.py      Càmera orbital del mode pla (només per als scripts)
   programes.py           Carrega shaders amb opcions (#define)
-  shaders/               gouraud i phong (originals); terrain, terra i esfera (nostres)
+  shaders/               gouraud i phong (originals); terrain, terra, esfera i ombra (nostres)
 dades/                   Lectura i càlcul de dades, sense OpenGL:
   efemerides.py          Posicions del Sol i la Lluna en coordenades terrestres
   geodesia.py            Latitud, longitud i altitud <-> coordenades terrestres (WGS84)
@@ -224,7 +244,10 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_textures.py` | Descarrega les textures de la Terra i la Lluna (NASA, `data/textures/`) |
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
-| `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se, botons, ombra); captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |
+| `validar_horitzo.py` | Horitzó cap al Sol a les sis ubicacions: calculat sobre el MDT i sobre els triangles dibuixats, i llegit de la imatge; si el relleu tapa el Sol al màxim |
+| `validar_ombres_relleu.py` | Ombres del relleu: GPU contra un càlcul de la CPU i comparació amb la capa d'ombres del CNIG (`--totes`: les sis ubicacions) |
 
 Descàrrega d'MDT (els de `data/mdt/` ja hi són; només cal per refer-los o per a zones noves):
 
@@ -256,6 +279,10 @@ python scripts/captura.py data/mdt/peninsula_200m.tif captures/peninsula.png --o
   "Official astronomical information provided by the National Geographic Institute based on
   calculations made by the National Astronomical Observatory" (CC BY 4.0).
 - **Posicions del Sol i la Lluna**: JPL Horizons (NASA/JPL), `https://ssd.jpl.nasa.gov/horizons/`.
+- **Comprovació externa**: calculador de circumstàncies locals de la NASA. "Eclipse Predictions by Fred
+  Espenak, NASA's GSFC"; calculador de Xavier Jubier.
+- **Coordenades de les ubicacions**: geocodificador de l'ICGC i OpenStreetMap (© col·laboradors
+  d'OpenStreetMap, ODbL).
 - **Textures**: NASA Visible Earth ("Blue Marble", la Terra) i NASA SVS ("CGI Moon Kit", la Lluna),
   domini públic.
 
