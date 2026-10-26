@@ -19,7 +19,9 @@ Decisions:
     Sol. Amb el Sol baix, una caixa quadrada estiraria molt cada texel sobre el terra.
   - La llum ve del Sol aparent (azimut i elevacio amb refraccio, com el CNIG i D18): es la direccio de
     la qual arriba la llum al terra. El terreny es geometric.
-  - Nomes la zona de 5 m projecta i rep ombres (primera versio, zona controlada). La peninsula no.
+  - Nomes la zona de 5 m projecta i rep ombres (primera versio, zona controlada). La peninsula no. Els
+    edificis de la zona tambe en projecten (no en reben): amb texels d'~8 m i el biaix contra l'acne, els
+    edificis de menys de ~12 m (la majoria) no fan ombra al mapa.
   - El mapa nomes es torna a calcular quan canvia l'hora, el punt o el relleu.
 """
 import glm
@@ -55,7 +57,7 @@ class OmbresRelleu:
         self.m_llum = glm.mat4()
         self.ancora = np.zeros(3)
         self.clau = None              # (hora, punt, exageracio) del mapa calculat
-        self.zona = self.pegat = None # zona i pegat dels VAO (referencies, no copies)
+        self.zona = self.pegat = self.edificis = None   # zona, pegat i edificis dels VAO (referencies)
         self.vaos = {}                # VAO de la passada des del Sol per a cada nivell de la zona
         self.texel_km = 2 * MIDA_KM / RESOLUCIO
         self.fbo.clear(depth=1.0)
@@ -103,11 +105,12 @@ class OmbresRelleu:
             # hora), el mapa es torni a calcular i valid torni a ser True
             self.valid, self.clau = False, None
             return
-        pegat = zona.pegat
-        if zona is not self.zona or pegat is not self.pegat:
-            self.oblidar_vaos()          # zona o pegat nous: els buffers han canviat
-            self.zona, self.pegat, self.clau = zona, pegat, None
-        clau = (app.hora, o.lat, o.lon, zona.exaggeration)
+        pegat, edificis = zona.pegat, app.edificis
+        if zona is not self.zona or pegat is not self.pegat or edificis is not self.edificis:
+            self.oblidar_vaos()          # zona, pegat o edificis nous: els buffers han canviat
+            self.zona, self.pegat, self.edificis, self.clau = zona, pegat, edificis, None
+        amb_edificis = edificis is not None and edificis.visible
+        clau = (app.hora, o.lat, o.lon, zona.exaggeration, amb_edificis)
         if clau == self.clau:
             return
         self.clau = clau
@@ -131,6 +134,14 @@ class OmbresRelleu:
                 sp['n_forats'].value = len(forats)
                 sp['forats'].write(np.array(forats + [(0, 0, 0, 0)] * (4 - len(forats)), 'f4').tobytes())
                 vao.render()
+            if amb_edificis:
+                # els edificis tambe fan ombra: la seva posicio va a in_offset (relativa al seu origen); els
+                # atributs que no es lliguen (in_amunt, in_h, in_uv) valen 0
+                if 'edificis' not in self.vaos:
+                    self.vaos['edificis'] = self.ctx.vertex_array(self.programa, [(edificis.vbo, '3f', 'in_offset')])
+                sp['origen'].write(glm.vec3(*(edificis.origen_ecef - self.ancora)))
+                sp['n_forats'].value = 0
+                self.vaos['edificis'].render()
         anterior.use()
         self.ctx.viewport = viewport
 
