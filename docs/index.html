@@ -12,7 +12,7 @@
 
 <h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
 <p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
-  Web de seguiment, versió local 5 (26/10/2026)</p>
+  Web de seguiment, versió local 6 (26/10/2026)</p>
 
 <p>Volem veure l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya: explorar
   el terreny des de fora i, després, situar-nos en un punt concret, a l'altura dels ulls, per veure com
@@ -73,6 +73,7 @@
   <tr><td>Ubicacions amb coordenades verificades (ICGC i OpenStreetMap)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Plaça Major de Vic, ajuntaments de l'Escala, Cerdanyola i Montmeló, plaça Cívica de la UAB (tasca 0.3).</td></tr>
   <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Només dins de la zona de 5 m de l'observador (tasca 6.1).</td></tr>
   <tr><td>Anell de relleu de 25 m fins a ~100 km</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara, entre la zona de 5 m i els ~100 km, el relleu és el de 200 m (tasca 4.3).</td></tr>
+  <tr><td>Espai de navegació limitat (cub amb parets translúcides) i mirada amb el ratolí capturat</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Pendent de la prova de l'equip amb el ratolí i el trackpad (F12).</td></tr>
   <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
 </table></div>
 
@@ -224,11 +225,25 @@
   <span class="frase">Moure's lliurement del terreny fins a l'espai.</span></summary>
 <div class="cos">
   <p>La càmera d'exploració és lliure. Amb el ratolí o les fletxes es gira la mirada; amb W A S D es
-    mou endavant, enrere i als costats; amb E i Q puja o baixa; i la roda l'acosta o l'allunya en la
-    direcció en què mira. Allunyar-se mou la càmera de debò: no és un zoom.</p>
+    mou endavant, enrere i als costats; amb E i Q puja o baixa; i la roda (o lliscar amb dos dits al
+    trackpad) l'acosta o l'allunya en la direcció en què mira. Allunyar-se mou la càmera de debò: no és un
+    zoom.</p>
   <p>Perquè es pugui explorar tant una vall com la Terra sencera, la <dfn>velocitat</dfn> és
     proporcional a l'altura sobre el terra: a 3,5 km d'altura es va a uns 2,6 km/s, i a 27.000 km, a
-    més de 20.000 km/s.</p>
+    més de 20.000 km/s. La roda també: cada pas multiplica l'altura per 1,35 (o la divideix), de manera que
+    a prop del terra és precisa i a l'espai és ràpida; del terra a 20.000 km calen ~30 passos (abans,
+    ~90). Endavant, la càmera s'acosta al terra cada vegada més a poc a poc i no el travessa.</p>
+  <figure><img src="img/paret_cub.jpg" alt="La paret del cub de navegació i el Sol enquadrat des de la paret" loading="lazy">
+    <figcaption>Esquerra i centre: la paret del cub de navegació a 1.000 km i a 3 milions de km. Dreta: el Sol
+      sencer vist des de la paret que té darrere, on el cub és més just (45° de diàmetre en un camp de 50°).</figcaption></figure>
+  <p>L'<dfn>espai de navegació</dfn> és un cub fix que conté la Terra, la Lluna i el Sol durant tot
+    l'interval de la barra de temps, calculat amb les posicions reals: no s'acosta cap astre. Fa
+    <strong>246.438.601 km de costat (1,647 UA)</strong>, en el mateix sistema que l'escena (ECEF). És més
+    d'1 UA perquè, en coordenades que giren amb la Terra, el Sol fa ~112° de volta al voltant de la Terra
+    entre les 14:00 i les 21:30 TU. El marge, d'1,613 radis solars, és el necessari perquè, des de la paret
+    de darrere del Sol, el disc hi càpiga sencer (un radi solar no n'hi havia prou: el Sol hauria fet 60°).
+    A la paret només s'atura el moviment cap a fora: cada coordenada es retalla per separat, i el
+    moviment paral·lel continua sense rebots. A prop de la paret se'n veuen les ratlles translúcides.</p>
   <p>Amb un doble clic sobre el terreny es tria el punt d'observació. Per saber quin punt hi ha sota el
     cursor, es llegeix la profunditat d'aquell píxel i es desfà el camí fins al món
     (<a href="#o2-2">O2.2</a>). La càmera i el punt d'observació són independents: explorar no mou
@@ -243,7 +258,10 @@
       <li data-estat="fet">La velocitat s'adapta a l'altura: ~2,6 km/s a 3,5 km i ~21.000 km/s a 27.000 km (prova automàtica).</li>
       <li data-estat="fet">A l'espai, reprendre el temps (P) no mou ni gira la càmera d'exploració; canviar d'ubicació amb un doble clic tampoc (prova automàtica, sis ubicacions).</li>
       <li data-estat="validat">Prova de l'equip (26/10): l'exploració comença a la ubicació triada (Vic); en pausa, l'hora no canvia mentre es mou la càmera; a l'espai, P reprèn el temps sense moure-la.</li>
-      <li data-estat="pendent">Orientar-se a l'espai: l'equip s'hi perd i no troba els astres en allunyar-se amb la roda (cal decidir com ajudar-hi).</li>
+      <li data-estat="fet">Cub de navegació: a les sis cares, el teclat, la roda i les posicions posades pels botons s'aturen al límit sense rebots i el moviment paral·lel continua; el Sol hi cap sencer des de totes les parets (<code>scripts/prova_controls.py</code>, F12).</li>
+      <li data-estat="fet">Roda adaptada a l'escala: del terra a 20.000 km amb 28–30 passos; un gest molt ràpid es limita a 3 passos per fotograma (prova automàtica).</li>
+      <li data-estat="pendent">Orientar-se a l'espai: l'equip s'hi perdia. Ara el cub limita fins on es pot anar; falta que l'equip ho torni a provar.</li>
+      <li data-estat="pendent">Prova de l'equip amb el ratolí i el trackpad físics (F12: paret del cub, roda, dos dits).</li>
     </ul>
   </div>
 </div></details>
@@ -262,6 +280,15 @@
     càmera i de qualsevol dibuix. Es tria de la llista del panell o amb un doble clic a l'exploració, i en
     aquell moment es calculen alhora el model del Sol i la Lluna i les dades del CNIG del panell. Mentre
     es reprodueix l'eclipsi, el punt queda bloquejat.</p>
+  <p><span class="rotul">Mirar amb el ratolí.</span> Un clic a l'escena <dfn>captura</dfn> el ratolí, com en
+    un joc en primera persona: el cursor s'amaga i moure el ratolí gira el cap sense prémer cap botó (els ulls
+    no es mouen). <code>Esc</code> l'allibera per tornar a fer servir el panell, i perdre el focus de la
+    finestra també. GLFW ho fa amb el mode <code>CURSOR_DISABLED</code>: el cursor queda lligat a la
+    finestra i la seva posició "virtual" no té límits, de manera que no topa mai amb la vora; el que gira la
+    mirada és la diferència entre dos fotogrames (moviment relatiu). Un clic espera 0,3 s abans de capturar:
+    si n'arriba un segon, és un doble clic i serveix per triar el punt.</p>
+  <p>El programa arrenca <strong>pausat una hora abans de l'inici de l'eclipsi</strong> (C1 del model) a
+    Picos, a les 18:31:39 (hora d'estiu). Canviar d'ubicació no toca l'hora.</p>
   <p>El <dfn>temps</dfn> també és independent: P només el congela o el torna a posar en marxa. Es pot
     observar, prémer P, sortir a l'espai, i prémer P de nou: l'eclipsi continua des del mateix instant.</p>
   <div class="fitxa">
@@ -273,6 +300,9 @@
       <li data-estat="fet">P congela el temps i el reprèn des del mateix instant sense moure cap càmera (prova automàtica).</li>
       <li data-estat="fet">Durant la reproducció no es pot canviar el punt; en pausa sí, i el model i el panell són del punt nou (prova automàtica).</li>
       <li data-estat="fet">La seqüència sencera amb el bucle real del programa i el panell dibuixat, amb el teclat i el ratolí simulats: triar Cerdanyola, observar, girar amb les fletxes i arrossegant, P, V i roda fins a ~36.000 km, P a l'espai, tornar al punt amb els mateixos ulls i la mateixa mirada (<code>scripts/prova_vistes.py</code>).</li>
+      <li data-estat="fet">Arrencada pausada exactament a C1 − 1 h (18:31:39 a Picos); canviar d'ubicació no canvia l'hora (prova automàtica, F12).</li>
+      <li data-estat="fet">Ratolí capturat: el moviment relatiu gira la mirada, sense moviment no canvia, la inclinació es limita a ±89°, tornar a capturar no fa salts, perdre el focus i Esc alliberen, el panell no mou la càmera (prova automàtica amb el moviment simulat; la captura real del cursor no es pot provar sense focus).</li>
+      <li data-estat="pendent">Prova de l'equip del ratolí capturat (clic, Esc, Cmd+Tab, doble clic).</li>
       <li data-estat="validat">Prova de l'equip (26/10): a Vic, el terreny és correcte mirant al voltant i cap avall, la mirada es queda fixa reproduint i <em>Tornar al punt d'observació</em> torna al lloc correcte; a Picos, la seqüència completa funciona; Cerdanyola, Montmeló i la UAB, sense problemes.</li>
     </ul>
     <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
@@ -417,6 +447,8 @@
     del terra; el punt d'observació (una llista d'ubicacions i <em>Tornar al punt d'observació</em>) i
     una ajuda curta. Les capes tècniques del CNIG i les eines de depuració són a <em>Avançat</em>, tancat
     per defecte. La barra de temps, a baix, permet arrossegar l'hora de 16:00 a 23:30 (hora d'estiu).</p>
+  <p>L'ajuda del panell explica com entrar i sortir del control de la mirada (clic a l'escena / Esc) i
+    indica quan el ratolí està capturat. Mentre ho està, el panell no rep el ratolí.</p>
   <p>És una interfície "immediata" (slimgui): a cada fotograma es torna a construir a partir de les
     variables del programa. Les hores es calculen en temps universal (TU) i es mostren en hora d'estiu
     (CEST = TU + 2).</p>
@@ -427,7 +459,11 @@
       <li data-estat="validat">Panell i barra de temps funcionen amb la finestra (prova de l'equip, versió anterior).</li>
       <li data-estat="pendent">Prova de l'equip del panell nou.</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> la font de slimgui no mostra bé els accents.</p>
+    <p><span class="rotul">Limitacions:</span> la font de slimgui no mostra bé els accents. El gest de pessigar
+      del trackpad no arriba al programa: la biblioteca GLFW que fem servir a macOS implementa el lliscament amb
+      dos dits (<code>scrollWheel:</code>) però no el pessic (<code>magnifyWithEvent:</code>); l'alternativa és
+      lliscar amb dos dits. El pessic natiu necessitaria una llibreria nova (PyObjC). Amb el ratolí lliure, Esc
+      tanca el programa, com abans.</p>
   </div>
 </div></details>
 
@@ -576,6 +612,12 @@
     quina superfície és davant i les llunyanes parpellegen (<em>z-fighting</em>). Per això la càmera els
     ajusta segons la distància al terreny: el pla proper va de 2 m a Picos a desenes de quilòmetres quan
     veiem tota la península.</p>
+  <p><span class="rotul">Precisió i parets (F12).</span> Les cares del cub de navegació fan 2,5·10⁸ km. Amb
+    nombres de 32 bits, la posició d'un punt de la cara interpolada entre vèrtexs tan llunyans s'equivoca
+    desenes de km. El fragment shader de la paret no la fa servir: reconstrueix el punt com la intersecció
+    del raig de la càmera (la direcció sí que és precisa) amb el pla, la distància al qual es calcula a la CPU
+    en doble precisió. I, mentre provàvem, vam veure que <code>ctx.depth_mask</code> no existeix a ModernGL 5
+    (la màscara de profunditat és de cada <code>framebuffer</code>): el halo del Sol escrivia profunditat.</p>
   <p>El mateix càlcul, desfet al revés, serveix per saber quin punt del terreny hi ha sota el cursor: es
     llegeix la profunditat d'aquell píxel i es multiplica per les matrius inverses.</p>
   <p>A l'escena de la Terra apareixen dos problemes de precisió. La GPU treballa amb nombres de 32 bits,

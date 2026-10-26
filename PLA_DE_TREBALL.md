@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-26 (F11: estabilitat de la seqüència, coordenades, NASA, horitzó i ombres del relleu).
+Darrera actualització: 2026-10-26 (F12: arrencada, cub de navegació, ratolí capturat, roda i trackpad).
 
 ---
 
@@ -97,6 +97,10 @@ Darrera actualització: 2026-10-26 (F11: estabilitat de la seqüència, coordena
 | D41 | (F11) La comparació amb la NASA executa el codi del calculador (`SEcirc.js`) amb les nostres coordenades en lloc de fer-hi clic (mateix càlcul, sense arrodonir); el resultat es desa en un CSV versionat. El model no s'ajusta a la NASA. | 26/10 |
 | D42 | (F11) Ombres del relleu amb shadow mapping, primer només a la zona de 5 m de l'observador; llum del Sol aparent (amb refracció); interruptor a l'apartat Avançat, actiu per defecte (és un efecte físic, no una capa tècnica). | 26/10 |
 | D43 | (F11) Triar una ubicació de la llista posa també la càmera d'exploració a sobre del punt nou; el doble clic no mou cap càmera. | 26/10 |
+| D44 | (F12, equip) Arrencada pausada a C1 − 60 min del model al punt inicial; canviar d'ubicació no toca el temps. | 26/10 |
+| D45 | (F12, equip) Espai de navegació: cub fix amb la Terra, la Lluna i el Sol a tot l'interval, en el mateix sistema que l'escena (ECEF); marge mínim d'un radi solar, ampliat fins que el Sol hi capiga sencer des de la paret. Parets translúcides visibles a prop. | 26/10 |
+| D46 | (F12, equip) Mirada amb el ratolí capturat: un clic a l'escena captura, Esc o perdre el focus alliberen; el doble clic amb el ratolí lliure continua triant el punt. Esc amb el ratolí lliure continua tancant el programa (comportament anterior conservat). | 26/10 |
+| D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
 
@@ -104,7 +108,7 @@ Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 
 
 ---
 
-## 2. Funcionalitats existents (codi actual, després de la F11)
+## 2. Funcionalitats existents (codi actual, després de la F12)
 
 El **comportament** és el mateix que el de la fotografia guardada a l'etiqueta
 `abans-reorganitzacio`: la fase F2 només ha mogut fitxers i codi (veure F2 a §11). Les rutes
@@ -125,6 +129,7 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Panell senzill i apartat Avançat (capes del CNIG, ombres del relleu, depuració) | `ui.py` | F9 (`FET`) |
 | Zones de 5 m de Vic, l'Escala i el Vallès (fitxers ignorats pel Git) i pegats de detall | `dades/data_io.py`, `basecode/terrain.py` | F10 (`FET`) |
 | Ombres del relleu (shadow mapping) a la zona de 5 m | `basecode/ombres_relleu.py`, `shaders/ombra.*`, `terrain.frag` | F11 (`FET`) |
+| Arrencada a C1 − 1 h; cub de navegació amb parets; mirada amb el ratolí capturat; roda i trackpad | `main.py`, `dades/navegacio.py`, `basecode/paret_cub.py`, `basecode/control_ratoli.py` | F12 (`FET`) |
 | Mode pla del terreny i càmera orbital, per als scripts | `basecode/terrain.py`, `basecode/camera_orbital.py` | Funciona |
 | Scripts: descàrregues, caches, captura, exercici 1.0, validacions | `scripts/` | Funcionen |
 
@@ -162,7 +167,7 @@ Al repte 4 real, les classes pròpies (`Sphere`, `MeshObject`...) són dins de `
 el nostre projecte en té moltes, les posem en fitxers propis **afegits** a `basecode/`, tal com
 demanàveu inicialment, sense tocar-ne cap d'original.
 
-Estructura **actual** (després de la F11):
+Estructura **actual** (després de la F12):
 
 ```
 main.py                         GraphicsEngine: escena, temps, astres, cel i teclat
@@ -172,17 +177,19 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
   terrain.py                      Terrain (mode globus i mode pla)
   astres.py                       Esfera (Sol, halo) i Lluna
   ombres_relleu.py                OmbresRelleu (shadow mapping de la zona de 5 m)
+  paret_cub.py                    ParetCub (parets translúcides del cub de navegació)
+  control_ratoli.py               ControlRatoli (ratolí capturat, roda i trackpad)
   sol.py                          Sol (Light amb azimut i elevació)
   camera_exploracio.py            CameraExploracio (lliure, ECEF)
   camera_observador.py            CameraObservador (als ulls)
   camera_orbital.py               CameraOrbital (mode pla, scripts)
   programes.py                    carregar shaders amb #define
-  shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra (nostres)
+  shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra, paret (nostres)
 dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
-                                observador.py, data_io.py, eclipse_data.py
+                                observador.py, navegacio.py, data_io.py, eclipse_data.py
 scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
                                 exercici_fotograma, validar_model, validar_ombra, prova_vistes,
-                                comparar_nasa, validar_horitzo, validar_ombres_relleu
+                                comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls
 models/                         .obj, com al repte 4
 data/                           MDT, CNIG, efemerides, textures, cache (veure data/FONTS.md)
 docs/                           web de seguiment
@@ -1063,6 +1070,119 @@ interfície, a acordar); estendre les ombres del relleu fora de la zona de 5 m (
 les serres llunyanes amb el Sol baix); l'anell de 25 m (4.3); la prova de l'equip; després, 6.2
 (meteorologia) quan l'equip ho decideixi.
 
+### F12 — Arrencada, espai de navegació, mirada amb el ratolí i roda (26/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 12.0 | C | El halo del Sol escrivia profunditat (`ctx.depth_mask` no existeix a ModernGL 5) | `FET` |
+| 12.1 | C | Arrencada pausada a C1 − 60 min (D44) | `FET` |
+| 12.2 | N | Cub de navegació i parets (`dades/navegacio.py`, `basecode/paret_cub.py`, `shaders/paret.*`) (D45) | `FET` |
+| 12.3 | N | Mirada amb el ratolí capturat (`basecode/control_ratoli.py`, `run()` a `main.py`) (D46) | `FET` |
+| 12.4 | C | Roda i trackpad adaptats a l'escala (D47) | `FET` |
+| 12.5 | doc | README, pla i web | `FET` |
+
+**12.0 — Halo (trobat en provar l'enquadrament del Sol).** A ModernGL 5.12 la màscara de profunditat és
+de cada framebuffer (`Framebuffer.depth_mask`); `ctx.depth_mask = False` només creava un atribut de Python.
+El halo (esfera de 4 radis solars, translúcida) escrivia profunditat: mirant el Sol amb zoom des de Picos,
+39.510 píxels amb profunditat contra 2.474 després de la correcció (el disc del Sol, ~2.548 esperats). Un
+doble clic al cel a prop del Sol podia retornar un punt del halo. Ara es fa servir `ctx.fbo.depth_mask`.
+
+**12.1 — Arrencada.** `hora = C1 del model − 1 h` (TU, `HORA_ABANS_C1` a `main.py`), pausat. A Picos,
+C1 19:31:39 CEST → arrencada a les **18:31:39 CEST**, dins de la barra de temps (16:00–23:30). Comprovat
+automàticament (`prova_vistes.py`): l'hora inicial és exactament aquesta i, en triar tres ubicacions de la
+llista, l'hora no canvia ni es posa en marxa.
+
+**12.2 — Espai de navegació.**
+- *Càlcul* (`cub_navegacio`, un sol cop en arrencar): extrems en X, Y i Z de la Terra (el·lipsoide WGS84,
+  6.378,137 km a X i Y, 6.356,752 km a Z), la Lluna (+1.737,4 km) i el Sol (+696.000 km), cada minut de 14:00
+  a 21:30 TU, en ECEF (el sistema de tota l'escena: X cap a la longitud 0, Y cap a 90° E, Z cap al pol nord;
+  km). Marge a cada costat; després les dimensions curtes s'amplien simètricament fins a la més llarga.
+- *Marge final:* amb un radi solar, des de la paret de darrere del Sol (a 2 radis del centre), el disc faria
+  60° i no cabria en el camp vertical de 50° de la càmera d'exploració. Es demana que ocupi com a molt el
+  90 % del camp: distància = R / sin(22,5°) = 2,613 R, és a dir, **marge = 1,613 radis solars = 1.122.736 km**.
+- *Resultat:* **costat 246.438.601 km = 1,6473 UA**; X de −116.133.088 a 130.305.513 km; Y de
+  −196.844.044 a 49.594.556 km; Z de −103.452.898 a 142.985.702 km (extrems dels astres: X −115.010.352 …
+  129.182.777; Y −147.255.866 … 6.378; Z −6.357 … 39.539.160).
+- *Per què més d'1 UA:* en ECEF la Terra no gira i el Sol hi fa ~112° de volta en les 7,5 h de l'interval;
+  el cub ha de contenir tot l'arc, per això la dimensió més llarga és X (1,63 UA d'arc més els marges). Un cub
+  fix respecte de les estrelles seria d'~1 UA, però giraria respecte de l'escena mentre es reprodueix: no
+  compleix que "no es desplaci" en el sistema en què es dibuixa i es navega.
+- *Límit:* `CameraExploracio.posicio` és una propietat i tota posició nova passa per `Cub.limitar`, que
+  retalla cada coordenada per separat. A la paret s'atura només el moviment cap a fora i el paral·lel
+  continua; no hi ha rebots perquè no s'inverteix cap velocitat. La càmera s'atura a 1.000 km de la paret
+  (4·10⁻⁶ del costat): si el pla d'una cara passés pels ulls es veuria de cantell i la rasterització seria
+  degenerada (vist a la primera prova d'enquadrament).
+- *Parets:* sis cares translúcides; l'opacitat de cada una passa de 0 a 1 entre el 3 % del costat (~7,4
+  milions de km) i la paret. Ratlles diagonals d'amplada proporcional a la distància (~1/20), barrejant dues
+  escales perquè no canviïn de cop. El punt de la paret es reconstrueix al fragment shader com la
+  intersecció del raig amb el pla (la posició interpolada en float32 no té prou precisió en cares de
+  2,5·10⁸ km). Les ratlles són relatives a la càmera: no es desplacen quan la càmera es mou en paral·lel a
+  la paret (simplificació).
+- *Comprovat automàticament* (`python scripts/prova_controls.py`): el cub conté els tres astres a tot
+  l'interval; a les sis cares, el teclat (W i E premudes 40 fotogrames), la roda i una posició posada
+  directament s'aturen al límit, la coordenada de la cara es queda exactament igual cada fotograma i el
+  moviment paral·lel continua; els botons "Veure l'ombra des de l'espai" i triar una ubicació deixen la
+  càmera dins. *Enquadrar el Sol:* per a cada cara, amb el Sol a l'instant en què hi és més a prop, des de
+  la paret de darrere: a les cares X (el cas límit) el Sol és a 2,61 radis i fa 45,0° dels 50°; el disc
+  sencer és dins de la imatge (41 % dels píxels, cap a la vora). *Inspeccionat visualment:* la paret a
+  1.000 km i a 3 milions de km, i el Sol sencer des de la paret X−.
+
+**12.3 — Mirada amb el ratolí.** GLFW `CURSOR_DISABLED`: el cursor s'amaga i queda lligat a la finestra, i
+`get_cursor_pos` dona una posició virtual sense límits; la diferència entre fotogrames és el moviment
+relatiu. El moviment "raw" (`RAW_MOUSE_MOTION`) no és disponible a macOS (`raw_mouse_motion_supported()` =
+False); s'activa només si el sistema el té. Sensibilitat: 0,12° per punt de pantalla (menys amb zoom), sense
+inèrcia; inclinació limitada a ±89° (observació) i ±89,9° (exploració). Un clic (sense arrossegar) a
+l'escena captura passat el temps del doble clic (0,3 s); un doble clic no captura i, a l'exploració, tria el
+punt. Mentre és capturat, imgui no rep el ratolí (`ConfigFlags.NO_MOUSE`). Esc: el bucle del basecode
+tancava el programa; `GraphicsEngine.run()` és el mateix bucle amb un canvi (si el ratolí és capturat, Esc
+l'allibera i cal deixar anar la tecla abans que un altre Esc tanqui). Perdre el focus allibera (callback de
+GLFW, encadenat amb el d'imgui). En capturar, el primer moviment es compta des d'on és el cursor: sense salts.
+*Comprovat automàticament* (`prova_controls.py`, `prova_vistes.py`): 50 i 20 punts giren 6,0° i 2,4° i els
+ulls no es mouen; 60 fotogrames sense moviment, la mirada no canvia; amb −5000 punts la inclinació es queda a
+89°; alliberat, moure el cursor no gira; tornar a capturar en un altre lloc no fa saltar; perdre el focus
+allibera; un clic a l'escena captura sense girar; un clic al panell no; el doble clic tria el punt i no
+captura; arrossegar i fer rodar sobre el panell no mou la càmera; P (explorant i observant) només canvia
+reproduir/pausar; amb el bucle real, Esc allibera i el programa continua. *Limitació de la prova:* la
+finestra amagada no té el focus i macOS no hi aplica el cursor desactivat; el moviment se simula substituint
+`glfw.get_cursor_pos` (com les fletxes amb `glfw.get_key`). Per tant, **la captura real del cursor no està
+comprovada automàticament**.
+
+**12.4 — Roda i trackpad.** El trackpad del Mac: s'ha comprovat què implementa la biblioteca GLFW que fa
+servir l'entorn (`/opt/homebrew/Cellar/glfw/3.5.1/lib/libglfw.3.5.dylib`): conté `scrollWheel:` i
+`hasPreciseScrollingDeltas` (lliscar amb dos dits, amb valors fraccionaris) però no `magnifyWithEvent:`, el
+mètode de macOS que rep el pessic. Per tant **el gest de pessigar no arriba al programa** (deduït del binari;
+no provat amb un trackpad). Alternativa: lliscar amb dos dits amunt/avall, que arriba com la roda. Els valors
+es sumen fins al fotograma següent (callback de GLFW). Exploració: n passos multipliquen l'altura per
+1,35⁻ⁿ (endavant s'acosta al terra cada cop més a poc a poc i no el travessa), el desplaçament es divideix pel
+sinus de la inclinació (mínim 0,3) i es limita a 3 passos per fotograma. Observació: el camp de visió es
+multiplica per 0,85ⁿ, sense moure els ulls. *Comprovat automàticament:* del terra (2,9 km) a 20.000 km amb
+28 passos (mirant a −25°; abans ~90) i 30 (a −60°); 25 passos en un fotograma es limiten a 3; un pas a
+l'observació canvia el camp de 60° a 51° i els ulls no es mouen.
+
+**Proves de la seqüència i de les ombres** (automàtiques, després dels canvis): `prova_vistes.py` (sis
+ubicacions i seqüència amb el bucle real) i `validar_ombres_relleu.py` (interruptor en pausa) donen tot
+correcte; l'horitzó (`validar_horitzo.py`), el mode pla (0 píxels diferents) i l'exercici 1.0, igual.
+`prova_vistes.py` ha calgut ajustar-lo: amb la roda nova l'ascens passa per altres posicions i hi ha aparegut
+la frontera amb França a la Cerdanya, on, vist de lluny, el mipmap de la textura de costa desplaça la vora
+on la península deixa de dibuixar-se (es veu el globus); la franja de la prova s'ha fet proporcional a la
+distància.
+
+**Provat per l'equip:** encara no. Proves amb el ratolí i el trackpad físics del Mac:
+1. Clic a l'escena: el cursor desapareix i moure el ratolí gira la mirada sense prémer, sense topar amb la
+   vora; Esc l'allibera i es pot fer servir el panell; Esc un altre cop tanca.
+2. Canviar a una altra aplicació (Cmd+Tab) amb el ratolí capturat: queda alliberat; en tornar i fer clic,
+   la mirada no salta.
+3. Doble clic al terreny explorant (ratolí lliure): tria el punt i no captura.
+4. Clic i arrossegar sobre el panell: la càmera no es mou.
+5. Roda del ratolí i lliscar amb dos dits: acostar-se al terra amb precisió i sortir a l'espai amb ~30
+   passos; pessigar no fa res (esperat).
+6. Explorar fins a una paret del cub: s'hi veuen les ratlles, la càmera s'hi atura sense tremolar i es pot
+   lliscar al llarg de la paret.
+7. Arrencar: el rellotge marca 18:31:39 en pausa.
+
+**Següent pendent:** les proves de l'equip; si es vol el pessic natiu, autoritzar PyObjC (D47); ancorar les
+ratlles de la paret al món (ara es mouen amb la càmera).
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -1099,3 +1219,4 @@ les serres llunyanes amb el Sol baix); l'anell de 25 m (4.3); la prova de l'equi
 | 26/10/2026 | F11: proves de la seqüència sencera (11.1), càmera d'exploració sobre la ubicació triada (11.2), coordenades verificades (0.3), comparació amb la NASA (3.8), horitzó (3.4) i ombres del relleu (6.1, zona de 5 m). D40–D43. 0.3, 3.4, 3.8, 4.4 i 9.6 `FET`; 4.3 continua `EN CURS` (anell de 25 m). Commits locals, sense push. |
 | 26/10/2026 | Prova de l'equip de la F11 registrada (només el que es va provar). 11.2 `VALIDAT`. Error de l'interruptor de les ombres trobat per l'equip i corregit (11.7, `FET`, pendent de tornar-lo a provar). |
 | 26/10/2026 | Segona prova de l'equip: l'interruptor de les ombres del relleu funciona (11.7 `VALIDAT`). |
+| 26/10/2026 | F12 (petició de l'equip): arrencada a C1 − 1 h, cub de navegació (1,647 UA), mirada amb el ratolí capturat, roda i trackpad, correcció del halo (12.0). D44–D47. Commits locals, sense push. |

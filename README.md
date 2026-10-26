@@ -67,12 +67,42 @@ velocitat s'adapta a l'altura.
 
 | Acció | Explorar | Observar des del terra |
 |---|---|---|
-| Girar la mirada | arrossegar o fletxes | arrossegar o fletxes |
+| Girar la mirada | ratolí capturat (veure a sota), arrossegar o fletxes | ratolí capturat, arrossegar o fletxes (els ulls no es mouen) |
 | Moure's | `W` `A` `S` `D` (endavant, enrere, costats), `E` / `Q` (pujar, baixar), `Ctrl`: més ràpid | — |
-| Roda | avançar o retrocedir (mou la càmera) | zoom (com uns prismàtics) |
-| Triar el punt d'observació | doble clic al terreny (la càmera no es mou), o la llista del panell | la llista del panell |
+| Roda o dos dits amunt/avall al trackpad | avançar o retrocedir (mou la càmera; cada pas canvia l'altura ~35 %) | zoom (com uns prismàtics) |
+| Triar el punt d'observació | doble clic al terreny amb el ratolí lliure (la càmera no es mou), o la llista del panell | la llista del panell |
+| Capturar / alliberar el ratolí | clic a l'escena / `Esc` | clic a l'escena / `Esc` |
 | Canviar de vista | `V` | `V` |
 | Reproduir / pausar el temps | `P` | `P` |
+
+**Mirar amb el ratolí (com en un joc en primera persona).** Un clic a l'escena (fora del panell) captura
+el ratolí: el cursor s'amaga i moure el ratolí gira la mirada sense haver de prémer cap botó. `Esc`
+l'allibera per tornar a fer servir el panell; amb el ratolí lliure, `Esc` tanca el programa, com abans.
+Canviar a una altra finestra també l'allibera. El clic espera 0,3 s abans de capturar: si n'arriba un
+segon, és un doble clic (triar el punt). La mirada vertical es limita a ±89° i no hi ha inèrcia.
+
+**Trackpad del Mac:** lliscar amb dos dits amunt o avall fa el mateix que la roda. El gest de pessigar no
+funciona: GLFW, la llibreria de finestres, no el rep a macOS (veure el pla, tasca 12.4).
+
+**Espai de navegació.** La càmera d'exploració no pot sortir d'un cub fix que conté la Terra, la Lluna i
+el Sol durant tot l'interval de la barra de temps. A prop d'una cara se'n veu la paret (translúcida, amb
+ratlles blaves); a la paret només s'atura el moviment cap a fora. Dimensions (sistema ECEF, km):
+
+| | Valor |
+|---|---|
+| Costat | 246.438.601 km = 1,6473 UA |
+| X | de −116.133.088 a 130.305.513 km |
+| Y | de −196.844.044 a 49.594.556 km |
+| Z | de −103.452.898 a 142.985.702 km |
+| Radi solar | 696.000 km |
+| Marge | 1.122.736 km = 1,613 radis solars (des de la paret de darrere del Sol, el disc sencer ocupa el 90 % del camp vertical de 50°) |
+
+El costat és més d'1 UA perquè, en coordenades terrestres (que giren amb la Terra), el Sol fa ~112° de volta
+al voltant de la Terra entre les 14:00 i les 21:30 TU. La càmera s'atura a 1.000 km de cada paret.
+Càlcul: `dades/navegacio.py`; comprovació: `python scripts/prova_controls.py`.
+
+**Arrencada:** el programa comença pausat una hora abans de l'inici de l'eclipsi (C1, calculat pel model)
+a Picos: a les 18:31:39 (hora d'estiu). Canviar d'ubicació no canvia l'hora.
 
 **P** no canvia res de la càmera: congela el temps on és i el torna a posar en marxa des del mateix
 instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a explorar i s'allunya
@@ -160,17 +190,20 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   terrain.py             Relleu d'un MDT: mode globus (posat sobre la Terra) i mode pla (scripts)
   astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
   ombres_relleu.py       Ombres del relleu (shadow mapping) a la zona de 5 m
+  paret_cub.py           Les parets translúcides del cub de navegació
+  control_ratoli.py      Ratolí capturat per mirar, roda i trackpad
   sol.py                 La llum de l'escena (Light del basecode)
   camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
   camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
   camera_orbital.py      Càmera orbital del mode pla (només per als scripts)
   programes.py           Carrega shaders amb opcions (#define)
-  shaders/               gouraud i phong (originals); terrain, terra, esfera i ombra (nostres)
+  shaders/               gouraud i phong (originals); terrain, terra, esfera, ombra i paret (nostres)
 dades/                   Lectura i càlcul de dades, sense OpenGL:
   efemerides.py          Posicions del Sol i la Lluna en coordenades terrestres
   geodesia.py            Latitud, longitud i altitud <-> coordenades terrestres (WGS84)
   model_eclipsi.py       Part del Sol tapada, contactes i centre de l'ombra
   observador.py          La ubicació de l'observador i la llista d'ubicacions
+  navegacio.py           El cub de navegació (límits de la càmera d'exploració)
   data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
 scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
@@ -245,6 +278,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
 | `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat, panell, P i roda |
 | `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |
 | `validar_horitzo.py` | Horitzó cap al Sol a les sis ubicacions: calculat sobre el MDT i sobre els triangles dibuixats, i llegit de la imatge; si el relleu tapa el Sol al màxim |
 | `validar_ombres_relleu.py` | Ombres del relleu: GPU contra un càlcul de la CPU i comparació amb la capa d'ombres del CNIG (`--totes`: les sis ubicacions) |
