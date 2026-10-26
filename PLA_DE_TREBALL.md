@@ -949,7 +949,7 @@ Després, tancar les validacions pendents (0.3, 3.4, 3.8) i començar les ombres
 | 11.4 | N (prova) | `scripts/comparar_nasa.py` i `data/nasa/circumstancies_nasa.csv` (tasca 3.8, D41); `scripts/validar_horitzo.py` (tasca 3.4) | `FET` |
 | 11.5 | N | Ombres del relleu (shadow mapping) a la zona de 5 m i `scripts/validar_ombres_relleu.py` (tasca 6.1, D42) | `FET` |
 | 11.6 | doc | Pla, README, `data/FONTS.md` i web | `FET` |
-| 11.7 | C | L'interruptor de les ombres del relleu no les tornava a encendre en pausa (error trobat per l'equip) | `FET` |
+| 11.7 | C | L'interruptor de les ombres del relleu no les tornava a encendre en pausa (error trobat per l'equip) | `VALIDAT` (26/10: l'equip l'ha tornat a provar i funciona) |
 
 **11.1 — Estabilitat (comprovat automàticament, `python scripts/prova_vistes.py`, ~25 s).** Abans de
 canviar res, totes les proves existents passaven (`validar_model.py`, `validar_ombra.py`,
@@ -1045,8 +1045,8 @@ informar:
   va notar el canvi; en tornar-les a activar i desactivar, cap canvi. Causa: en apagar-les es conservava
   la clau del mapa i, en pausa, en tornar-les a encendre no es recalculava (`valid` es quedava a fals).
   Corregit a la 11.7 i comprovat automàticament (apagar, encendre, apagar, encendre en pausa a les sis
-  ubicacions). **Cal que l'equip ho torni a provar.** La comparació visual amb i sense ombres, per tant,
-  encara no està provada per l'equip.
+  ubicacions). *Segona prova de l'equip (26/10):* l'interruptor ara funciona. Només s'ha registrat
+  aquesta comprovació de l'interruptor.
 - *L'Escala:* al màxim, el Sol queda tapat pel relleu, com deia `validar_horitzo.py` (horitzó de 6,45°
   contra 3,71° del Sol). El càlcul situa l'obstacle a 100 m de l'ajuntament; l'equip el descriu com "les
   muntanyes" (no s'ha comprovat a quina distància el va veure). En pujar amb la càmera, la Terra es veu
@@ -1098,3 +1098,4 @@ les serres llunyanes amb el Sol baix); l'anell de 25 m (4.3); la prova de l'equi
 | 22/10/2026 | F10 (prova de l'equip): correcció del tall blau (retall amb z logarítmica), de l'avís de textura i de l'altura dels ulls; zones de 5 m de Vic, l'Escala i el Vallès (D39); botons del màxim i de l'ombra des de l'espai; `scripts/prova_vistes.py`. 4.1 `FET`; 4.3 i 4.4 `EN CURS`. Commits locals, sense push. |
 | 26/10/2026 | F11: proves de la seqüència sencera (11.1), càmera d'exploració sobre la ubicació triada (11.2), coordenades verificades (0.3), comparació amb la NASA (3.8), horitzó (3.4) i ombres del relleu (6.1, zona de 5 m). D40–D43. 0.3, 3.4, 3.8, 4.4 i 9.6 `FET`; 4.3 continua `EN CURS` (anell de 25 m). Commits locals, sense push. |
 | 26/10/2026 | Prova de l'equip de la F11 registrada (només el que es va provar). 11.2 `VALIDAT`. Error de l'interruptor de les ombres trobat per l'equip i corregit (11.7, `FET`, pendent de tornar-lo a provar). |
+| 26/10/2026 | Segona prova de l'equip: l'interruptor de les ombres del relleu funciona (11.7 `VALIDAT`). |
