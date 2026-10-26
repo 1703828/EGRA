@@ -12,7 +12,7 @@
 
 <h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
 <p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
-  Web de seguiment, versió local 4 (22/10/2026)</p>
+  Web de seguiment, versió local 5 (26/10/2026)</p>
 
 <p>Volem veure l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya: explorar
   el terreny des de fora i, després, situar-nos en un punt concret, a l'altura dels ulls, per veure com
@@ -67,11 +67,13 @@
 <div class="taula"><table>
   <tr><th>Funcionalitat</th><th>Estat</th><th>Observacions</th></tr>
   <tr><td>La Terra, el Sol i la Lluna en un sol model geomètric, amb posicions reals</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Comprovat contra el CNIG; falta la prova de l'equip.</td></tr>
-  <tr><td>Relleu de la península (200 m) i Picos (5 m) posats sobre la Terra</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Fora d'Espanya, només la textura del globus.</td></tr>
+  <tr><td>Relleu de la península (200 m) i zones de 5 m (Picos, Vic, l'Escala i el Vallès) posats sobre la Terra</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Fora d'Espanya, només la textura del globus. Les zones catalanes es descarreguen a part (no són al Git).</td></tr>
   <tr><td>Ombra de la Lluna movent-se sobre la Terra i el terreny</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Calculada per a cada punt; dins de la umbra del CNIG.</td></tr>
   <tr><td>Observar des del terra (ulls fixos, mirada lliure) i explorar fins a l'espai</td><td><span class="etiqueta actual">ACTUAL</span></td><td>P només reprodueix o pausa el temps.</td></tr>
-  <tr><td>Ubicacions catalanes amb relleu de 5 m</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara es poden triar, però amb el relleu de 200 m (tasques 0.3, 4.3, 4.4).</td></tr>
-  <tr><td>Ombres de les muntanyes (shadow mapping) i condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasques 6.1 i 6.2.</td></tr>
+  <tr><td>Ubicacions amb coordenades verificades (ICGC i OpenStreetMap)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Plaça Major de Vic, ajuntaments de l'Escala, Cerdanyola i Montmeló, plaça Cívica de la UAB (tasca 0.3).</td></tr>
+  <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Només dins de la zona de 5 m de l'observador (tasca 6.1).</td></tr>
+  <tr><td>Anell de relleu de 25 m fins a ~100 km</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara, entre la zona de 5 m i els ~100 km, el relleu és el de 200 m (tasca 4.3).</td></tr>
+  <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
 </table></div>
 
 <!-- ======================================================================= O1 -->
@@ -105,9 +107,11 @@
     rius i platges a 0 m que són terra. Per distingir-los, considerem mar només les zones a 0 m que
     toquen la vora del mapa; els forats que queden dins de terra s'omplen amb la mitjana dels punts del
     voltant.</p>
-  <p>Ara el programa carrega tota la península (200 m) i, com a zona de detall, Picos de Europa
-    (20 × 20 km a 5 m), que és dins de la franja de totalitat. El següent pas és afegir zones de 5 m a
-    les ubicacions catalanes: amb el Sol a 4° sobre l'horitzó, una serra a 30 km pot decidir si es veu o no.</p>
+  <p>El programa carrega tota la península (200 m) i, com a zona de detall, la de 5 m que conté el punt
+    d'observació: Picos de Europa (20 × 20 km, dins de la franja de totalitat, al Git), Vic i l'Escala
+    (20 × 20 km) i el Vallès (31,7 × 28,5 km, amb Cerdanyola, la UAB i Montmeló). Les zones catalanes es
+    descarreguen amb l'script a una carpeta que el Git ignora. Amb el Sol a 4° sobre l'horitzó, una serra
+    a 30 km pot decidir si es veu o no: més enllà de la zona, el relleu és el de 200 m.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../scripts/descarregar_mdt.py"><code>scripts/descarregar_mdt.py</code></a> (descàrrega),
       <a href="../dades/data_io.py"><code>dades/data_io.py</code></a> (lectura, neteja i memòria cau),
@@ -116,9 +120,9 @@
     <ul class="criteris">
       <li data-estat="fet">La península (200 m) i Picos (5 m) es carreguen i es dibuixen sobre la Terra (prova automàtica i captures).</li>
       <li data-estat="fet">Cada font de <code>data/</code> (MDT, CNIG, efemèrides, textures) té la procedència, la llicència i la comanda a <a href="../data/FONTS.md"><code>data/FONTS.md</code></a> (falten les sumes sha256).</li>
-      <li data-estat="pendent">Els MDT nous van a una carpeta que el Git ignora; Picos continua versionat (tasca 4.1).</li>
-      <li data-estat="pendent">Zona del Vallès (Cerdanyola, UAB, Montmeló) a 5 m, amb un anell de 25 m al voltant (tasca 4.3).</li>
-      <li data-estat="pendent">Zones de Vic i de l'Escala (tasca 4.4).</li>
+      <li data-estat="fet">Els MDT nous van a <code>data/mdt/zones/</code>, que el Git ignora; Picos continua versionat (tasca 4.1).</li>
+      <li data-estat="fet">Zones de 5 m del Vallès (Cerdanyola, UAB, Montmeló), de Vic i de l'Escala, carregades a la prova de les sis ubicacions (tasques 4.3 i 4.4, F10).</li>
+      <li data-estat="pendent">Anell de 25 m fins a ~100 km al voltant del Vallès (tasca 4.3; ara hi ha el relleu de 200 m).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> el servei de l'IGN només té Espanya (Portugal i França
       surten a 0 m, com si fossin mar). Els MDT d'Astúries i Luarca encara hi són però es retiraran
@@ -153,6 +157,10 @@
       verd, no el tapa. Els quadrats són els píxels originals d'uns 300 m.</figcaption></figure>
   <p>També importa la posta de Sol. A Catalunya, el Sol es pon abans que acabi l'eclipsi (C4 arriba
     després de la posta), de manera que el final no es veurà.</p>
+  <p>Els punts d'observació són llocs concrets: la plaça Major de Vic (41,9303, 2,2540), els ajuntaments de
+    l'Escala (42,1248, 3,1322), Cerdanyola (41,4910, 2,1407) i Montmeló (41,5517, 2,2479) i la plaça
+    Cívica de la UAB (41,5019, 2,1039). El punt de Picos (43,2620, −4,9490) és el centre de la zona de 5 m:
+    és el cas de totalitat, sense un lloc concret.</p>
   <p>Un detall que hem comprovat a la documentació del CNIG: l'elevació del Sol que publiquen
     inclou la <dfn>refracció</dfn>, és a dir, l'efecte de l'atmosfera, que fa que el Sol sembli una
     mica més alt del que és (veure O1.6).</p>
@@ -165,7 +173,7 @@
     <ul class="criteris">
       <li data-estat="fet">Al punt de Picos (43,262, −4,949) es llegeixen C1 19:31:39, màxim 20:28:02 i C4 21:20:55 CEST, i 100,4 s de totalitat.</li>
       <li data-estat="fet">Convencions comprovades al document del CNIG (la banda 1 inclou la refracció).</li>
-      <li data-estat="pendent">Coordenades dels punts concrets (plaça Major de Vic, ajuntament de Cerdanyola, plaça Cívica de la UAB...) verificades amb una font cartogràfica (tasca 0.3).</li>
+      <li data-estat="fet">Coordenades dels punts concrets verificades el 26/10/2026 (tasca 0.3): ajuntaments amb el geocodificador de l'ICGC, que coincideix a menys de 20 m amb OpenStreetMap; places, amb el centre del polígon d'OpenStreetMap (l'ICGC hi dona el primer portal, a la vora). Els valors del CNIG no canvien (el píxel de ~920 m és el mateix).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> les hores tenen píxels d'uns 920 m i les ombres, d'uns
       230–300 m; les ombres no tenen en compte edificis ni arbres.</p>
@@ -204,9 +212,10 @@
       <li data-estat="fet">El relleu es posa sobre l'el·lipsoide; el picking cau a 0,01 m de la superfície dibuixada (prova automàtica).</li>
       <li data-estat="fet">Zones de 5 m de Picos, Vic, l'Escala i el Vallès, amb pegats de detall al voltant de l'observador (F10).</li>
       <li data-estat="fet">Els nivells encaixen sense línies ni salts visibles des de 0,4, 4, 30 i 250 km (inspecció de captures).</li>
-      <li data-estat="pendent">L'horitzó que es veu coincideix amb el que calcula un script (tasca 3.4).</li>
+      <li data-estat="fet">L'horitzó llegit de la imatge (depth buffer, zoom de 2°) coincideix amb el calculat sobre els triangles dibuixats a ≤ 0,006° a les sis ubicacions, en l'azimut del Sol al màxim (<code>scripts/validar_horitzo.py</code>; objectiu 0,05°).</li>
+      <li data-estat="fet">Pujant fins a 20.000 km, cada píxel cau sobre la superfície dibuixada i cap no es veu per sota (sense forats entre nivells ni l'interior del globus), a les sis ubicacions (<code>scripts/prova_vistes.py</code>).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); entre 10 i 50 km de l'observador el relleu és el de 200 m; fora d'Espanya no hi ha relleu; només es manté carregada la zona de 5 m de l'observador.</p>
+    <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); entre la zona de 5 m i els ~100 km el relleu és el de 200 m; fora del pegat de ~2,5 km la malla de la zona té un vèrtex cada ~20 m, i l'horitzó d'una carena a 1–6 km pot quedar fins a 0,07° més baix que el del MDT complet (UAB, Cerdanyola, Vic); fora d'Espanya no hi ha relleu; només es manté carregada la zona de 5 m de l'observador.</p>
   </div>
 </div></details>
 
@@ -223,13 +232,16 @@
   <p>Amb un doble clic sobre el terreny es tria el punt d'observació. Per saber quin punt hi ha sota el
     cursor, es llegeix la profunditat d'aquell píxel i es desfà el camí fins al món
     (<a href="#o2-2">O2.2</a>). La càmera i el punt d'observació són independents: explorar no mou
-    l'observador.</p>
+    l'observador, i el doble clic no mou la càmera. Quan es tria una ubicació de la <em>llista</em>, en
+    canvi, la càmera d'exploració es posa a sobre del lloc nou, perquè en passar a explorar (V) es
+    parteixi d'allà i no del lloc anterior (correcció 11.2).</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>, <code>teclat()</code> i <code>punt_sota_cursor()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">La roda allunya la càmera de 3,5 km a ~27.000 km sense canviar el camp de visió (prova automàtica).</li>
       <li data-estat="fet">La velocitat s'adapta a l'altura: ~2,6 km/s a 3,5 km i ~21.000 km/s a 27.000 km (prova automàtica).</li>
+      <li data-estat="fet">A l'espai, reprendre el temps (P) no mou ni gira la càmera d'exploració; canviar d'ubicació amb un doble clic tampoc (prova automàtica, sis ubicacions).</li>
       <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
   </div>
@@ -259,6 +271,7 @@
       <li data-estat="fet">A les sis ubicacions, els ulls són a 1,698–1,700 m dels triangles dibuixats, llegit del depth buffer mirant avall; mirant a −30° i −60° tot és terreny proper (<code>scripts/prova_vistes.py</code>).</li>
       <li data-estat="fet">P congela el temps i el reprèn des del mateix instant sense moure cap càmera (prova automàtica).</li>
       <li data-estat="fet">Durant la reproducció no es pot canviar el punt; en pausa sí, i el model i el panell són del punt nou (prova automàtica).</li>
+      <li data-estat="fet">La seqüència sencera amb el bucle real del programa i el panell dibuixat, amb el teclat i el ratolí simulats: triar Cerdanyola, observar, girar amb les fletxes i arrossegant, P, V i roda fins a ~36.000 km, P a l'espai, tornar al punt amb els mateixos ulls i la mateixa mirada (<code>scripts/prova_vistes.py</code>).</li>
       <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
     </ul>
     <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
@@ -293,7 +306,7 @@
     <ul class="criteris">
       <li data-estat="fet">Elevació del Sol al màxim a ≤ 0,017° del CNIG als 9 punts, sense ajustar-s'hi (scripts/validar_model.py).</li>
       <li data-estat="fet">El nord és el geogràfic: l'escena és en coordenades terrestres (resolt el gir de 1,3°–4,1° de la quadrícula UTM).</li>
-      <li data-estat="pendent">Comparació amb el calculador de la NASA (tasca 3.8).</li>
+      <li data-estat="fet">Elevació geomètrica i azimut del Sol al màxim a ≤ 0,005° del calculador de la NASA als 9 punts (<code>scripts/comparar_nasa.py</code>).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> la granulació del Sol, el halo i la corona són il·lustratius.</p>
   </div>
@@ -321,7 +334,7 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">C1, C2, màxim, C3 i C4 a ≤ 1,2 s del CNIG als 9 punts; part tapada a ≤ 0,05 punts (scripts/validar_model.py).</li>
-      <li data-estat="pendent">Comparació amb la NASA (tasca 3.8).</li>
+      <li data-estat="fet">Contactes a 2,0–3,9 s dels de la NASA als 9 punts, amb la mateixa convenció (observador a 0 m); part tapada a ≤ 0,02 punts (<code>scripts/comparar_nasa.py</code>, O1.12).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> la vora de la Lluna és un cercle (sense muntanyes, ~1–3 s als contactes); l'orientació de la textura és aproximada.</p>
   </div>
@@ -338,7 +351,8 @@
     shader calcula quina part del Sol tapa la Lluna vista des d'aquell punt, amb la mateixa fórmula que el
     model. On la tapa del tot (la <dfn>umbra</dfn>) és fosc; al voltant (la <dfn>penombra</dfn>), la llum
     baixa a poc a poc; i la resta de la cara de dia continua il·luminada. És diferent de les ombres de les
-    muntanyes, que encara no hi són (<a href="#o1-9">O1.9</a>).</p>
+    muntanyes (<a href="#o1-9">O1.9</a>): l'ombra de la Lluna redueix la llum directa del Sol a tota una
+    regió; la d'una muntanya la treu del tot en un tros concret de terreny.</p>
   <p>Hem comprovat que l'eix de l'ombra cau dins de la umbra que publica el CNIG en tots els instants
     comparats. El color del cel depèn de la posició de la càmera (altura del Sol i part tapada) i es fa
     negre per sobre de l'atmosfera; aquest cel és una aproximació visual.</p>
@@ -357,9 +371,39 @@
 <summary><span class="cap"><span class="titol">O1.9 · Ombres del relleu</span></span>
   <span class="frase">Que les muntanyes facin ombra i puguin tapar el Sol, i comparar-ho amb el CNIG.</span></summary>
 <div class="cos">
-  <p>Encara no està fet. Volem que el relleu projecti ombres amb la tècnica del <em>shadow mapping</em>
-    (<a href="#o2-5">O2.5</a>) i comparar el resultat amb el mapa d'ombres del CNIG.</p>
-  <div class="fitxa"><ul class="criteris"><li data-estat="pendent">Ombres del relleu comparades amb la capa del CNIG (tasca 6.1).</li></ul></div>
+  <figure><img src="img/ombres_relleu_picos.jpg" alt="Ombres del relleu a Picos i el factor d'ombra" loading="lazy">
+    <figcaption>Picos 30 minuts abans del màxim, amb el Sol a l'oest (15° d'elevació) i la càmera mirant a
+      l'est. Esquerra: el programa. Dreta: el factor d'ombra que calcula el shadow mapping (blanc, hi arriba
+      el Sol; negre, una muntanya el tapa), el mode de depuració que fa servir la validació.</figcaption></figure>
+  <p>Cal distingir tres coses: l'<dfn>ombra de la Lluna</dfn> (la Lluna tapa part del Sol a tota una
+    regió, <a href="#o1-8">O1.8</a>); l'<dfn>ombra del relleu</dfn> (una muntanya tapa el Sol a un tros de
+    terreny, aquest apartat); i l'<dfn>ocultació del Sol pel relleu</dfn> vista des de l'observador (si
+    l'horitzó és més alt que el Sol, <a href="#o1-5">O1.5</a>). Les dues últimes són la mateixa geometria
+    vista des de punts diferents: un punt del terreny és a l'ombra si, des d'allà, el relleu tapa el Sol.</p>
+  <p>Les ombres del relleu es fan amb <em>shadow mapping</em> (<a href="#o2-5">O2.5</a>) dins de la zona
+    de 5 m de l'observador. La llum ve del Sol aparent, amb la refracció, com el CNIG. Només bloqueja la
+    llum directa del Sol: la del cel continua arribant. Es pot apagar a <em>Avançat</em> per comparar.</p>
+  <p>Comprovació en dos passos (<code>scripts/validar_ombres_relleu.py --totes</code>). Primer, la GPU
+    contra un càlcul independent de la CPU: per a ~1.150 píxels de cada zona, un raig des del punt cap al
+    Sol mira si el terreny dibuixat el tapa. Coincideixen tots, llevat dels casos dins del biaix conegut de
+    la GPU (obstacles de menys de ~12 m per sobre del raig, 4–17 % dels punts). Segon, contra la capa
+    d'ombres del CNIG, que diu el mateix (si el centre del Sol arriba al terra) per a cel·les de ~230 m a
+    l'hora del màxim: amb el nostre MDT de 200 m, comparable al GMTED2010 del CNIG, coincideixen el 74 %
+    (Picos) i el 79–95 % (Catalunya) de les cel·les en 6 km al voltant del punt. Treure la refracció hi
+    canvia ±1 punt, així que no n'és la causa; la diferència ve dels dos MDT i de la mida i la posició de
+    les cel·les. Amb el MDT de 5 m trobem el doble de cel·les tapades: ombres petites que el CNIG no pot
+    resoldre.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/ombres_relleu.py"><code>basecode/ombres_relleu.py</code></a>, <a href="../basecode/shaders/ombra.vert"><code>ombra.vert</code></a>, <a href="../basecode/shaders/ombra.frag"><code>ombra.frag</code></a>, <code>llum_relleu()</code> a <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>, <a href="../scripts/validar_ombres_relleu.py"><code>scripts/validar_ombres_relleu.py</code></a>, <a href="../scripts/validar_horitzo.py"><code>scripts/validar_horitzo.py</code></a>.</p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Shadow mapping a la zona de 5 m: la GPU i el raig de la CPU coincideixen a totes sis ubicacions, fora del biaix calculat (11,6–12,7 m).</li>
+      <li data-estat="fet">Comparat amb la capa d'ombres del CNIG a l'hora del màxim: 74–95 % de cel·les iguals amb el MDT de 200 m; diferències explicades per la resolució.</li>
+      <li data-estat="fet">Ocultació del Sol pel relleu des de l'observador al màxim: classe 3 (no el tapa) a Vic, Cerdanyola, Montmeló i la UAB, com el CNIG; a l'Escala, el terreny a 100 m de l'ajuntament fa un horitzó de 6,4° que el tapa (el CNIG, amb cel·les de ~230 m, diu 3); a Picos, classe 3 contra 1 del CNIG (<code>scripts/validar_horitzo.py</code>).</li>
+      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
+    </ul>
+    <p><span class="rotul">Limitacions:</span> només la zona de 5 m projecta i rep ombres (en 16 km al voltant del punt); obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
+  </div>
 </div></details>
 
 <details class="sub" id="o1-10">
@@ -400,18 +444,31 @@
     <dfn>ajust</dfn>. Una <dfn>comprovació independent</dfn> el compara amb dades que no ha fet servir.
     El model nou no fa servir cap hora del CNIG (només les posicions de JPL i la geometria), de manera que
     la comparació amb el CNIG és independent.</p>
-  <p>Resultats: als 9 punts, totes les hores a ≤ 1,2 s, la part tapada a ≤ 0,05 punts i l'elevació del
-    Sol a ≤ 0,017°; i l'eix de l'ombra, dins de la umbra del CNIG. Queda la comparació amb una segona font,
-    el calculador de la NASA, que fa servir convencions diferents (observador al nivell del mar, Sol sense
-    refracció, vora de la Lluna llisa).</p>
+  <p>Resultats amb el CNIG: als 9 punts, totes les hores a ≤ 1,2 s, la part tapada a ≤ 0,05 punts i
+    l'elevació del Sol a ≤ 0,017°; i l'eix de l'ombra, dins de la umbra del CNIG.</p>
+  <p>Segona font: el calculador de circumstàncies locals de la NASA (Espenak). En lloc de fer clic al
+    mapa, l'script executa el mateix codi JavaScript de la pàgina (<code>SEcirc.js</code>) amb les nostres
+    coordenades i en desa els resultats sense arrodonir. Abans de comparar, cal posar-se en les seves
+    convencions: observador a 0 m, elevació sense refracció i ΔT (la diferència entre el temps dels
+    càlculs astronòmics i el TU) de 71,4 s. Amb aquestes condicions, elevació i azimut coincideixen a
+    ≤ 0,005°, la part tapada a ≤ 0,02 punts i totes les hores del model queden 2–4 s darrere de les de la
+    NASA, a tots els punts per igual (el CNIG també, 2–4 s).</p>
+  <p>Per què? Una diferència igual a tot arreu apunta a l'escala de temps. La petita variació entre
+    contactes (+3,1 s a C1, +2,0 s a C4) té el patró d'un radi de la Lluna diferent: la NASA en fa servir
+    dos (un per a C1 i C4 i un altre més petit per a C2 i C3), i nosaltres un de sol. Repetint el càlcul amb
+    els radis de la NASA, tots els contactes queden a +2,5 ± 0,2 s: el que queda és constant, i és el que
+    donaria un ΔT de 68,9 s a les efemèrides de JPL en lloc dels 71,4 s previstos per la NASA quan va fer
+    el mapa. És compatible amb el valor actual del ΔT (~69 s), però no l'hem pogut llegir de Horizons. No
+    hem ajustat el model: totes dues diferències són per sota de l'objectiu de 5 s.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../scripts/validar_model.py"><code>scripts/validar_model.py</code></a>, <a href="../scripts/validar_ombra.py"><code>scripts/validar_ombra.py</code></a>, seccions 6, 7 i F9 del <a href="../PLA_DE_TREBALL.md">pla</a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../scripts/validar_model.py"><code>scripts/validar_model.py</code></a>, <a href="../scripts/validar_ombra.py"><code>scripts/validar_ombra.py</code></a>, <a href="../scripts/comparar_nasa.py"><code>scripts/comparar_nasa.py</code></a> i <a href="../data/nasa/circumstancies_nasa.csv"><code>data/nasa/circumstancies_nasa.csv</code></a>, seccions 6, 7 i F9 del <a href="../PLA_DE_TREBALL.md">pla</a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">Comparació independent amb el CNIG a 9 punts: hores a ≤ 1,2 s.</li>
       <li data-estat="fet">L'ombra del model cau dins de la umbra del CNIG.</li>
       <li data-estat="fet">Font externa triada i convencions documentades (NASA).</li>
-      <li data-estat="pendent">Comparació amb la NASA en uns quants punts i moments (tasca 3.8).</li>
+      <li data-estat="fet">Comparació amb la NASA als 9 punts i a tots els contactes, amb les mateixes convencions: hores a 2,0–3,9 s, elevació i azimut a ≤ 0,005° (<code>scripts/comparar_nasa.py</code>, tasca 3.8).</li>
+      <li data-estat="fet">Diferència explicada: radi de la Lluna (±0,6 s) i ΔT (2,5 s constants); sense ajustar el model.</li>
     </ul>
   </div>
 </div></details>
@@ -598,10 +655,38 @@
 <summary><span class="cap"><span class="titol">O2.5 · Ombres (shadow mapping)</span></span>
   <span class="frase">Com sap la GPU si un punt queda amagat del Sol.</span></summary>
 <div class="cos">
-  <p>Encara no està fet. La idea del <em>shadow mapping</em> és dibuixar primer l'escena des del Sol i
-    guardar, per a cada direcció, a quina distància hi ha el primer obstacle; després, en dibuixar des de
-    la càmera, un punt està a l'ombra si és més lluny del Sol que aquell obstacle.</p>
-  <div class="fitxa"><ul class="criteris"><li data-estat="pendent">Shadow mapping al terreny (tasca 6.1).</li></ul></div>
+  <p>El <em>shadow mapping</em> fa dues passades. A la primera, abans del fotograma, es dibuixa el relleu
+    vist <em>des del Sol</em> en una <dfn>textura de profunditat</dfn> (el <dfn>mapa d'ombres</dfn>, de
+    4096 × 4096): no es guarda cap color, només, per a cada texel, a quina distància del Sol hi ha la
+    primera superfície. Com que el Sol és molt lluny, els raigs són paral·lels i la projecció és
+    <dfn>ortogràfica</dfn> (<code>glm.ortho</code>), no en perspectiva. A la segona, el fotograma normal,
+    cada fragment es passa amb la mateixa matriu (<code>m_llum</code>) a l'espai de la llum: si és més lluny
+    del Sol que el que guarda el mapa, alguna cosa li fa ombra.</p>
+  <p>Tres detalls que hem hagut d'entendre:</p>
+  <ul>
+    <li><dfn>Acne</dfn>: cada texel guarda una sola profunditat per a un tros de terreny inclinat, i la
+      mateixa superfície s'ombreja a si mateixa amb ratlles. Es resol mirant el punt una mica fora de la
+      superfície (1 texel en la direcció de la normal) i 3 m més a prop del Sol. Amb mig texel, l'acne
+      apareixia (la validació trobava menys píxels clarament al sol o a l'ombra); el preu és que obstacles
+      de menys de ~12 m no fan ombra.</li>
+    <li><dfn>Sol baix</dfn>: amb el Sol a 4°, una caixa de llum quadrada estiraria cada texel ~85 m sobre
+      el terra. La caixa s'ajusta a la zona vista des del Sol i els texels queden d'~8 m.</li>
+    <li>La comparació la fa el maquinari: la textura té <code>compare_func</code> i al shader és un
+      <code>sampler2DShadow</code>, que retorna 0 o 1 (barrejat entre 2 × 2 texels). Amb 3 × 3 lectures la
+      vora de l'ombra queda suau (<dfn>PCF</dfn>).</li>
+  </ul>
+  <p>Com a la resta de l'escena, les posicions són relatives: aquí, al punt d'observació (l'<em>àncora</em>
+    del mapa), perquè els nombres de 32 bits de la GPU siguin petits. Al llibre de Rougier no hi ha shadow
+    mapping; el concepte és el de qualsevol curs d'OpenGL, aplicat amb ModernGL (<code>depth_texture</code>
+    i un <code>framebuffer</code> només amb profunditat).</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/ombres_relleu.py"><code>basecode/ombres_relleu.py</code></a> (les dues passades i la matriu de la llum), <a href="../basecode/shaders/ombra.vert"><code>ombra.vert</code></a>, <a href="../basecode/shaders/ombra.frag"><code>ombra.frag</code></a>, <code>llum_relleu()</code> a <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Shadow mapping al terreny (tasca 6.1): coincideix amb un càlcul independent de la CPU fora del biaix calculat (<code>scripts/validar_ombres_relleu.py</code>).</li>
+      <li data-estat="fet">El mode pla dels scripts dona la mateixa imatge que abans (0 píxels diferents) i la prova de les vistes no troba cap avís de textures.</li>
+    </ul>
+  </div>
 </div></details>
 
 <details class="sub" id="o2-6">
@@ -630,7 +715,7 @@
       <li data-estat="validat">Reorganització sense canvis de comportament (fase F2): comprovada amb captures i l'estat del programa, i provada per l'equip amb la finestra.</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> <code>main.py</code> encara reuneix el temps, la llum i les
-      vistes; de moment és prou curt (unes 330 línies) per llegir-lo sencer.</p>
+      vistes; de moment és prou curt (unes 440 línies) per llegir-lo sencer.</p>
   </div>
 </div></details>
 </section>
