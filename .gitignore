@@ -22,3 +22,6 @@ __pycache__/
 .DS_Store
 imgui.ini
 .vscode/
+
+# --- edificis del Catastro (es tornen a baixar amb scripts/descarregar_edificis.py) ---
+data/edificis/
