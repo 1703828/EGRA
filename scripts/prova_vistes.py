@@ -315,12 +315,16 @@ def main():
     app.posar_exploracio_sobre_el_punt()
     app.canviar_vista(0)
     ce.inclinacio = -45.0
+    if app.edificis is not None:          # el picking del terreny (sobre una coberta, el punt es a la coberta)
+        app.edificis.visible = False
     fotograma(2)
     d = float(np.frombuffer(objectiu.read(viewport=(W // 2, H // 2, 1, 1), components=1, attachment=-1,
                                           dtype='f4'), 'f4')[0])
     lat_p, lon_p, alt_p = geodesia.geodesiques(ce.desprojectar(W // 2 + 0.5, H // 2 + 0.5, d, W, H))
     dif = (float(alt_p) - app.altitud_terra_km(float(lat_p), float(lon_p))) * 1000
     ok(abs(dif) < 1.0, f'doble clic (picking): el punt queda a {dif:+.2f} m de la superficie dibuixada')
+    if app.edificis is not None:
+        app.edificis.visible = app.mostrar_edificis
     p0, v0 = ce.posicio.copy(), ce.velocitat()
     ce.moure(1, 0, 0, 0.5)
     ok(v0 < 10 and np.linalg.norm(ce.posicio - p0) > 0, f'a {ce.alcada_sobre_terra():.1f} km del terra, W va a {v0:.2f} km/s')

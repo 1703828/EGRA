@@ -76,6 +76,7 @@ from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
 from basecode.ombres_relleu import OmbresRelleu
 from basecode.paret_cub import ParetCub
+from basecode.edificis import Edificis
 from basecode.control_ratoli import ControlRatoli
 from basecode import window as winmod
 from dades.data_io import TERRENYS, ZONES_DETALL
@@ -115,6 +116,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.coef_log = COEF_LOG
         self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
         self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = self.paret = None
+        self.edificis = None          # edificis de la zona de detall (Catastro), si n'hi ha
+        self.mostrar_edificis = True
 
         # --- territori: la peninsula sencera posada sobre la Terra; la zona de detall de 5 m es
         # carrega quan es tria un punt d'observacio que hi es (triar_punt)
@@ -125,6 +128,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.peninsula.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
         # zones de detall disponibles (fitxers descarregats) i el rectangle que ocupen (UTM, m)
         self.zones = []
+        self.clau_zona = {nom: ordre for nom, _, ordre in ZONES_DETALL}
         for nom, cami_zona, ordre in ZONES_DETALL:
             if os.path.exists(cami_zona):
                 with rasterio.open(cami_zona) as f:
@@ -180,7 +184,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.fps, self.frames, self.temps_fps = 0.0, 0, 0.0
 
     def drawables(self):
-        objectes = [self.terra, self.peninsula, self.zona, self.lluna, self.sol_visible, self.halo, self.paret]
+        objectes = [self.terra, self.peninsula, self.zona, self.edificis, self.lluna, self.sol_visible, self.halo,
+                    self.paret]
         return [obj for obj in objectes if obj is not None]
 
     def on_resize(self, window, amplada, alcada):
@@ -216,6 +221,9 @@ class GraphicsEngine(GraphicsEngineBase):
             if self.zona is not None:
                 self.zona.destroy()
                 self.zona, self.peninsula.fills = None, []
+            if self.edificis is not None:
+                self.edificis.destroy()
+                self.edificis = None
             if nom is not None:
                 t0 = time.time()
                 cami = next(c for n, c, _ in self.zones if n == nom)
@@ -225,6 +233,14 @@ class GraphicsEngine(GraphicsEngineBase):
                     setattr(self.zona, atribut, getattr(self.peninsula, atribut))
                 self.peninsula.fills = [self.zona]
                 print(f"Zona de detall '{nom}' carregada en {time.time() - t0:.1f} s")
+                e = Edificis(self, self.clau_zona[nom], cami)
+                if e.n_triangles:
+                    e.visible = self.mostrar_edificis
+                    self.edificis = e
+                    print(f"Edificis: {e.n_parts} parts, {e.n_triangles} triangles, {e.memoria_gpu / 1e6:.0f} MB, "
+                          f"carregats en {e.temps_carrega:.1f} s")
+                else:
+                    e.destroy()
             self.nom_zona = nom
         # de lluny a prop: cada nivell depen de la superficie del de sota
         self.peninsula.posar_pegat(lat, lon)
@@ -444,6 +460,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.terra.render()
         for t in self.terrenys():
             t.render()
+        if self.edificis is not None:
+            self.edificis.render()   # opacs: escriuen la profunditat i tapen el Sol, el halo i el terreny
         self.paret.render()  # translucides: despres dels objectes opacs
         self.halo.render()
 

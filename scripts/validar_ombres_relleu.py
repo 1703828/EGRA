@@ -64,6 +64,7 @@ def main():
     W, H = 800, 600
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - ombres del relleu', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
+    app.mostrar_edificis = False   # ombres del relleu: els edificis no es pinten amb el mode de depuracio
     ce = app.camera_exploracio
     os.makedirs(SORTIDA, exist_ok=True)
     errors = []

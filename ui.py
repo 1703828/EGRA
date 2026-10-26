@@ -94,10 +94,30 @@ def panell_punt(app):
         imgui.text_colored((0.5, 0.9, 0.6, 1.0), 'Punt d\'observacio canviat')
     else:
         imgui.text_colored(COLOR_SUAU, 'O fes doble clic sobre el terreny (Explorar)')
+    panell_edificis(app)
     if imgui.button("Anar al maxim del punt seleccionat", (-1.0, 0.0)):
         app.anar_al_maxim()
     if imgui.button("Tornar al punt d'observacio", (-1.0, 0.0)):
         app.tornar_al_punt()
+
+
+def panell_edificis(app):
+    """Mostrar edificis (zones amb dades del Catastro) i quina part del Sol tapen des dels ulls."""
+    e = app.edificis
+    if e is None:
+        imgui.text_disabled('Sense edificis en aquesta zona')
+        return
+    canviat, app.mostrar_edificis = imgui.checkbox(f'Mostrar edificis ({e.n_parts} parts, Catastro)', app.mostrar_edificis)
+    if canviat:
+        e.visible = app.mostrar_edificis
+    if e.visible:
+        lluna, edificis, visible = e.fraccions(app.ulls())
+        if edificis > 0:
+            estat = 'tot el Sol' if visible == 0 and lluna < 1 else f'el {edificis * 100:.0f} % del Sol'
+            imgui.text_colored((1.0, 0.7, 0.4, 1.0), f'Els edificis tapen {estat}')
+        else:
+            imgui.text_colored(COLOR_SUAU, 'Cap edifici tapa el Sol des dels ulls')
+        imgui.text_colored(COLOR_SUAU, '(altures estimades: plantes x 3 m)')
 
 
 def panell_ajuda(app):

@@ -53,6 +53,7 @@ def main():
     W, H = 640, 640
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - horitzo', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
+    app.mostrar_edificis = False   # horitzo del relleu: els edificis es comproven a validar_edificis.py
     co = app.camera_observador
     errors = []
 
