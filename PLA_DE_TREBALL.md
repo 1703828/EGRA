@@ -944,11 +944,12 @@ Després, tancar les validacions pendents (0.3, 3.4, 3.8) i començar les ombres
 | Tasca | Tipus | Canvia | Estat |
 |---|---|---|---|
 | 11.1 | N (prova) | `scripts/prova_vistes.py`: superfície coherent pujant, P a l'espai, canvi d'ubicació explorant, seqüència sencera amb el bucle real | `FET` |
-| 11.2 | C | Triar una ubicació de la llista posa la càmera d'exploració a sobre del punt nou (D43) | `FET` |
+| 11.2 | C | Triar una ubicació de la llista posa la càmera d'exploració a sobre del punt nou (D43) | `VALIDAT` (26/10: l'exploració comença a Vic) |
 | 11.3 | dades | Coordenades verificades (tasca 0.3, D40) | `FET` |
 | 11.4 | N (prova) | `scripts/comparar_nasa.py` i `data/nasa/circumstancies_nasa.csv` (tasca 3.8, D41); `scripts/validar_horitzo.py` (tasca 3.4) | `FET` |
 | 11.5 | N | Ombres del relleu (shadow mapping) a la zona de 5 m i `scripts/validar_ombres_relleu.py` (tasca 6.1, D42) | `FET` |
 | 11.6 | doc | Pla, README, `data/FONTS.md` i web | `FET` |
+| 11.7 | C | L'interruptor de les ombres del relleu no les tornava a encendre en pausa (error trobat per l'equip) | `FET` |
 
 **11.1 — Estabilitat (comprovat automàticament, `python scripts/prova_vistes.py`, ~25 s).** Abans de
 canviar res, totes les proves existents passaven (`validar_model.py`, `validar_ombra.py`,
@@ -1028,12 +1029,37 @@ Comprovació: a la seqüència, després de triar Cerdanyola i prémer V, la cà
 - El mode pla (`captura.py`) dona la mateixa imatge que abans (0 píxels diferents); l'exercici 1.0
   continua `COINCIDEIX`; els originals del `basecode/`, sense canvis.
 
-**Provat per l'equip:** res d'aquesta fase encara. Proves manuals proposades: (a) la seqüència dels set
-passos amb la finestra, a Vic i a Picos; (b) si torna a aparèixer l'avís `texture unloadable` a la
-màquina on es va veure; (c) les ombres del relleu a Picos cap a les 19:58 (Avançat → apagar-les i tornar-les
-a encendre); (d) des de l'Escala, si el Sol queda tapat al màxim.
+**Provat per l'equip (26/10/2026, Mac de l'equip, entorn `egra`).** Només el que l'equip va fer i
+informar:
+- *Arrencada:* la finestra i el terreny s'obren bé. La sortida de la consola que l'equip va enganxar
+  (de l'arrencada fins a carregar la zona de Picos) **no conté l'avís `texture unloadable`**. No tenim la
+  sortida de la resta de la sessió, així que només queda comprovat per a l'arrencada.
+- *Vic:* terreny correcte mirant al voltant i cap avall; la mirada es queda fixa durant la reproducció;
+  l'exploració comença a Vic (11.2).
+- *Terra → espai → terra:* en pausa, l'hora no canvia mentre es mou la càmera; P reprèn el temps sense
+  moure la càmera; "Tornar al punt d'observació" torna al lloc correcte.
+- *Roda:* s'allunya bé, però **a l'espai es perd l'orientació i costa tornar a trobar els astres**
+  (observació d'ús, pendent de decidir com resoldre-ho; no s'ha canviat res).
+- *Picos:* terreny, controls i seqüència completa correctes; la fluïdesa, "crec que bé" (no mesurada).
+- *Ombres del relleu:* **no funcionava l'interruptor**. La primera vegada que es van desactivar sí que es
+  va notar el canvi; en tornar-les a activar i desactivar, cap canvi. Causa: en apagar-les es conservava
+  la clau del mapa i, en pausa, en tornar-les a encendre no es recalculava (`valid` es quedava a fals).
+  Corregit a la 11.7 i comprovat automàticament (apagar, encendre, apagar, encendre en pausa a les sis
+  ubicacions). **Cal que l'equip ho torni a provar.** La comparació visual amb i sense ombres, per tant,
+  encara no està provada per l'equip.
+- *L'Escala:* al màxim, el Sol queda tapat pel relleu, com deia `validar_horitzo.py` (horitzó de 6,45°
+  contra 3,71° del Sol). El càlcul situa l'obstacle a 100 m de l'ajuntament; l'equip el descriu com "les
+  muntanyes" (no s'ha comprovat a quina distància el va veure). En pujar amb la càmera, la Terra es veu
+  fosca i el Sol no es veu.
+- *Cerdanyola, Montmeló i la UAB:* "tot bé" (sense detall de quines comprovacions).
 
-**Següent pendent:** estendre les ombres del relleu fora de la zona de 5 m (casters de la península, per a
+Proves que encara falten de l'equip: les ombres del relleu després de la 11.7 (Picos cap a les 19:58,
+Avançat → apagar i encendre diverses vegades, en pausa i reproduint); l'avís de textura al llarg d'una
+sessió completa (amb capes del CNIG i canvis d'ubicació).
+
+**Següent pendent:** que l'equip torni a provar l'interruptor de les ombres; decidir com ajudar a
+orientar-se a l'espai (p. ex. un botó per mirar cap al Sol o cap a la Terra; seria un canvi de la
+interfície, a acordar); estendre les ombres del relleu fora de la zona de 5 m (casters de la península, per a
 les serres llunyanes amb el Sol baix); l'anell de 25 m (4.3); la prova de l'equip; després, 6.2
 (meteorologia) quan l'equip ho decideixi.
 
@@ -1071,3 +1097,4 @@ les serres llunyanes amb el Sol baix); l'anell de 25 m (4.3); la prova de l'equi
 | 22/10/2026 | Treball autònom (D32–D38). F9: P només reproduir/pausar, efemèrides de JPL i geodèsia WGS84, escena en coordenades terrestres amb la Terra, la península i Picos, Sol i Lluna reals, ombra de la Lluna per punt, càmeres noves i panell senzill. Comprovacions a la F9. 3.3–3.7 resoltes. `data/FONTS.md` creat (tasca 4.1, part de documentació). |
 | 22/10/2026 | F10 (prova de l'equip): correcció del tall blau (retall amb z logarítmica), de l'avís de textura i de l'altura dels ulls; zones de 5 m de Vic, l'Escala i el Vallès (D39); botons del màxim i de l'ombra des de l'espai; `scripts/prova_vistes.py`. 4.1 `FET`; 4.3 i 4.4 `EN CURS`. Commits locals, sense push. |
 | 26/10/2026 | F11: proves de la seqüència sencera (11.1), càmera d'exploració sobre la ubicació triada (11.2), coordenades verificades (0.3), comparació amb la NASA (3.8), horitzó (3.4) i ombres del relleu (6.1, zona de 5 m). D40–D43. 0.3, 3.4, 3.8, 4.4 i 9.6 `FET`; 4.3 continua `EN CURS` (anell de 25 m). Commits locals, sense push. |
+| 26/10/2026 | Prova de l'equip de la F11 registrada (només el que es va provar). 11.2 `VALIDAT`. Error de l'interruptor de les ombres trobat per l'equip i corregit (11.7, `FET`, pendent de tornar-lo a provar). |

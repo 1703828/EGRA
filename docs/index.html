@@ -242,7 +242,8 @@
       <li data-estat="fet">La roda allunya la càmera de 3,5 km a ~27.000 km sense canviar el camp de visió (prova automàtica).</li>
       <li data-estat="fet">La velocitat s'adapta a l'altura: ~2,6 km/s a 3,5 km i ~21.000 km/s a 27.000 km (prova automàtica).</li>
       <li data-estat="fet">A l'espai, reprendre el temps (P) no mou ni gira la càmera d'exploració; canviar d'ubicació amb un doble clic tampoc (prova automàtica, sis ubicacions).</li>
-      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
+      <li data-estat="validat">Prova de l'equip (26/10): l'exploració comença a la ubicació triada (Vic); en pausa, l'hora no canvia mentre es mou la càmera; a l'espai, P reprèn el temps sense moure-la.</li>
+      <li data-estat="pendent">Orientar-se a l'espai: l'equip s'hi perd i no troba els astres en allunyar-se amb la roda (cal decidir com ajudar-hi).</li>
     </ul>
   </div>
 </div></details>
@@ -272,7 +273,7 @@
       <li data-estat="fet">P congela el temps i el reprèn des del mateix instant sense moure cap càmera (prova automàtica).</li>
       <li data-estat="fet">Durant la reproducció no es pot canviar el punt; en pausa sí, i el model i el panell són del punt nou (prova automàtica).</li>
       <li data-estat="fet">La seqüència sencera amb el bucle real del programa i el panell dibuixat, amb el teclat i el ratolí simulats: triar Cerdanyola, observar, girar amb les fletxes i arrossegant, P, V i roda fins a ~36.000 km, P a l'espai, tornar al punt amb els mateixos ulls i la mateixa mirada (<code>scripts/prova_vistes.py</code>).</li>
-      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
+      <li data-estat="validat">Prova de l'equip (26/10): a Vic, el terreny és correcte mirant al voltant i cap avall, la mirada es queda fixa reproduint i <em>Tornar al punt d'observació</em> torna al lloc correcte; a Picos, la seqüència completa funciona; Cerdanyola, Montmeló i la UAB, sense problemes.</li>
     </ul>
     <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
       però comparava amb l'altura que calculava la CPU, no amb el que es dibuixava. Mesurat al depth buffer,
@@ -400,7 +401,9 @@
       <li data-estat="fet">Shadow mapping a la zona de 5 m: la GPU i el raig de la CPU coincideixen a totes sis ubicacions, fora del biaix calculat (11,6–12,7 m).</li>
       <li data-estat="fet">Comparat amb la capa d'ombres del CNIG a l'hora del màxim: 74–95 % de cel·les iguals amb el MDT de 200 m; diferències explicades per la resolució.</li>
       <li data-estat="fet">Ocultació del Sol pel relleu des de l'observador al màxim: classe 3 (no el tapa) a Vic, Cerdanyola, Montmeló i la UAB, com el CNIG; a l'Escala, el terreny a 100 m de l'ajuntament fa un horitzó de 6,4° que el tapa (el CNIG, amb cel·les de ~230 m, diu 3); a Picos, classe 3 contra 1 del CNIG (<code>scripts/validar_horitzo.py</code>).</li>
-      <li data-estat="pendent">Prova de l'equip amb la finestra.</li>
+      <li data-estat="validat">Prova de l'equip (26/10): a l'Escala, al màxim, el relleu tapa el Sol.</li>
+      <li data-estat="fet">L'interruptor d'<em>Avançat</em> encén i apaga les ombres totes les vegades, també en pausa (correcció 11.7; prova automàtica a les sis ubicacions).</li>
+      <li data-estat="pendent">Prova de l'equip de les ombres amb la finestra. A la primera prova (26/10) l'interruptor només funcionava la primera vegada: en tornar-les a encendre amb el temps pausat no tornaven. Corregit; cal tornar-ho a provar.</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> només la zona de 5 m projecta i rep ombres (en 16 km al voltant del punt); obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
   </div>
