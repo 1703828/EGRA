@@ -43,6 +43,34 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - **Com es reprodueix:** `python scripts/descarregar_efemerides.py`.
 - **Ús:** dades públiques de NASA/JPL.
 
+## Edificis (Catastro INSPIRE) — `data/edificis/` (no al Git)
+
+- **Font:** Dirección General del Catastro, servei de descàrrega ATOM INSPIRE del conjunt *Buildings*
+  (<https://www.catastro.hacienda.gob.es/INSPIRE/buildings/ES.SDGC.BU.atom.xml>), un ZIP per municipi amb
+  els GML d'edificis, parts d'edifici i altres construccions. Descarregat el 26/10/2026. Les versions de les
+  parts van del 2001 al 2026 (camp `beginLifespanVersion`).
+- **Llicència:** dades obertes del Catastro, ús lliure amb citació de la font ("Dirección General del
+  Catastro").
+- **Contingut que fem servir:** les **parts d'edifici** (`BuildingPart`): contorn (precisió horitzontal
+  declarada de 0,1 m) i nombre de plantes sobre rasant (`numberOfFloorsAboveGround`). **No hi ha l'altura en
+  metres:** l'estimem amb plantes × 3,0 m (`dades/edificis.py`).
+- **CRS:** EPSG:25831 a Catalunya i EPSG:25830 a Picos; es reprojecta a EPSG:25830 (el del terreny): canvi de
+  fus UTM dins del mateix datum ETRS89.
+- **Zones:** les parts a menys de 2 km dels punts d'observació. Vallès (UAB, Cerdanyola i Montmeló, un sol
+  fitxer): 49.797 parts de 13 municipis (Cerdanyola, Sant Cugat, Barberà, Badia, Sabadell, Ripollet, Montcada,
+  Montmeló, Montornès, Parets, Mollet, Granollers, la Llagosta; alguns hi aporten 0 parts). Vic: 16.987 parts
+  (Vic, Gurb, Calldetenes, Santa Eugènia de Berga). L'Escala: 15.091. Picos: **0** (cap edifici a menys de
+  2 km del punt; s'han comprovat Posada de Valdeón, Camaleño i Cabrales).
+- **Com es reprodueix:** `python scripts/descarregar_edificis.py` (o amb el nom d'una zona: `valles`, `vic`,
+  `escala`, `picos`). Baixa els ZIP a `data/edificis/catastro/` (~45 MB), desa `data/edificis/<zona>.gpkg` i la
+  malla a `data/cache/edificis_<zona>.npz`.
+- **No accessibles en aquesta fase:** el *Modelo Digital de Superficies normalizado de Edificación* del
+  CNIG (altures LiDAR, 2,5 m): el Centre de Descàrregues no responia; els models de l'ICGC es lliuren per
+  enllaç per correu. Per això les altures són estimades i no mesurades.
+- **Referència independent per a la validació:** OpenStreetMap (contorns i `building:levels`, © col·laboradors
+  d'OpenStreetMap, ODbL), consultat amb l'API Overpass el 26/10/2026 (400 m al voltant de la UAB;
+  `data/edificis/osm_uab.json`).
+
 ## Comprovació externa (NASA) — `data/nasa/`
 
 - `circumstancies_nasa.csv` (2 kB, al Git): circumstàncies locals de l'eclipsi (tipus, magnitud,

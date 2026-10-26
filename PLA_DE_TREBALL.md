@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-26 (F12: arrencada, cub de navegació, ratolí capturat, roda i trackpad).
+Darrera actualització: 2026-10-26 (F14: edificis a les zones de detall).
 
 ---
 
@@ -100,6 +100,8 @@ Darrera actualització: 2026-10-26 (F12: arrencada, cub de navegació, ratolí c
 | D44 | (F12, equip) Arrencada pausada a C1 − 60 min del model al punt inicial; canviar d'ubicació no toca el temps. | 26/10 |
 | D45 | (F12, equip) Espai de navegació: cub fix amb la Terra, la Lluna i el Sol a tot l'interval, en el mateix sistema que l'escena (ECEF); marge mínim d'un radi solar, ampliat fins que el Sol hi capiga sencer des de la paret. Parets translúcides visibles a prop. | 26/10 |
 | D46 | (F12, equip) Mirada amb el ratolí capturat: un clic a l'escena captura, Esc o perdre el focus alliberen; el doble clic amb el ratolí lliure continua triant el punt. Esc amb el ratolí lliure continua tancant el programa (comportament anterior conservat). | 26/10 |
+| D52 | (F14, equip) Edificis a les zones de detall per veure si tapen el Sol. Font: Catastro INSPIRE (parts d'edifici amb plantes); altures estimades amb plantes × 3 m, identificades com a estimació. Àrea: 2 km al voltant dels punts d'observació. Les dades i la memòria cau, fora del Git. | 26/10 |
+| D53 | (F14) Els punts d'observació que cauen dins d'un edifici no es mouen: es documenten i es proposa un punt exterior proper, pendent de la decisió de l'equip. | 26/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
@@ -108,7 +110,7 @@ Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 
 
 ---
 
-## 2. Funcionalitats existents (codi actual, després de la F12)
+## 2. Funcionalitats existents (codi actual, després de la F14)
 
 El **comportament** és el mateix que el de la fotografia guardada a l'etiqueta
 `abans-reorganitzacio`: la fase F2 només ha mogut fitxers i codi (veure F2 a §11). Les rutes
@@ -130,6 +132,7 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Zones de 5 m de Vic, l'Escala i el Vallès (fitxers ignorats pel Git) i pegats de detall | `dades/data_io.py`, `basecode/terrain.py` | F10 (`FET`) |
 | Ombres del relleu (shadow mapping) a la zona de 5 m | `basecode/ombres_relleu.py`, `shaders/ombra.*`, `terrain.frag` | F11 (`FET`) |
 | Arrencada a C1 − 1 h; cub de navegació amb parets; mirada amb el ratolí capturat; roda i trackpad | `main.py`, `dades/navegacio.py`, `basecode/paret_cub.py`, `basecode/control_ratoli.py` | F12 (`FET`) |
+| Edificis del Catastro a les zones de detall (opacs, tapen el Sol, fan ombra), "Mostrar edificis" | `dades/edificis.py`, `basecode/edificis.py`, `shaders/edifici.*` | F14 (`FET`) |
 | Mode pla del terreny i càmera orbital, per als scripts | `basecode/terrain.py`, `basecode/camera_orbital.py` | Funciona |
 | Scripts: descàrregues, caches, captura, exercici 1.0, validacions | `scripts/` | Funcionen |
 
@@ -167,7 +170,7 @@ Al repte 4 real, les classes pròpies (`Sphere`, `MeshObject`...) són dins de `
 el nostre projecte en té moltes, les posem en fitxers propis **afegits** a `basecode/`, tal com
 demanàveu inicialment, sense tocar-ne cap d'original.
 
-Estructura **actual** (després de la F12):
+Estructura **actual** (després de la F14):
 
 ```
 main.py                         GraphicsEngine: escena, temps, astres, cel i teclat
@@ -177,6 +180,7 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
   terrain.py                      Terrain (mode globus i mode pla)
   astres.py                       Esfera (Sol, halo) i Lluna
   ombres_relleu.py                OmbresRelleu (shadow mapping de la zona de 5 m)
+  edificis.py                     Edificis (volums del Catastro de la zona de detall)
   paret_cub.py                    ParetCub (parets translúcides del cub de navegació)
   control_ratoli.py               ControlRatoli (ratolí capturat, roda i trackpad)
   sol.py                          Sol (Light amb azimut i elevació)
@@ -186,10 +190,11 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
   programes.py                    carregar shaders amb #define
   shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra, paret (nostres)
 dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
-                                observador.py, navegacio.py, data_io.py, eclipse_data.py
+                                observador.py, navegacio.py, edificis.py, data_io.py, eclipse_data.py
 scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
                                 exercici_fotograma, validar_model, validar_ombra, prova_vistes,
-                                comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls
+                                comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls,
+                                descarregar_edificis, validar_edificis
 models/                         .obj, com al repte 4
 data/                           MDT, CNIG, efemerides, textures, cache (veure data/FONTS.md)
 docs/                           web de seguiment
@@ -1183,6 +1188,102 @@ distància.
 **Següent pendent:** les proves de l'equip; si es vol el pessic natiu, autoritzar PyObjC (D47); ancorar les
 ratlles de la paret al món (ara es mouen amb la càmera).
 
+### F14 — Edificis a les zones de detall (26/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 14.1 | N | Descàrrega i preparació (`scripts/descarregar_edificis.py`, `dades/edificis.py`) | `FET` |
+| 14.2 | N | Dibuix, opció "Mostrar edificis", fracció del Sol tapada (`basecode/edificis.py`, `shaders/edifici.*`, `ui.py`) | `FET` |
+| 14.3 | N | Els edificis projecten ombra al mapa d'ombres de la zona | `FET` (inspeccionat; no validat numèricament) |
+| 14.4 | N (prova) | `scripts/validar_edificis.py` | `FET` |
+| 14.5 | doc | README, `data/FONTS.md`, pla i web | `FET` |
+
+**Fonts investigades.** MDT (el sòl), MDS (superfícies superiors: edificis *i* vegetació) i geometria
+d'edificis (contorns separats del terreny) són coses diferents: no s'ha substituït el terreny per un MDS.
+- *Catastro INSPIRE, Buildings* (ATOM per municipi): contorns de les parts d'edifici (precisió declarada
+  0,1 m) i plantes sobre rasant. **Accessible i fet servir.** El servidor té un certificat de la FNMT que curl
+  no reconeix; Python (`requests`, amb `certifi`) sí.
+- *CNIG, MDS normalitzat d'edificació (2,5 m, LiDAR PNOA)*: altures d'edificis sobre el terra, la millor
+  font per a les altures. **No accessible:** el Centre de Descàrregues accepta la connexió però no respon;
+  el servei WCS d'elevacions de l'IGN només té MDT.
+- *ICGC (MDS costaner 0,5 m, LiDAR territorial 2021-2023)*: lliurament per enllaç per correu; no
+  automatitzable aquí.
+Per tant, les altures són **estimades** (plantes × 3 m), no mesurades.
+
+**Preparació** (`python scripts/descarregar_edificis.py`, ~2 min la primera vegada): municipis que toquen
+un cercle de 2 km al voltant de cada punt d'observació (amb el Sol entre 0 i 4 graus, un edifici de 30 m
+pot tapar-lo fins a ~1,7 km a 1 grau); parts amb almenys una planta; EPSG:25831 → EPSG:25830; una sola
+vegada cada part (identificador del Catastro). Resultat: Vallès 49.797 parts (compartides per la UAB,
+Cerdanyola i Montmeló), Vic 16.987, l'Escala 15.091, **Picos 0** (cap edifici a menys de 2 km: zona sense
+cobertura d'edificis). Plantes de 1 a 17 (Vallès), 13 (Vic, l'Escala).
+
+**Col·locació sobre el relleu** (`dades/edificis.py`). Altura sobre el sòl = plantes × 3,0 m. Cota del sòl
+de referència = mediana del MDT de 5 m als vèrtexs i al centre del contorn; cota de la coberta = referència
++ altura (absoluta, m). Les façanes baixen fins a 1 m per sota del punt més baix del terra sota l'edifici
+(del MDT o de la malla del terreny, la més baixa): no floten ni deixen escletxes en pendent. Desnivell del
+terra sota les parts: mediana 0,4 m, percentil 95 2,3 m (una incertesa més de la coberta). Coberta plana
+triangulada amb triangulació restringida (respecta els patis): a totes les parts del Vallès, l'àrea dels
+triangles és la del contorn. Malla en ECEF relativa a un origen (doble precisió a la CPU; float32 relatiu a
+la càmera a la GPU), profunditat logarítmica. Una zona carregada cada vegada: sense duplicats entre zones.
+
+**Ocultació del Sol.** Els edificis són opacs i escriuen la profunditat: tapen el disc del Sol i el halo
+(que es dibuixa després i no escriu profunditat) des de qualsevol càmera. El panell mostra quina part del
+Sol tapen des dels ulls amb un càlcul geomètric independent de la imatge: el perfil d'horitzó dels edificis
+(per a cada 0,01 graus d'azimut, l'angle més alt de les vores de les cobertes, mostrejades amb un pas
+angular més fi que l'interval, amb la curvatura i la convergència de meridians) i el disc del Sol mostrejat
+sencer, separant-ne la part que tapa la Lluna. Es distingeix de l'ombra que un edifici projecta al terra
+(14.3).
+- Dos errors trobats en fer-ho: el mostreig de les vores era cada 0,25 m com a mínim, i una façana a 3 m dels
+  ulls quedava plena de forats (patró d'ocultacions intermitents del 2–3 %); i el gir de la convergència
+  (azimut geogràfic = de quadrícula + convergència) tenia el signe al revés. Ara el càlcul aproximat
+  coincideix amb l'exacte en ECEF a ≤ 0,004° (Vic, l'Escala); al Vallès, 2 de 36.000 intervals difereixen a la
+  cantonada d'una façana a 3 m, on l'elevació salta.
+
+**Punts d'observació dins d'edificis (D53).** El geocodificador va donar la posició *de l'edifici* de
+l'ajuntament, i la plaça Cívica coincideix amb una part del Catastro de 2 plantes. No s'han mogut. Propostes
+(punt exterior més proper a més de 3 m de qualsevol façana): l'Escala 42,12479, 3,13237 (14 m); Cerdanyola
+41,49092, 2,14077 (11 m); Montmeló 41,55163, 2,24796 (9 m); UAB 41,50180, 2,10411 (21 m). Atenció: des
+d'aquests punts, tan a prop de les façanes, el Sol queda tapat per edificis gairebé tota la tarda; per veure'l,
+cal un punt en un espai més obert (p. ex., a la UAB, el punt de prova 41,50220, 2,10416, a 40 m de la plaça:
+Sol visible fins a les 20:24:55 i tapat per edificis al màxim). Vic (plaça Major) és fora dels edificis.
+
+**Comprovat automàticament** (`python scripts/validar_edificis.py`, ~1 min):
+- *Precisió geogràfica:* 72 edificis d'OpenStreetMap coincidents a 400 m de la UAB: solapament (IoU)
+  mediana 0,76, distància entre centres mediana 2,1 m, desplaçament mitjà (+1,15, −0,92) m (dins de la precisió
+  d'OSM, de pocs metres).
+- *Altures:* 10 parts a l'atzar tenen les plantes del GML original; 5 cobertes dibuixades són a la cota
+  calculada (≤ 0,1 mm, llegit del depth buffer). Referència independent: 10 edificis d'OSM amb
+  `building:levels`, 8 amb les mateixes plantes i 2 amb 1 de diferència. Les altures en metres **no** s'han
+  pogut contrastar amb una mesura (cap LiDAR accessible).
+- *Renderitzador:* fracció visible del disc del Sol a la imatge (píxels classificats per profunditat) contra
+  el càlcul geomètric, des dels ulls i des de la càmera d'exploració: UAB (punt de prova) visible 84,5/84,6 %,
+  parcial 6,8/6,8 % (Lluna 93,2 %, edificis 17,1 %), total 0,0/0,0 %; Vic visible 41,5/41,4 %, parcial
+  21,1/21,1 % (edificis 45,8 %), total 0/0 %; l'Escala, Cerdanyola i Montmeló (punts exteriors) totals 0/0 %.
+  El halo no canvia cap píxel de les façanes. Mostrar/amagar 4 vegades en pausa: imatges idèntiques, càmera
+  i hora iguals.
+- *Regressions:* `prova_vistes.py`, `prova_controls.py`, `validar_horitzo.py` i `validar_ombres_relleu.py`
+  correctes (les tres últimes comproven el relleu i hi amaguen els edificis); mode pla 0 píxels diferents;
+  exercici 1.0 `COINCIDEIX`; cap avís de textures.
+
+**Rendiment** (Vallès, el cas més gran; finestra amagada 640 × 640): 1.020.077 triangles, 37 MB de GPU;
+càrrega des de la memòria cau 0,02 s (la primera preparació, ~10 s, la fa l'script); perfil des dels ulls
+0,3–1,0 s un cop per punt; temps per fotograma 7,3 ms sense edificis i 8,8 ms amb. Vic: 314.741 triangles,
+l'Escala 305.648. No calen nivells de detall amb aquesta mida.
+
+**Inspeccionat visualment:** vista aèria de Cerdanyola i de Vic amb edificis i sense (assentats, sense flotar);
+Vic, Sol visible, parcial i total amb edificis i sense; ombres d'edificis a Vic.
+
+**Limitacions:** altures estimades (±20–30 %; cobertes planes, sense ampits ni teulades inclinades);
+sense arbres (el MDT és terra nu i no s'ha fet servir cap MDS); el Sol es dibuixa a la posició geomètrica
+(sense refracció), de manera que a prop de l'horitzó l'ocultació real per edificis pot començar uns minuts
+més tard; només 2 km al voltant dels punts; els edificis no reben ombres; al mapa d'ombres, els de menys de
+~12 m no en fan (a la UAB, el 0,2 % del terra d'una vista aèria; a Vic, el 34,6 %).
+
+**Provat per l'equip:** encara no. Proves manuals: (1) a Vic, cap a les 20:15–20:20, mirar el Sol des de la
+plaça Major amb zoom i veure com hi entra l'edifici; (2) "Mostrar edificis" en pausa, diverses vegades;
+(3) explorar Cerdanyola i Vic des de l'aire; (4) decidir els punts exteriors de l'Escala, Cerdanyola,
+Montmeló i la UAB.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -1221,3 +1322,4 @@ ratlles de la paret al món (ara es mouen amb la càmera).
 | 26/10/2026 | Segona prova de l'equip: l'interruptor de les ombres del relleu funciona (11.7 `VALIDAT`). |
 | 26/10/2026 | F12 (petició de l'equip): arrencada a C1 − 1 h, cub de navegació (1,647 UA), mirada amb el ratolí capturat, roda i trackpad, correcció del halo (12.0). D44–D47. Commits locals, sense push. |
 | 26/10/2026 | La F13 (mirada fixa al món, E/Q segons la mirada, Mirar/Apropar-s'hi, velocitat segons l'astre més proper, parets amagades) **revertida a petició de l'equip**: els controls nous no eren intuïtius i preferia els d'abans, amb les tecles. Es torna a l'estat de la F12 (commits de revert, sense reescriure l'historial). |
+| 26/10/2026 | F14 (petició de l'equip): edificis del Catastro INSPIRE a les zones de detall (Vallès, Vic, l'Escala; Picos sense edificis a 2 km), dibuixats i opacs, "Mostrar edificis", part del Sol tapada, ombres dels edificis al mapa, `validar_edificis.py`. D52–D53. Quatre punts d'observació dins d'edificis: propostes pendents de l'equip. Commits locals, sense push. |

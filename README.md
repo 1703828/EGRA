@@ -136,6 +136,18 @@ vèrtex cada ~20 m) i, en ~2,5 km al voltant del punt, un vèrtex per cada píxe
 nivell, l'altura passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels
 triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
 
+### Edificis
+
+A les zones de detall amb dades (el Vallès —UAB, Cerdanyola i Montmeló—, Vic i l'Escala; a Picos no n'hi ha
+cap a menys de 2 km), els edificis del Catastro es dibuixen com a volums amb coberta plana i façanes,
+assentats sobre el relleu. Són opacs i escriuen la profunditat com la resta de l'escena, de manera que tapen
+el Sol (i el halo) des del terra i des de l'exploració. L'opció **Mostrar edificis** (panell, activada) els
+amaga i mostra sense canviar ni la càmera ni l'hora, i el panell diu quina part del Sol tapen des dels ulls
+(càlcul geomètric amb el disc sencer, separat de la part que tapa la Lluna). Les **altures són estimades**:
+plantes del Catastro × 3 m (incertesa ~±20–30 %). Els edificis de més de ~12 m també fan ombra al terra
+(mapa d'ombres de la zona de 5 m). Atenció: quatre punts d'observació (els tres ajuntaments i la plaça Cívica)
+cauen dins d'un edifici del Catastro; vegeu el pla (F14) per a les propostes de punts exteriors.
+
 ### Ombres del relleu
 
 Dins de la zona de 5 m de l'observador (16 km al voltant del punt), les muntanyes fan ombra amb la
@@ -191,19 +203,21 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
   ombres_relleu.py       Ombres del relleu (shadow mapping) a la zona de 5 m
   paret_cub.py           Les parets translúcides del cub de navegació
+  edificis.py            Els edificis (volums opacs) de la zona de detall
   control_ratoli.py      Ratolí capturat per mirar, roda i trackpad
   sol.py                 La llum de l'escena (Light del basecode)
   camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
   camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
   camera_orbital.py      Càmera orbital del mode pla (només per als scripts)
   programes.py           Carrega shaders amb opcions (#define)
-  shaders/               gouraud i phong (originals); terrain, terra, esfera, ombra i paret (nostres)
+  shaders/               gouraud i phong (originals); terrain, terra, esfera, ombra, paret i edifici (nostres)
 dades/                   Lectura i càlcul de dades, sense OpenGL:
   efemerides.py          Posicions del Sol i la Lluna en coordenades terrestres
   geodesia.py            Latitud, longitud i altitud <-> coordenades terrestres (WGS84)
   model_eclipsi.py       Part del Sol tapada, contactes i centre de l'ombra
   observador.py          La ubicació de l'observador i la llista d'ubicacions
   navegacio.py           El cub de navegació (límits de la càmera d'exploració)
+  edificis.py            Edificis: altures estimades, cotes, malla i ocultació del Sol (sense OpenGL)
   data_io.py             Lectura dels MDT, neteja de les dades i fitxers auxiliars (data/cache/)
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
 scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
@@ -251,7 +265,12 @@ data/
     Eclipses_2026.gpkg              Corbes de nivell (durada, enfosquiment, avanç de l'ombra)
     LLEGENDA.md                     Què conté cada banda, classe i capa
     doc/                            Documentació original del CNIG
-  cache/                (no es puja al git) fitxers que genera el programa
+  edificis/             (no es puja al git) edificis del Catastro de les zones de detall
+    catastro/             ZIP originals per municipi (~45 MB)
+    valles.gpkg, vic.gpkg, escala.gpkg, picos.gpkg   parts d'edifici a 2 km dels punts (EPSG:25830)
+  nasa/
+    circumstancies_nasa.csv          Resultats del calculador de la NASA (comprovació externa)
+  cache/                (no es puja al git) fitxers que genera el programa (també la malla dels edificis)
 ```
 
 - Els MDT de `data/mdt/` provenen del **servei WCS de l'IGN**. El mar i les zones de fora d'Espanya
@@ -278,6 +297,8 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
 | `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `descarregar_edificis.py` | Baixa els edificis del Catastro de les zones de detall i en prepara les dades i la malla (`data/edificis/`, `data/cache/`) |
+| `validar_edificis.py` | Edificis: contorns contra OpenStreetMap, plantes contra la font, cobertes a la cota calculada, Sol visible/parcial/total a la imatge contra el càlcul geomètric, halo, interruptor, rendiment |
 | `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat, panell, P i roda |
 | `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |
 | `validar_horitzo.py` | Horitzó cap al Sol a les sis ubicacions: calculat sobre el MDT i sobre els triangles dibuixats, i llegit de la imatge; si el relleu tapa el Sol al màxim |
@@ -315,6 +336,8 @@ python scripts/captura.py data/mdt/peninsula_200m.tif captures/peninsula.png --o
 - **Posicions del Sol i la Lluna**: JPL Horizons (NASA/JPL), `https://ssd.jpl.nasa.gov/horizons/`.
 - **Comprovació externa**: calculador de circumstàncies locals de la NASA. "Eclipse Predictions by Fred
   Espenak, NASA's GSFC"; calculador de Xavier Jubier.
+- **Edificis**: Catastro INSPIRE (Dirección General del Catastro), descarregats el 26/10/2026; detall a
+  `data/FONTS.md`.
 - **Coordenades de les ubicacions**: geocodificador de l'ICGC i OpenStreetMap (© col·laboradors
   d'OpenStreetMap, ODbL).
 - **Textures**: NASA Visible Earth ("Blue Marble", la Terra) i NASA SVS ("CGI Moon Kit", la Lluna),

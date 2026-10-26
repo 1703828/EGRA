@@ -19,6 +19,7 @@ Preparacio (per a cada zona de detall):
      prop de dos punts (UAB i Cerdanyola) nomes hi es una vegada (identificador unic del Catastro).
   5. Es desa data/edificis/<zona>.gpkg (capa "parts") amb l'identificador, l'edifici, les plantes, l'us de
      l'edifici i la data de la darrera versio.
+  6. Es prepara la malla a data/cache/edificis_<zona>.npz (dades/edificis.py, preparar_malla).
 
 Executa (des de l'arrel, amb l'entorn egra):
     python scripts/descarregar_edificis.py             # totes les zones
@@ -38,7 +39,8 @@ from shapely.ops import unary_union
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
 from dades.observador import UBICACIONS  # noqa: E402
-from dades.edificis import DIR_EDIFICIS, fitxer_zona, ZONA_DE_LA_UBICACIO  # noqa: E402
+from dades.edificis import DIR_EDIFICIS, fitxer_zona, ZONA_DE_LA_UBICACIO, preparar_malla  # noqa: E402
+from dades.data_io import ZONES_DETALL  # noqa: E402
 
 DIR_ZIPS = os.path.join(DIR_EDIFICIS, 'catastro')
 URL = 'https://www.catastro.hacienda.gob.es/INSPIRE/Buildings/{prov}/{codi}-{nom}/A.ES.SDGC.BU.{codi}.zip'
@@ -112,6 +114,12 @@ def preparar(zona):
         os.remove(sortida)
     parts.to_file(sortida, layer='parts', driver='GPKG')
     print(f'  desat {sortida}')
+    # 6. la malla (cotes sobre el MDT de la zona, triangles en ECEF) a la memoria cau, perque el programa no
+    #    s'aturi a calcular-la la primera vegada que carrega la zona
+    cami_mdt = next(c for _, c, z in ZONES_DETALL if z == zona)
+    if os.path.exists(cami_mdt):
+        m = preparar_malla(zona, cami_mdt)
+        print(f"  malla: {int(m['n_parts'])} parts, {len(m['triangles']):,} triangles (data/cache/edificis_{zona}.npz)")
 
 
 def main():

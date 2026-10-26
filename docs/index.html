@@ -12,7 +12,7 @@
 
 <h1>Simulació de l'eclipsi del 12/08/2026 sobre terreny real</h1>
 <p class="subtitol">Projecte d'Entorns Gràfics (EGRA) · Alícia Martí, Oriol Mota i Elena Gutiérrez ·
-  Web de seguiment, versió local 6 (26/10/2026)</p>
+  Web de seguiment, versió local 7 (26/10/2026)</p>
 
 <p>Volem veure l'eclipsi total de Sol del 12 d'agost de 2026 sobre el relleu real d'Espanya: explorar
   el terreny des de fora i, després, situar-nos en un punt concret, a l'altura dels ulls, per veure com
@@ -74,6 +74,7 @@
   <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Només dins de la zona de 5 m de l'observador (tasca 6.1).</td></tr>
   <tr><td>Anell de relleu de 25 m fins a ~100 km</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara, entre la zona de 5 m i els ~100 km, el relleu és el de 200 m (tasca 4.3).</td></tr>
   <tr><td>Espai de navegació limitat (cub amb parets translúcides) i mirada amb el ratolí capturat</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Pendent de la prova de l'equip amb el ratolí i el trackpad (F12).</td></tr>
+  <tr><td>Edificis del Catastro a les zones de detall, que poden tapar el Sol</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Vallès, Vic i l'Escala (a Picos no n'hi ha a 2 km). Altures estimades (plantes × 3 m). F14.</td></tr>
   <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
 </table></div>
 
@@ -89,6 +90,12 @@
   <span class="frase">Tenir el relleu real de les zones que ens interessen, amb prou detall i de manera
   que es pugui tornar a descarregar.</span></summary>
 <div class="cos">
+  <p><span class="rotul">Edificis (F14).</span> El MDT és el terra nu. Un <dfn>MDS</dfn> (model digital de
+    superfícies) inclou edificis <em>i</em> arbres, i no serveix per saber què és un edifici. Per això fem
+    servir una geometria d'edificis a part: les <dfn>parts d'edifici</dfn> del Catastro (servei INSPIRE, un
+    fitxer per municipi), cadascuna amb el seu contorn i el nombre de plantes sobre rasant. El Catastro no dona
+    l'altura en metres, i el model d'altures LiDAR del CNIG (edificis sobre el terra, 2,5 m) no ha estat
+    accessible: l'altura és una <em>estimació</em>, plantes × 3 m (±20–30 %).</p>
   <figure class="costat"><img src="img/picos_relleu.jpg" alt="Relleu de Picos de Europa" loading="lazy">
     <figcaption>Picos de Europa a partir del MDT de 5 m, il·luminat amb el Sol en el moment del màxim
       (azimut 281,4°, elevació 9,6°, segons el CNIG). L'altura està exagerada 1,41 vegades, el valor per
@@ -123,6 +130,7 @@
       <li data-estat="fet">Cada font de <code>data/</code> (MDT, CNIG, efemèrides, textures) té la procedència, la llicència i la comanda a <a href="../data/FONTS.md"><code>data/FONTS.md</code></a> (falten les sumes sha256).</li>
       <li data-estat="fet">Els MDT nous van a <code>data/mdt/zones/</code>, que el Git ignora; Picos continua versionat (tasca 4.1).</li>
       <li data-estat="fet">Zones de 5 m del Vallès (Cerdanyola, UAB, Montmeló), de Vic i de l'Escala, carregades a la prova de les sis ubicacions (tasques 4.3 i 4.4, F10).</li>
+      <li data-estat="fet">Edificis del Catastro INSPIRE a 2 km dels punts d'observació: Vallès 49.797 parts (compartides per la UAB, Cerdanyola i Montmeló, sense duplicats), Vic 16.987, l'Escala 15.091; Picos, cap (zona sense edificis). Procedència i reproducció a <a href="../data/FONTS.md"><code>data/FONTS.md</code></a> (<code>scripts/descarregar_edificis.py</code>).</li>
       <li data-estat="pendent">Anell de 25 m fins a ~100 km al voltant del Vallès (tasca 4.3; ara hi ha el relleu de 200 m).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> el servei de l'IGN només té Espanya (Portugal i França
@@ -216,6 +224,13 @@
       <li data-estat="fet">L'horitzó llegit de la imatge (depth buffer, zoom de 2°) coincideix amb el calculat sobre els triangles dibuixats a ≤ 0,006° a les sis ubicacions, en l'azimut del Sol al màxim (<code>scripts/validar_horitzo.py</code>; objectiu 0,05°).</li>
       <li data-estat="fet">Pujant fins a 20.000 km, cada píxel cau sobre la superfície dibuixada i cap no es veu per sota (sense forats entre nivells ni l'interior del globus), a les sis ubicacions (<code>scripts/prova_vistes.py</code>).</li>
     </ul>
+    <figure class="costat"><img src="img/edificis_vic_aeria.jpg" alt="El centre de Vic amb els edificis del Catastro, vist des de l'aire" loading="lazy">
+      <figcaption>El centre de Vic des de ~350 m, amb els edificis del Catastro assentats sobre el relleu.</figcaption></figure>
+    <p><span class="rotul">Edificis sobre el relleu:</span> cada part té una cota del sòl de referència (la
+      mediana del MDT sota el contorn) i la coberta a referència + altura; les façanes baixen fins a 1 m per
+      sota del punt més baix del terra, perquè en pendent no quedin escletxes ni l'edifici floti. Coberta plana
+      triangulada respectant els patis. Comprovat: 5 cobertes dibuixades a la cota calculada (≤ 0,1 mm) i, a
+      la UAB, els contorns coincideixen amb els d'OpenStreetMap a 2,1 m (mediana; 72 edificis).</p>
     <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); entre la zona de 5 m i els ~100 km el relleu és el de 200 m; fora del pegat de ~2,5 km la malla de la zona té un vèrtex cada ~20 m, i l'horitzó d'una carena a 1–6 km pot quedar fins a 0,07° més baix que el del MDT complet (UAB, Cerdanyola, Vic); fora d'Espanya no hi ha relleu; només es manté carregada la zona de 5 m de l'observador.</p>
   </div>
 </div></details>
@@ -303,6 +318,7 @@
       <li data-estat="fet">Arrencada pausada exactament a C1 − 1 h (18:31:39 a Picos); canviar d'ubicació no canvia l'hora (prova automàtica, F12).</li>
       <li data-estat="fet">Ratolí capturat: el moviment relatiu gira la mirada, sense moviment no canvia, la inclinació es limita a ±89°, tornar a capturar no fa salts, perdre el focus i Esc alliberen, el panell no mou la càmera (prova automàtica amb el moviment simulat; la captura real del cursor no es pot provar sense focus).</li>
       <li data-estat="pendent">Prova de l'equip del ratolí capturat (clic, Esc, Cmd+Tab, doble clic).</li>
+      <li data-estat="pendent">Quatre punts d'observació cauen dins d'un edifici del Catastro (els ajuntaments de l'Escala, Cerdanyola i Montmeló, perquè el geocodificador dona la posició de l'edifici, i la plaça Cívica de la UAB). No s'han mogut: hi ha punts exteriors proposats al pla (F14), pendents de l'equip. Vic és fora dels edificis.</li>
       <li data-estat="validat">Prova de l'equip (26/10): a Vic, el terreny és correcte mirant al voltant i cap avall, la mirada es queda fixa reproduint i <em>Tornar al punt d'observació</em> torna al lloc correcte; a Picos, la seqüència completa funciona; Cerdanyola, Montmeló i la UAB, sense problemes.</li>
     </ul>
     <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
@@ -406,6 +422,18 @@
     <figcaption>Picos 30 minuts abans del màxim, amb el Sol a l'oest (15° d'elevació) i la càmera mirant a
       l'est. Esquerra: el programa. Dreta: el factor d'ombra que calcula el shadow mapping (blanc, hi arriba
       el Sol; negre, una muntanya el tapa), el mode de depuració que fa servir la validació.</figcaption></figure>
+  <figure><img src="img/edificis_sol_vic.jpg" alt="Vic: el Sol visible, parcialment i totalment tapat per edificis" loading="lazy">
+    <figcaption>Vic, plaça Major, mirant el Sol amb zoom (camp de visió de 2°), amb edificis (esquerra) i sense
+      (dreta), el mateix enquadrament: a les 20:10 el Sol és visible (la Lluna en tapa el 58 %); a les 20:18
+      un edifici en tapa una part; a les 20:25, tot.</figcaption></figure>
+  <p><span class="rotul">Edificis (F14).</span> Els edificis són opacs i escriuen la profunditat com la resta de
+    l'escena: tapen el disc del Sol i el halo des del terra i des de l'exploració, sense cap superposició
+    especial. Per saber quina part del Sol tapen, el programa fa un càlcul geomètric a part de la imatge: el
+    <dfn>perfil d'horitzó</dfn> dels edificis vist des dels ulls (l'angle més alt de les cobertes per a cada
+    0,01° d'azimut) comparat amb tot el disc del Sol, no només amb el centre, i separat de la part que tapa
+    la Lluna. Així es distingeix el Sol visible, parcialment tapat i totalment tapat. Que un edifici tapi el
+    Sol des d'un punt és diferent de l'ombra que projecta al terra; aquesta l'afegeix el mapa d'ombres, però
+    només per als edificis de més de ~12 m.</p>
   <p>Cal distingir tres coses: l'<dfn>ombra de la Lluna</dfn> (la Lluna tapa part del Sol a tota una
     regió, <a href="#o1-8">O1.8</a>); l'<dfn>ombra del relleu</dfn> (una muntanya tapa el Sol a un tros de
     terreny, aquest apartat); i l'<dfn>ocultació del Sol pel relleu</dfn> vista des de l'observador (si
@@ -433,9 +461,15 @@
       <li data-estat="fet">Ocultació del Sol pel relleu des de l'observador al màxim: classe 3 (no el tapa) a Vic, Cerdanyola, Montmeló i la UAB, com el CNIG; a l'Escala, el terreny a 100 m de l'ajuntament fa un horitzó de 6,4° que el tapa (el CNIG, amb cel·les de ~230 m, diu 3); a Picos, classe 3 contra 1 del CNIG (<code>scripts/validar_horitzo.py</code>).</li>
       <li data-estat="validat">Prova de l'equip (26/10): a l'Escala, al màxim, el relleu tapa el Sol.</li>
       <li data-estat="fet">L'interruptor d'<em>Avançat</em> encén i apaga les ombres totes les vegades, també en pausa (correcció 11.7; prova automàtica a les sis ubicacions).</li>
+      <li data-estat="fet">Edificis: la part visible del Sol a la imatge coincideix amb el càlcul geomètric a ≤ 0,2 punts, des dels ulls i des de l'exploració: UAB (punt de prova) visible 84,5 %, parcial 6,8 %, total 0 %; Vic visible 41,5 %, parcial 21,1 %, total 0 %; l'Escala, Cerdanyola i Montmeló, totals. El halo no canvia cap píxel de les façanes (<code>scripts/validar_edificis.py</code>).</li>
+      <li data-estat="fet">Mostrar i amagar els edificis quatre vegades en pausa dona les mateixes imatges i no mou ni la càmera ni l'hora (prova automàtica).</li>
+      <li data-estat="pendent">Prova de l'equip dels edificis: a Vic, cap a les 20:15–20:20, veure com l'edifici entra davant del Sol.</li>
       <li data-estat="validat">Prova de l'equip de l'interruptor d'<em>Avançat</em> (26/10, segona prova, després de la correcció 11.7): ara funciona. A la primera prova només funcionava la primera vegada.</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> només la zona de 5 m projecta i rep ombres (en 16 km al voltant del punt); obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
+    <p><span class="rotul">Limitacions:</span> altures dels edificis estimades i no mesurades (cobertes planes;
+      sense arbres); el Sol es dibuixa a la seva posició geomètrica (sense refracció), i a prop de l'horitzó
+      l'ocultació real per edificis podria començar uns minuts més tard; els edificis no reben ombres; només la
+      zona de 5 m projecta i rep ombres (en 16 km al voltant del punt); obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
   </div>
 </div></details>
 
@@ -459,6 +493,8 @@
       <li data-estat="validat">Panell i barra de temps funcionen amb la finestra (prova de l'equip, versió anterior).</li>
       <li data-estat="pendent">Prova de l'equip del panell nou.</li>
     </ul>
+    <p>L'opció <em>Mostrar edificis</em> (activada a les zones amb edificis) els amaga i mostra sense canviar la
+      càmera ni l'hora, i el panell diu quina part del Sol tapen des dels ulls.</p>
     <p><span class="rotul">Limitacions:</span> la font de slimgui no mostra bé els accents. El gest de pessigar
       del trackpad no arriba al programa: la biblioteca GLFW que fem servir a macOS implementa el lliscament amb
       dos dits (<code>scrollWheel:</code>) però no el pessic (<code>magnifyWithEvent:</code>); l'alternativa és
