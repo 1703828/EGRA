@@ -12,13 +12,11 @@ Rumb = graus des del nord en sentit horari; inclinacio = graus sobre l'horitzo d
 import glm
 from slimgui import imgui
 
-from .control_ratoli import SENSIBILITAT
-
-from .camera_exploracio import matrius
+from .control_ratoli import graus_per_punt
+from .camera_exploracio import matrius, limitar_orientacio
 
 FOV = 60.0               # angle de visio vertical sense zoom (graus)
 FOV_MIN = 1.5            # zoom maxim: el Sol ocupa un terc de la pantalla
-VELOCITAT_RATOLI = 0.15  # graus per pixel arrossegat
 
 
 class CameraObservador:
@@ -30,17 +28,21 @@ class CameraObservador:
         self.posicio = app.ulls()
 
     def girar_ratoli(self, dx, dy):
-        """Moviment del ratoli capturat (punts de pantalla): mateixa sensibilitat que en arrossegar, i menor
-        amb zoom. Cap inercia: la mirada nomes canvia quan el ratoli es mou."""
-        v = SENSIBILITAT * self.fov / FOV
+        """Moviment del ratoli (punts de pantalla), capturat o arrossegant: menys graus amb zoom (com uns
+        prismatics). Cap inercia: la mirada nomes canvia quan el ratoli es mou."""
+        v = graus_per_punt(self.fov, FOV)
         self.girar(dx * v, -dy * v)
 
     def girar(self, d_rumb, d_inclinacio):
-        self.rumb = (self.rumb + d_rumb) % 360.0
-        self.inclinacio = min(max(self.inclinacio + d_inclinacio, -89.0), 89.0)
+        self.mirar(self.rumb + d_rumb, self.inclinacio + d_inclinacio)
 
     def mirar(self, rumb, inclinacio):
-        self.rumb, self.inclinacio = rumb % 360.0, inclinacio
+        """Mirada nova (des del ratoli, les fletxes o un boto): rumb normalitzat i inclinacio limitada."""
+        o = limitar_orientacio(rumb, inclinacio)
+        if o is not None:
+            self.rumb, self.inclinacio = o
+
+    orientar = mirar
 
     def zoom(self):
         return FOV / self.fov
@@ -56,9 +58,8 @@ class CameraObservador:
             return
         if imgui.is_mouse_dragging(imgui.MouseButton.LEFT, 0.0):
             dx, dy = io.mouse_delta
-            if dx or dy:  # amb zoom, el ratoli gira menys (com amb uns prismatics)
-                v = VELOCITAT_RATOLI * self.fov / FOV
-                self.girar(dx * v, -dy * v)
+            if dx or dy:
+                self.girar_ratoli(dx, dy)
 
     def update(self):
         self.posicio = self.app.ulls()

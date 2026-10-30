@@ -59,6 +59,8 @@ def main():
 
     W, H = 640, 640
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - edificis', use_ui_panel=True)
+    app.edificis_aeris = True   # aqui la camera d'exploracio fa de referencia: tambe amb els edificis
+    app.mosaic.actiu = False    # sense la fotografia aeria, que arriba a mesura que es baixa: escena quieta
     objectiu = app.ctx.simple_framebuffer((W, H))
     co, ce = app.camera_observador, app.camera_exploracio
     errors = []

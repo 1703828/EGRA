@@ -67,7 +67,7 @@ class OmbresRelleu:
         dibuixen: no hi ha cap copia de la geometria)."""
         if clau not in self.vaos:
             self.vaos[clau] = self.ctx.vertex_array(
-                self.programa, [(vbo, '2f 3f 3f 12x', 'in_uv', 'in_offset', 'in_amunt'), (vbo_h, '1f', 'in_h')],
+                self.programa, [(vbo, '2f 3f 3f 20x', 'in_uv', 'in_offset', 'in_amunt'), (vbo_h, '1f', 'in_h')],
                 index_buffer=ibo)
         return self.vaos[clau]
 
@@ -138,7 +138,7 @@ class OmbresRelleu:
                 # els edificis tambe fan ombra: la seva posicio va a in_offset (relativa al seu origen); els
                 # atributs que no es lliguen (in_amunt, in_h, in_uv) valen 0
                 if 'edificis' not in self.vaos:
-                    self.vaos['edificis'] = self.ctx.vertex_array(self.programa, [(edificis.vbo, '3f', 'in_offset')])
+                    self.vaos['edificis'] = self.ctx.vertex_array(self.programa, [(edificis.vbo, '3f 16x', 'in_offset')])
                 sp['origen'].write(glm.vec3(*(edificis.origen_ecef - self.ancora)))
                 sp['n_forats'].value = 0
                 self.vaos['edificis'].render()

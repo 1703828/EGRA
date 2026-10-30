@@ -39,6 +39,20 @@ ZONES_DETALL = [
     ("L'Escala", os.path.join(DIR_ZONES, 'escala_5m.tif'), 'escala'),
     ('Valles (Cerdanyola, UAB, Montmelo)', os.path.join(DIR_ZONES, 'valles_5m.tif'), 'valles'),
 ]
+DIR_ORTOFOTO = os.path.join(DIR_DADES, 'ortofoto')   # ortofotos del PNOA (scripts/descarregar_ortofoto.py)
+
+
+def ortofotos(zona):
+    """(cami de l'ortofoto de tota la zona o None, [(cami, limits UTM)] de les de detall) d'una zona de detall."""
+    import glob
+    general = next(iter(sorted(glob.glob(os.path.join(DIR_ORTOFOTO, f'{zona}_[0-9]*m.tif')))), None)
+    detalls = []
+    for cami in sorted(glob.glob(os.path.join(DIR_ORTOFOTO, f'{zona}_*_0p5m.tif'))):
+        with rasterio.open(cami) as f:
+            detalls.append((cami, f.bounds))
+    return general, detalls
+
+
 VERSIO_CACHE = 5  # canviar-la si canvia la manera de calcular els derivats (invalida les caches)
 
 

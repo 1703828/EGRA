@@ -223,7 +223,7 @@ def main():
         ulls, mirada, h0 = co.posicio.copy(), (co.rumb, co.inclinacio), app.hora
         app.reproduir_pausar()
         fotograma(30)
-        ok(app.reproduint and app.hora > h0 and np.allclose(co.posicio, ulls)
+        ok(app.reproduint and app.hora > h0 and (np.linalg.norm(co.posicio - ulls) < 1e-9)
            and (co.rumb, co.inclinacio) == mirada, 'reproduint: el temps avanca i els ulls i la mirada no es mouen')
         app.reproduir_pausar()
         h1 = app.hora
@@ -236,6 +236,8 @@ def main():
         app.canviar_vista(0)
         ce.inclinacio = -60.0
         alcades, pitjor, fora, esquena, n_total = [], (0.0, 0.0), 0, 0, 0
+        if app.edificis is not None:      # la comprovacio es del relleu: els edificis no hi son superficie
+            app.edificis.visible = False
         for i in range(60):
             ce.avancar(-1.0)
             fotograma()
@@ -250,6 +252,8 @@ def main():
                     captures.append((imatge(), f'{nom}  explorant a {alcada:,.0f} km'))
             if alcada > 20000:
                 break
+        if app.edificis is not None:
+            app.edificis.visible = app.mostrar_edificis
         ok(alcades == [50, 800, 20000] and app.hora == h1,
            f'allunyar-se fins a {ce.alcada_sobre_terra():,.0f} km sense canviar l\'hora')
         for e in exemples[:3]:
@@ -266,14 +270,14 @@ def main():
         app.hora = h1
         app.tornar_al_punt()
         fotograma()
-        ok(app.vista == 1 and np.allclose(co.posicio, ulls, atol=1e-9) and (co.rumb, co.inclinacio) == mirada,
+        ok(app.vista == 1 and (np.linalg.norm(co.posicio - ulls) < 1e-9) and (co.rumb, co.inclinacio) == mirada,
            "tornar al punt d'observacio: els mateixos ulls i la mateixa mirada")
 
         # 5. anar al maxim
         pos = co.posicio.copy()
         app.anar_al_maxim()
         fotograma()
-        ok(app.hora == m.hores['maxim'] and not app.reproduint and np.allclose(co.posicio, pos),
+        ok(app.hora == m.hores['maxim'] and not app.reproduint and (np.linalg.norm(co.posicio - pos) < 1e-9),
            f"anar al maxim: {eclipse_data.hora_local(app.hora)}, pausat, la camera no es mou")
 
         # 6. l'ombra a hores representatives: brillantor del terra mirant avall cap al Sol
@@ -419,15 +423,15 @@ def bucle_real(app, programa, ok):
     e = estat
     ok(e['inici']['vista'] == 1 and app.nom_zona is not None,
        f"1-2. ubicacio triada ({nom}) i vista d'observacio als ulls")
-    ok(e['fletxes']['mirada'][0] != e['inici']['mirada'][0] and np.allclose(e['fletxes']['ulls'], e['inici']['ulls']),
+    ok(e['fletxes']['mirada'][0] != e['inici']['mirada'][0] and (np.linalg.norm(e['fletxes']['ulls'] - e['inici']['ulls']) < 1e-9),
        f"3. fletxa dreta: el rumb passa de {e['inici']['mirada'][0]:.1f} a {e['fletxes']['mirada'][0]:.1f} graus "
        f"i els ulls no es mouen")
-    ok(e['ratoli']['mirada'] != e['fletxes']['mirada'] and np.allclose(e['ratoli']['ulls'], e['inici']['ulls']),
+    ok(e['ratoli']['mirada'] != e['fletxes']['mirada'] and (np.linalg.norm(e['ratoli']['ulls'] - e['inici']['ulls']) < 1e-9),
        f"3. arrossegar el ratoli: la mirada passa a ({e['ratoli']['mirada'][0]:.1f}, {e['ratoli']['mirada'][1]:.1f}) "
        f"graus i els ulls no es mouen")
     r, p, pd = e['reproduint'], e['pausa'], e['pausa_despres']
     ok(r['reproduint'] and r['hora'] > e['ratoli']['hora'] and r['mirada'] == e['ratoli']['mirada']
-       and np.allclose(r['ulls'], e['inici']['ulls']),
+       and (np.linalg.norm(r['ulls'] - e['inici']['ulls']) < 1e-9),
        '4. tecla P: el temps avanca i la mirada (que no segueix el Sol) i els ulls es queden')
     ok(not p['reproduint'] and pd['hora'] == p['hora'], '4. tecla P altra vegada: el temps es congela')
     x, s, sr = e['exploracio'], e['espai'], e['espai_reproduint']
@@ -441,7 +445,7 @@ def bucle_real(app, programa, ok):
        and sr['cam_mirada'] == s['cam_mirada'],
        "6. tecla P a l'espai: el temps avanca i la camera no es mou ni gira")
     t = e['tornada']
-    ok(t['vista'] == 1 and np.allclose(t['ulls'], e['inici']['ulls']) and t['mirada'] == e['ratoli']['mirada'],
+    ok(t['vista'] == 1 and (np.linalg.norm(t['ulls'] - e['inici']['ulls']) < 1e-9) and t['mirada'] == e['ratoli']['mirada'],
        "7. tornar al punt d'observacio: els mateixos ulls i la mirada que s'havia deixat")
     ok(e['esc'] is False and n[0] >= len(passos),
        'Esc amb el ratoli capturat: l\'allibera i el programa continua (amb el ratoli lliure, Esc tanca, com abans)')

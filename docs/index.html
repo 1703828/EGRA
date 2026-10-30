@@ -73,9 +73,11 @@
   <tr><td>Ubicacions amb coordenades verificades (ICGC i OpenStreetMap)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Plaça Major de Vic, ajuntaments de l'Escala, Cerdanyola i Montmeló, plaça Cívica de la UAB (tasca 0.3).</td></tr>
   <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Només dins de la zona de 5 m de l'observador (tasca 6.1).</td></tr>
   <tr><td>Anell de relleu de 25 m fins a ~100 km</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara, entre la zona de 5 m i els ~100 km, el relleu és el de 200 m (tasca 4.3).</td></tr>
-  <tr><td>Espai de navegació limitat (cub amb parets translúcides) i mirada amb el ratolí capturat</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Pendent de la prova de l'equip amb el ratolí i el trackpad (F12).</td></tr>
+  <tr><td>Espai de navegació limitat (cub amb parets translúcides) i mirada amb el ratolí capturat</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Tab captura i allibera el ratolí (F15). Pendent de la prova de l'equip amb el ratolí i el trackpad.</td></tr>
+  <tr><td>Allunyar-se fins a l'espai per una trajectòria guiada (la roda fa de progrés)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Del punt a la Terra, Terra–Lluna i el Sol, a escala real. F15; pendent de la prova de l'equip.</td></tr>
   <tr><td>Edificis del Catastro a les zones de detall, que poden tapar el Sol</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Vallès, Vic i l'Escala (a Picos no n'hi ha a 2 km). Altures estimades (plantes × 3 m). F14.</td></tr>
   <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
+  <tr><td>Mapa de visibilitat de l'eclipsi (relleu i edificis, estàtic i dinàmic; 2026, 2027 i 2028)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Objectiu O3 (proposta, D79).</td></tr>
 </table></div>
 
 <!-- ======================================================================= O1 -->
@@ -211,8 +213,22 @@
   <figure class="costat"><img src="img/escala_4km.jpg" alt="L'Escala des de 4 km" loading="lazy">
     <figcaption>L'Escala des de 4 km (zona de 5 m): el mar de la zona passa al del globus sense que es
       vegi on acaba.</figcaption></figure>
+  <figure class="costat"><img src="img/fotografia_aeria_vic.jpg" alt="Vic des de 1,4 km amb la fotografia aèria" loading="lazy">
+    <figcaption>Vic des d'1,4 km, inclinat 35° (com l'enllaç de Google Earth de l'equip), amb la fotografia aèria
+      carregada per teselles (F21).</figcaption></figure>
+  <p><span class="rotul">Fotografia aèria a tot arreu (F21):</span> el color del terra i de la Terra és la
+    fotografia aèria del PNOA (Espanya, fins a ~0,22 m per píxel) i de Sentinel-2 (la resta del món i de lluny),
+    demanada a mesura que cal en teselles de 256 px i desada al disc; com es tria la resolució de cada píxel és a
+    <a href="#o2-3">O2.3</a>. Sense connexió, els colors per altitud d'abans.</p>
   <p>Els colors depenen de l'altitud en metres (verd a baix, roca i neu a dalt) i la boira augmenta amb
-    la distància. Quan la Lluna tapa el Sol, la llum de cada punt baixa segons la part del Sol que es
+    la distància (des de la F21, amb l'extinció exponencial i la densitat mitjana de l'aire entre la càmera i el
+    punt: des de dalt, lluny, es travessa l'aire dens de prop del terra). <span class="rotul">Prova a Vic (F18):</span> a la zona de Vic, el color del terra és la
+    <dfn>ortofoto</dfn> del PNOA (fotografia aèria corregida perquè cada píxel caigui al seu lloc; IGN, juliol de
+    2024, CC BY 4.0): tota la zona a 5 m, alineada píxel a píxel amb el MDT, i 4 × 4 km a 0,5 m al voltant de la
+    plaça Major. És una dada real (carrers, places, camps, cobertes); la llum continua sent la nostra. Limitacions:
+    la foto porta les seves ombres del migdia; no és una ortofoto vertadera (els edificis alts s'hi inclinen); al
+    carrer es veu borrosa i els arbres i els cotxes hi són taques planes; fora de la zona, el color per altitud
+    fa una frontera visible des de lluny. Quan la Lluna tapa el Sol, la llum de cada punt baixa segons la part del Sol que es
     veu des d'aquell punt (<a href="#o1-8">O1.8</a>).</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a> (mode globus), <a href="../basecode/shaders/terrain.vert"><code>terrain.vert</code></a>, <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>.</p>
@@ -222,15 +238,34 @@
       <li data-estat="fet">Zones de 5 m de Picos, Vic, l'Escala i el Vallès, amb pegats de detall al voltant de l'observador (F10).</li>
       <li data-estat="fet">Els nivells encaixen sense línies ni salts visibles des de 0,4, 4, 30 i 250 km (inspecció de captures).</li>
       <li data-estat="fet">L'horitzó llegit de la imatge (depth buffer, zoom de 2°) coincideix amb el calculat sobre els triangles dibuixats a ≤ 0,006° a les sis ubicacions, en l'azimut del Sol al màxim (<code>scripts/validar_horitzo.py</code>; objectiu 0,05°).</li>
+      <li data-estat="fet">Ortofoto de Vic (F18): alineada amb els contorns del Catastro a 0,5 m (1 píxel); +0,0–0,5 ms per fotograma; ~430 MB de textura calculats (<code>scripts/prova_ortofoto.py</code>).</li>
+      <li data-estat="pendent">Valoració de l'equip de l'ortofoto de Vic (carrer i aire; ombres de la foto amb la llum de l'eclipsi).</li>
+      <li data-estat="fet">Fotografia aèria a tot arreu (F21): alineada amb l'ortofoto de Vic a 0,10 m (1 píxel = 0,43 m) i, al delta de l'Ebre, la de la Terra amb la del terreny a 4,8 m (1 píxel = 3,3 m); sense connexió, cap error; 5–11 ms per fotograma a 1280 × 860 (<code>scripts/prova_mosaic.py</code>).</li>
+      <li data-estat="pendent">Prova de l'equip: continuïtat de la càrrega movent-se de pressa, costa i mar, fluïdesa a la finestra real.</li>
       <li data-estat="fet">Pujant fins a 20.000 km, cada píxel cau sobre la superfície dibuixada i cap no es veu per sota (sense forats entre nivells ni l'interior del globus), a les sis ubicacions (<code>scripts/prova_vistes.py</code>).</li>
+      <li data-estat="fet">Llocs nous amb doble clic (F23): Igualada preparada en segon pla en 40 s amb 560 fotogrames dibuixats mentrestant; l'observador acaba sobre el relleu de 5 m del lloc, amb 16.266 parts d'edifici; a la UAB i al mar no se'n prepara cap; en reproducció espera la pausa (<code>scripts/prova_llocs.py --xarxa</code>).</li>
+      <li data-estat="pendent">Prova de l'equip: viatjar de Cerdanyola a Manresa, doble clic i esperar el missatge de la barra; tornar-hi més tard.</li>
     </ul>
     <figure class="costat"><img src="img/edificis_vic_aeria.jpg" alt="El centre de Vic amb els edificis del Catastro, vist des de l'aire" loading="lazy">
       <figcaption>El centre de Vic des de ~350 m, amb els edificis del Catastro assentats sobre el relleu.</figcaption></figure>
+    <p><span class="rotul">Aspecte dels edificis (F20):</span> façanes amb finestres procedimentals, una fila per
+      planta real del Catastro, repartides per cada costat, i un color de façana per edifici d'una paleta
+      mediterrània (estètic); cobertes amb el color de l'ortofoto sobre cada coberta (dada real, a Vic) o de teula
+      i terrat. De lluny, el color mitjà de les finestres. Tots els triangles miren cap a fora i es descarten les
+      cares del darrere (el shader escriu la profunditat i la GPU no pot descartar abans els fragments tapats).</p>
     <p><span class="rotul">Edificis sobre el relleu:</span> cada part té una cota del sòl de referència (la
       mediana del MDT sota el contorn) i la coberta a referència + altura; les façanes baixen fins a 1 m per
       sota del punt més baix del terra, perquè en pendent no quedin escletxes ni l'edifici floti. Coberta plana
       triangulada respectant els patis. Comprovat: 5 cobertes dibuixades a la cota calculada (≤ 0,1 mm) i, a
       la UAB, els contorns coincideixen amb els d'OpenStreetMap a 2,1 m (mediana; 72 edificis).</p>
+    <p><span class="rotul">Llocs nous amb detall (F23):</span> les zones de 5 m i els edificis ja no són només els
+      que vam preparar. Un doble clic on no hi ha edificis a menys de 500 m (per exemple, a Manresa) obre un
+      <dfn>fil</dfn> (una segona línia d'execució del programa) que baixa 6 × 6 km del relleu de 5 m de l'IGN i les
+      parts d'edifici del Catastro en 2 × 2 km, i en prepara la malla. Mentrestant el bucle de dibuix continua
+      (només el fil principal pot crear objectes OpenGL, i ho fa quan el fil acaba). Per trobar els municipis es fan
+      servir els rectangles que publica el mateix Catastro; el servei per rectangle (WFS) era massa lent (2,5 min per
+      km²). Cada lloc ocupa 40–110 MB i se'n guarden com a molt 3. Als llocs nous, les cobertes no tenen el color de
+      l'ortofoto.</p>
     <p><span class="rotul">Limitacions:</span> el geoide no es corregeix (~50 m); entre la zona de 5 m i els ~100 km el relleu és el de 200 m; fora del pegat de ~2,5 km la malla de la zona té un vèrtex cada ~20 m, i l'horitzó d'una carena a 1–6 km pot quedar fins a 0,07° més baix que el del MDT complet (UAB, Cerdanyola, Vic); fora d'Espanya no hi ha relleu; només es manté carregada la zona de 5 m de l'observador.</p>
   </div>
 </div></details>
@@ -239,10 +274,16 @@
 <summary><span class="cap"><span class="titol">O1.4 · Exploració de l'escena</span></span>
   <span class="frase">Moure's lliurement del terreny fins a l'espai.</span></summary>
 <div class="cos">
-  <p>La càmera d'exploració és lliure. Amb el ratolí o les fletxes es gira la mirada; amb W A S D es
-    mou endavant, enrere i als costats; amb E i Q puja o baixa; i la roda (o lliscar amb dos dits al
-    trackpad) l'acosta o l'allunya en la direcció en què mira. Allunyar-se mou la càmera de debò: no és un
+  <p>La càmera d'exploració és lliure. Amb el ratolí capturat o les fletxes es gira la mirada; amb W A S D es
+    mou endavant, enrere i als costats; amb E i Q puja o baixa. Allunyar-se mou la càmera de debò: no és un
     zoom.</p>
+  <p><span class="rotul">Ratolí com a Google Earth (F21):</span> a la vista aèria, arrossegar <em>agafa</em> el
+    terra pel punt clicat: la càmera gira al voltant del centre de la Terra perquè el raig del cursor hi torni a
+    passar (el punt es queda sota el cursor) i, en deixar-lo anar en moviment, continua amb una
+    <dfn>inèrcia</dfn> que s'atura sola. Shift + arrossegar (o el botó del mig) gira al voltant del punt del centre
+    de la pantalla i inclina la vista. La roda s'acosta al punt sota el cursor: com que la càmera es mou en la
+    recta que va al punt i no gira, el punt no es mou de la pantalla; el pas es reparteix en uns quants
+    fotogrames. El doble clic porta directament a observar des del terra en aquell punt, amb els edificis.</p>
   <p>Perquè es pugui explorar tant una vall com la Terra sencera, la <dfn>velocitat</dfn> és
     proporcional a l'altura sobre el terra: a 3,5 km d'altura es va a uns 2,6 km/s, i a 27.000 km, a
     més de 20.000 km/s. La roda també: cada pas multiplica l'altura per 1,35 (o la divideix), de manera que
@@ -265,8 +306,37 @@
     l'observador, i el doble clic no mou la càmera. Quan es tria una ubicació de la <em>llista</em>, en
     canvi, la càmera d'exploració es posa a sobre del lloc nou, perquè en passar a explorar (V) es
     parteixi d'allà i no del lloc anterior (correcció 11.2).</p>
+  <p><span class="rotul">Caminar (F16).</span> Dins d'Explorar, el panell deixa triar entre <em>Vol lliure</em>
+    i <em>Caminar</em>. Caminant, W A S D mouen la càmera en horitzontal respecte de cap on mira (moviment
+    <dfn>relatiu a la càmera</dfn>: el vector d'entrada es combina amb les direccions endavant i dreta del pla
+    horitzontal local i es normalitza, perquè en diagonal no es vagi més de pressa), a 1,5 m/s multiplicat per
+    <code>dt</code> (la mateixa distància a qualsevol FPS). El <dfn>seguiment del terreny</dfn> posa els ulls a
+    1,7 m sobre la superfície dibuixada a cada pas, en pujada i en baixada: abans, el vol lliure només impedia
+    quedar sota terra, i en baixada la càmera quedava flotant. Els passos són de 0,5 m com a molt, perquè un
+    fotograma lent no es salti una carena; al mar o fora de les dades, la càmera s'atura a la vora.
+    <span class="rotul">Edificis com a obstacles (F17).</span> Els contorns del Catastro són prismes verticals,
+    així que la col·lisió es resol al pla horitzontal: el cos és un cercle de 0,3 m que, a cada pas (com a molt
+    de mig radi, perquè no pugui saltar a l'altre costat d'una paret), s'empeny fora de les façanes que toca. La
+    component del moviment cap a la paret desapareix i la paral·lela continua: es llisca sense vibracions. En
+    vol lliure, la càmera no entra per una façana per sota de la coberta, però hi pot passar per sobre.</p>
+  <p><span class="rotul">Allunyar-se fins a l'espai (vista guiada, F15).</span> Amb l'exploració lliure és fàcil
+    perdre's: la roda avança en la direcció de la mirada i, mirant el cel, retrocedir fa baixar cap al terra.
+    La vista guiada (tecla G) separa dues coses: <dfn>on és</dfn> la càmera, que depèn només d'un
+    <dfn>progrés</dfn> entre 0 i 1 (roda o W / S), i <dfn>cap on mira</dfn>, que és de l'usuari (ratolí o
+    fletxes). Distingim el <dfn>zoom òptic</dfn> (canviar el camp de visió sense moure's, a la vista
+    d'observació) de l'<dfn>allunyament</dfn> (moure la càmera). La trajectòria
+    (<code>dades/trajectoria.py</code>) surt del punt per una recta amb 70° d'elevació d'esquena al Sol (300 m
+    → 100 km: sempre per sobre del pla tangent al punt, per tant fora de la Terra), puja fins a veure la Terra
+    a 30.000 km entre la vertical del punt i el Sol, es posa de costat respecte del sistema Terra–Lluna i acaba
+    a 1,2 milions de km amb la Terra, la Lluna i el Sol dins del camp. Cada pas multiplica la distància per
+    ~1,2–1,6 (escala logarítmica), i els mateixos passos enrere tornen al mateix lloc perquè la posició és una
+    funció del progrés. El vector "amunt" de la imatge es transporta pel camí amb el gir mínim, sense
+    inversions. La trajectòria es calcula amb el Sol i la Lluna de l'hora d'entrada: si l'hora canvia, la
+    càmera no es mou (el temps és independent de la càmera) i <em>Recentrar</em> l'actualitza.
+    <em>Limitació:</em> a escala real la Terra i la Lluna es veuen petites; amb el Sol al camp, la Terra és un
+    creixent i la Lluna mostra la cara fosca. No s'han canviat mides ni distàncies per fer-les cabre.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>, <code>teclat()</code> i <code>punt_sota_cursor()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/camera_exploracio.py"><code>basecode/camera_exploracio.py</code></a>, <a href="../basecode/camera_guiada.py"><code>basecode/camera_guiada.py</code></a>, <a href="../dades/trajectoria.py"><code>dades/trajectoria.py</code></a>, <code>teclat()</code> i <code>punt_sota_cursor()</code> a <a href="../main.py"><code>main.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">La roda allunya la càmera de 3,5 km a ~27.000 km sense canviar el camp de visió (prova automàtica).</li>
@@ -275,7 +345,13 @@
       <li data-estat="validat">Prova de l'equip (26/10): l'exploració comença a la ubicació triada (Vic); en pausa, l'hora no canvia mentre es mou la càmera; a l'espai, P reprèn el temps sense moure-la.</li>
       <li data-estat="fet">Cub de navegació: a les sis cares, el teclat, la roda i les posicions posades pels botons s'aturen al límit sense rebots i el moviment paral·lel continua; el Sol hi cap sencer des de totes les parets (<code>scripts/prova_controls.py</code>, F12).</li>
       <li data-estat="fet">Roda adaptada a l'escala: del terra a 20.000 km amb 28–30 passos; un gest molt ràpid es limita a 3 passos per fotograma (prova automàtica).</li>
-      <li data-estat="pendent">Orientar-se a l'espai: l'equip s'hi perdia. Ara el cub limita fins on es pot anar; falta que l'equip ho torni a provar.</li>
+      <li data-estat="fet">Vista guiada: 40 passos de roda del punt a la vista ampla i els mateixos enrere tornen exactament al punt; mai a menys de 20 m del terreny dibuixat ni a prop de la Lluna; la roda no toca la mirada; l'hora no mou la càmera (<code>scripts/prova_controls.py</code>, F15).</li>
+      <li data-estat="fet">La trajectòria no travessa la Terra, la Lluna ni el Sol, és contínua i enquadra cada tram, a les sis ubicacions i 16 hores (<code>scripts/prova_trajectoria.py</code>, F15).</li>
+      <li data-estat="fet">Caminar (F16): W/S/A/D cap al rumb correcte a 6 rumbs, sense canviar la mirada; igual mirant amunt o avall; W+D com W; mateixa distància a 30, 60 i 144 FPS; ulls a 1,7 m del relleu dibuixat pujant i baixant; un pas llarg subdividit no travessa el relleu; sense esglaó a la vora de la zona; s'atura a la costa; sense moviment residual (tecles, mode, ubicació, focus, panell) (<code>scripts/prova_caminar.py</code>).</li>
+      <li data-estat="pendent">Prova de l'equip del mode Caminar amb la finestra real.</li>
+      <li data-estat="fet">Vista aèria (F21): arrossegar deixa el punt agafat a 0,7 px del cursor; la roda, a 0,1 px i amb la distància ×1,35⁻² exacta en 2 passos; orbitar deixa el centre a ~1,3 px i no passa sota el terra; la inèrcia s'atura; el doble clic passa a primera persona mirant cap on mirava la càmera (<code>scripts/prova_mosaic.py</code>).</li>
+      <li data-estat="pendent">Prova de l'equip dels controls aeris i del doble clic amb el ratolí i el trackpad.</li>
+      <li data-estat="pendent">Orientar-se a l'espai: l'equip s'hi perdia. Ara hi ha la vista guiada i el botó <em>Mirar l'eclipsi</em>; falta que l'equip ho provi.</li>
       <li data-estat="pendent">Prova de l'equip amb el ratolí i el trackpad físics (F12: paret del cub, roda, dos dits).</li>
     </ul>
   </div>
@@ -295,13 +371,23 @@
     càmera i de qualsevol dibuix. Es tria de la llista del panell o amb un doble clic a l'exploració, i en
     aquell moment es calculen alhora el model del Sol i la Lluna i les dades del CNIG del panell. Mentre
     es reprodueix l'eclipsi, el punt queda bloquejat.</p>
-  <p><span class="rotul">Mirar amb el ratolí.</span> Un clic a l'escena <dfn>captura</dfn> el ratolí, com en
-    un joc en primera persona: el cursor s'amaga i moure el ratolí gira el cap sense prémer cap botó (els ulls
-    no es mouen). <code>Esc</code> l'allibera per tornar a fer servir el panell, i perdre el focus de la
-    finestra també. GLFW ho fa amb el mode <code>CURSOR_DISABLED</code>: el cursor queda lligat a la
-    finestra i la seva posició "virtual" no té límits, de manera que no topa mai amb la vora; el que gira la
-    mirada és la diferència entre dos fotogrames (moviment relatiu). Un clic espera 0,3 s abans de capturar:
-    si n'arriba un segon, és un doble clic i serveix per triar el punt.</p>
+  <p><span class="rotul">Mirar amb el ratolí.</span> <code>Tab</code> (o un clic dret a l'escena)
+    <dfn>captura</dfn> el ratolí, com en un joc en primera persona: el cursor s'amaga i moure el ratolí gira el
+    cap sense prémer cap botó (els ulls no es mouen). <code>Tab</code> o <code>Esc</code> l'alliberen per tornar
+    a fer servir el panell, i perdre el focus de la finestra també. GLFW ho fa amb el mode
+    <code>CURSOR_DISABLED</code>: el cursor queda lligat a la finestra i la seva posició "virtual" no té límits,
+    de manera que no topa mai amb la vora; el que gira la mirada és la diferència entre dos fotogrames
+    (moviment relatiu), aplicada un cop per fotograma i <em>sense</em> multiplicar per <code>dt</code> (el
+    ratolí ja dona un desplaçament; les fletxes, en canvi, giren a una velocitat i sí que depenen de
+    <code>dt</code>). Amb zoom, el mateix moviment gira menys, en proporció al camp de visió.</p>
+  <p><span class="rotul">Què vam aprendre (F15).</span> La captura de la F12 no funcionava amb la finestra
+    real: el backend de slimgui (<code>GlfwRenderer.new_frame</code>) torna a posar
+    <code>CURSOR_NORMAL</code> a cada fotograma per canviar la forma del cursor, i la captura només durava un
+    fotograma. La prova no ho veia perquè simulava la posició del cursor. Ara aquest pas se salta mentre el
+    ratolí és capturat, i la prova comprova el mode del cursor fotograma rere fotograma. També: imgui fa servir
+    Tab per passar d'un control al següent i es quedava el teclat (P i V deixaven de funcionar); els controls
+    del panell s'han tret del cicle de Tab. I el clic esquerre ja no captura: abans esperava 0,3 s per
+    distingir-lo d'un doble clic.</p>
   <p>El programa arrenca <strong>pausat una hora abans de l'inici de l'eclipsi</strong> (C1 del model) a
     Picos, a les 18:31:39 (hora d'estiu). Canviar d'ubicació no toca l'hora.</p>
   <p>El <dfn>temps</dfn> també és independent: P només el congela o el torna a posar en marxa. Es pot
@@ -317,8 +403,12 @@
       <li data-estat="fet">La seqüència sencera amb el bucle real del programa i el panell dibuixat, amb el teclat i el ratolí simulats: triar Cerdanyola, observar, girar amb les fletxes i arrossegant, P, V i roda fins a ~36.000 km, P a l'espai, tornar al punt amb els mateixos ulls i la mateixa mirada (<code>scripts/prova_vistes.py</code>).</li>
       <li data-estat="fet">Arrencada pausada exactament a C1 − 1 h (18:31:39 a Picos); canviar d'ubicació no canvia l'hora (prova automàtica, F12).</li>
       <li data-estat="fet">Ratolí capturat: el moviment relatiu gira la mirada, sense moviment no canvia, la inclinació es limita a ±89°, tornar a capturar no fa salts, perdre el focus i Esc alliberen, el panell no mou la càmera (prova automàtica amb el moviment simulat; la captura real del cursor no es pot provar sense focus).</li>
-      <li data-estat="pendent">Prova de l'equip del ratolí capturat (clic, Esc, Cmd+Tab, doble clic).</li>
-      <li data-estat="pendent">Quatre punts d'observació cauen dins d'un edifici del Catastro (els ajuntaments de l'Escala, Cerdanyola i Montmeló, perquè el geocodificador dona la posició de l'edifici, i la plaça Cívica de la UAB). No s'han mogut: hi ha punts exteriors proposats al pla (F14), pendents de l'equip. Vic és fora dels edificis.</li>
+      <li data-estat="fet">F15: Tab captura i el cursor continua desactivat fotograma rere fotograma; el gir no depèn dels FPS; amb zoom ×10 gira 10 vegades menys; inclinació a ±89° als dos extrems amb la matriu de vista finita; canviar de vista o recuperar el focus no fa salts; el clic esquerre no captura i el doble clic tria el punt; el clic dret captura a l'escena i no sobre el panell; <em>Mirar l'eclipsi</em> centra el Sol a les tres vistes (<code>scripts/prova_controls.py</code>).</li>
+      <li data-estat="validat">Prova de l'equip (27/10): el Mouse Look funciona bé amb el ratolí real (F15).</li>
+      <li data-estat="pendent">Prova de l'equip de la resta de casos del ratolí (Cmd+Tab, clic dret, doble clic, vista guiada): no se n'ha informat.</li>
+      <li data-estat="fet">Punts d'observació sempre a l'exterior (F17): l'Escala, Cerdanyola, Montmeló i la UAB queien dins d'un edifici (sense cel); ara els ulls van al carrer o a la plaça a 8,9–20,7 m, a 3 m de les façanes, i mirant amunt es veu el cel (72–96 %); la referència es conserva i el panell ho indica (<code>scripts/prova_obstacles.py</code>).</li>
+      <li data-estat="fet">Caminant no es travessen les façanes (de cara, en diagonal, corrent, amb un pas de 135 m); en vol lliure no s'hi entra però es pot passar per sobre de les cobertes; recuperació si la càmera queda dins (<code>scripts/prova_obstacles.py</code>).</li>
+      <li data-estat="pendent">Prova de l'equip dels punts exteriors i de caminar al costat de les façanes.</li>
       <li data-estat="validat">Prova de l'equip (26/10): a Vic, el terreny és correcte mirant al voltant i cap avall, la mirada es queda fixa reproduint i <em>Tornar al punt d'observació</em> torna al lloc correcte; a Picos, la seqüència completa funciona; Cerdanyola, Montmeló i la UAB, sense problemes.</li>
     </ul>
     <p><span class="rotul">Què vam aprendre (F10):</span> la prova anterior deia que els ulls eren a 1,7 m,
@@ -345,8 +435,13 @@
     sembla més alt (uns 0,57° a l'horitzó). El resultat queda a menys de 0,02° de l'elevació del CNIG
     als 9 punts provats.</p>
   <p>El Sol es dibuixa a la seva distància i mida reals. La vora és més fosca que el centre
-    (<dfn>enfosquiment del limbe</dfn>, un efecte real) i la superfície té una granulació animada, que és
-    il·lustrativa.</p>
+    (<dfn>enfosquiment del limbe</dfn>, un efecte real). Des del terra és un disc blanc que enlluerna; des de
+    l'espai, la superfície té aspecte de foc, taronja i vermella, amb flames que es mouen: és il·lustrativa (s'assembla a les fotos fetes amb filtre; a ull nu i sense atmosfera
+    el Sol és blanc). Les flames surten d'un <dfn>soroll fractal</dfn> (la suma de soroll a escales cada cop més
+    fines) les coordenades del qual es deformen amb un altre soroll (<dfn>domain warping</dfn>).</p>
+  <p>La <dfn>corona</dfn> és un milió de vegades menys brillant que el disc: mentre en queda una mica (a
+    l'Escala, l'1,3 % al màxim) el cel continua clar i no es veu. Al programa només apareix en els últims
+    segons abans de la totalitat (menys del 0,05 % del disc visible).</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../dades/efemerides.py"><code>dades/efemerides.py</code></a>, <a href="../dades/geodesia.py"><code>dades/geodesia.py</code></a>, <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>, <a href="../basecode/shaders/esfera.frag"><code>esfera.frag</code></a>.</p>
     <p class="rotul">Criteris</p>
@@ -355,7 +450,9 @@
       <li data-estat="fet">El nord és el geogràfic: l'escena és en coordenades terrestres (resolt el gir de 1,3°–4,1° de la quadrícula UTM).</li>
       <li data-estat="fet">Elevació geomètrica i azimut del Sol al màxim a ≤ 0,005° del calculador de la NASA als 9 punts (<code>scripts/comparar_nasa.py</code>).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> la granulació del Sol, el halo i la corona són il·lustratius.</p>
+    <p><span class="rotul">Limitacions:</span> l'aspecte del Sol, el halo i la corona són il·lustratius. La llum de
+      l'eclipsi parcial es calcula amb la part del disc visible per àrea, sense l'enfosquiment del limbe (la falç
+      que queda és a la vora, més fosca: la llum real seria ~0,6 vegades la calculada).</p>
   </div>
 </div></details>
 
@@ -376,6 +473,15 @@
     independent.</p>
   <p>Des de terra, la Lluna nova només es veu on tapa el Sol (la resta del cel és més brillant que ella).
     Des de l'espai es veu sencera, amb la cara de dia il·luminada.</p>
+  <p>De prop, la Lluna fa servir les dades de la NASA (CGI Moon Kit): el color de la LRO a 8192 × 4096 píxels i el
+    relleu del LOLA. Amb el relleu no es mou cap vèrtex: es fa un <dfn>bump mapping</dfn>. El shader llegeix
+    l'altitud dels veïns, en treu el pendent cap a l'est i cap al nord i inclina la normal; la llum, amb la normal
+    inclinada, fa que els cràters tinguin una banda il·luminada i una de fosca. La llum de la Lluna és de
+    <dfn>Lambert lunar</dfn>: la pols de la Lluna reflecteix cap enrere, i la Lluna plena es veu igual de clara a la
+    vora que al centre (amb Lambert pur, la vora seria fosca). De molt a prop, on la textura ja no té detall,
+    s'hi afegeixen cràters petits a l'atzar, il·lustratius. Un detall: a la costura de la textura (longitud 180°)
+    la coordenada u salta d'1 a 0; les derivades del píxel hi eren enormes i el mipmap triava el nivell més
+    petit, una línia fosca de pol a pol. Es resol passant derivades sense el salt (<code>textureGrad</code>).</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../dades/model_eclipsi.py"><code>dades/model_eclipsi.py</code></a>, <a href="../basecode/astres.py"><code>basecode/astres.py</code></a>.</p>
     <p class="rotul">Criteris</p>
@@ -383,7 +489,7 @@
       <li data-estat="fet">C1, C2, màxim, C3 i C4 a ≤ 1,2 s del CNIG als 9 punts; part tapada a ≤ 0,05 punts (scripts/validar_model.py).</li>
       <li data-estat="fet">Contactes a 2,0–3,9 s dels de la NASA als 9 punts, amb la mateixa convenció (observador a 0 m); part tapada a ≤ 0,02 punts (<code>scripts/comparar_nasa.py</code>, O1.12).</li>
     </ul>
-    <p><span class="rotul">Limitacions:</span> la vora de la Lluna és un cercle (sense muntanyes, ~1–3 s als contactes); l'orientació de la textura és aproximada.</p>
+    <p><span class="rotul">Limitacions:</span> la vora de la Lluna és un cercle (sense muntanyes, ~1–3 s als contactes); l'orientació de la textura és aproximada. El relleu només inclina la normal (els cràters no projecten ombra). Els cràters petits de molt a prop no són dades.</p>
   </div>
 </div></details>
 
@@ -401,13 +507,28 @@
     muntanyes (<a href="#o1-9">O1.9</a>): l'ombra de la Lluna redueix la llum directa del Sol a tota una
     regió; la d'una muntanya la treu del tot en un tros concret de terreny.</p>
   <p>Hem comprovat que l'eix de l'ombra cau dins de la umbra que publica el CNIG en tots els instants
-    comparats. El color del cel depèn de la posició de la càmera (altura del Sol i part tapada) i es fa
-    negre per sobre de l'atmosfera; aquest cel és una aproximació visual.</p>
+    comparats.</p>
+  <p><span class="rotul">El cel i la llum de l'atmosfera (F19).</span> El cel es calcula per a cada direcció
+    amb un model de <dfn>dispersió</dfn> de la llum (<code>dades/atmosfera.py</code> i <code>shaders/cel.frag</code>):
+    les molècules de l'aire (<dfn>Rayleigh</dfn>) dispersen més el blau, els aerosols (<dfn>Mie</dfn>) fan el
+    resplendor blanc al voltant del Sol i l'ozó treu taronja. La densitat de l'aire decreix exponencialment amb
+    l'altura (8 km per a les molècules, 1,2 km per als aerosols), i el raig comença on és la càmera: com més
+    amunt, menys aire i cel més fosc, fins a l'espai. Amb el Sol baix, la llum travessa molt més aire: perd el
+    blau i el cel de l'horitzó es torna daurat, taronja i vermell; la direcció en què mirem respecte del Sol
+    canvia el color. <dfn>Eclipsi</dfn>: a cada punt del raig es calcula quina part del Sol hi tapa la Lluna
+    (la mateixa fórmula que el terreny), de manera que el cel s'enfosqueix on hi ha l'ombra i, a la totalitat,
+    l'atmosfera de fora de l'ombra encara brilla a l'horitzó: no s'assembla a una posta. La mateixa atmosfera
+    dona el color de la llum del Sol al terreny, als edificis i a la Terra (vermellosa al terminador) i el color
+    de la boira. El cel es dibuixa només on no hi ha res i sense profunditat: no tapa el Sol ni la Lluna.
+    <em>Il·lustratiu:</em> l'exposició, l'adaptació de l'ull a la foscor de l'eclipsi, la llum mínima dins de
+    l'ombra (en lloc de la dispersió múltiple), el color del cel ambient i el halo.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a> i <a href="../basecode/shaders/terra.frag"><code>terra.frag</code></a> (<code>tapat_des_de</code>), <code>actualitzar_cel()</code> a <a href="../main.py"><code>main.py</code></a>, <a href="../scripts/validar_ombra.py"><code>scripts/validar_ombra.py</code></a>.</p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">L'eix de l'ombra cau dins de la umbra del CNIG de 18,338 a 18,518 h TU (scripts/validar_ombra.py).</li>
+      <li data-estat="fet">Cel (F19): el shader coincideix amb el model de la CPU (≤ 1/255); amb cel i sense, els píxels del Sol, la Lluna i els objectes són idèntics; sense salts de color minut a minut (el canvi més ràpid, al màxim, és continu); cap color saturat; a la totalitat el zenit és fosc i l'horitzó brilla, a diferència d'una posta (<code>scripts/prova_cel.py</code>).</li>
+      <li data-estat="pendent">Valoració de l'equip del cel, la posta i l'eclipsi a prop de l'horitzó.</li>
       <li data-estat="fet">A la totalitat, el terra s'enfosqueix (brillantor de 84 a 1 a la prova automàtica).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> el cel, el halo, la corona i el contorn blau de l'atmosfera són il·lustratius.</p>
@@ -481,8 +602,11 @@
     del terra; el punt d'observació (una llista d'ubicacions i <em>Tornar al punt d'observació</em>) i
     una ajuda curta. Les capes tècniques del CNIG i les eines de depuració són a <em>Avançat</em>, tancat
     per defecte. La barra de temps, a baix, permet arrossegar l'hora de 16:00 a 23:30 (hora d'estiu).</p>
-  <p>L'ajuda del panell explica com entrar i sortir del control de la mirada (clic a l'escena / Esc) i
-    indica quan el ratolí està capturat. Mentre ho està, el panell no rep el ratolí.</p>
+  <p>L'ajuda del panell explica com entrar i sortir del control de la mirada (Tab o clic dret / Tab o Esc) i
+    indica quan el ratolí està capturat; en capturar-lo, un avís discret apareix uns segons a dalt. Mentre ho
+    està, el panell no rep el ratolí. El panell té el botó <em>Mirar l'eclipsi</em> (orienta la càmera activa
+    cap al Sol una sola vegada) i, a la vista guiada, el tram, la distància al punt, el progrés i
+    <em>Recentrar</em>.</p>
   <p>És una interfície "immediata" (slimgui): a cada fotograma es torna a construir a partir de les
     variables del programa. Les hores es calculen en temps universal (TU) i es mostren en hora d'estiu
     (CEST = TU + 2).</p>
@@ -710,6 +834,28 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris"><li data-estat="validat">L'altura reconstruïda a partir dels mipmaps queda a 1,37 cm de la que calcula el vertex shader real (exercici 1.0).</li></ul>
   </div>
+  <p><span class="rotul">Una textura més gran que la memòria: el <dfn>clipmap</dfn> (F21).</span> La fotografia
+    aèria d'Espanya a 0,22 m per píxel no cap a cap GPU. Però a cada moment només cal molt detall a prop de la
+    càmera: lluny, un píxel de pantalla cobreix molts metres. Per això hi ha 12 nivells de zoom alhora, cada un
+    amb una finestra de 8 × 8 teselles (2.048 × 2.048 px) centrada a sota de la càmera: el més detallat cobreix
+    uns centenars de metres i cada un dels següents, el doble que l'anterior. Són les capes d'una
+    <code>TextureArray</code>. Quan la càmera es mou, en lloc de desplaçar la imatge, la tesella (x, y) s'escriu a
+    la posició (x mod 8, y mod 8) de la seva capa ("en anell", amb la textura repetida): només s'escriuen les
+    teselles noves. El fragment shader tria el nivell que dona aproximadament un texel per píxel de pantalla (amb
+    les derivades <code>dFdx</code>/<code>dFdy</code> de la coordenada) i en barreja dos perquè no hi hagi salts;
+    si aquella tesella encara no ha arribat, fa servir el nivell següent. Un detall de precisió: el float32 de
+    la GPU té 7 xifres, i la coordenada del món a z = 19 en necessita més. Primer vam partir la coordenada en dues
+    parts (alta i baixa), un truc que a la CPU és exacte; però el compilador de la GPU pot reordenar les sumes i la
+    foto es movia ~1 m d'un vèrtex a l'altre (es veia esmicolada al terreny de 5 m). Ara cada terreny guarda la
+    coordenada dels seus vèrtexs <em>relativa al seu origen</em> (nombres petits, on el float32 té precisió de
+    sobres) i la CPU, en doble precisió, hi passa la de la càmera també relativa: el shader només resta dos nombres
+    petits. Lliçó: un truc de precisió s'ha de comprovar a la GPU, no només a la CPU.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <a href="../basecode/mosaic.py"><code>basecode/mosaic.py</code></a>, <a href="../basecode/shaders/mosaic.glsl"><code>shaders/mosaic.glsl</code></a>, <a href="../dades/teselles.py"><code>dades/teselles.py</code></a>.</p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris"><li data-estat="fet">La coordenada relativa a l'origen del terreny conserva la posició a molt menys d'un píxel de z = 19 (restant directament en float32, 3,7 píxels) (<code>scripts/prova_mosaic.py</code>).</li>
+      <li data-estat="fet">A la GPU: la foto sobre el pegat de 5 m i sobre la graella general coincideix bloc a bloc (<code>scripts/prova_mosaic.py</code>, l'Escala des de 200 m).</li></ul>
+  </div>
 </div></details>
 
 <details class="sub" id="o2-4">
@@ -724,6 +870,15 @@
   <p>La malla té un vèrtex cada 20 m, però la normal es calcula al fragment shader amb el pendent a 5 m,
     guardat en una altra textura. Així els vessants mantenen tot el detall del MDT encara que la forma sigui
     més simple. Falta definir-ne una comprovació.</p>
+  <p><span class="rotul">Façanes a l'ombra (F23):</span> amb una llum ambient fixa, una paret que no rep el Sol
+    sortia gairebé negra. Dues idees ho corregeixen. (1) Una paret vertical veu mig cel i mig terra, i el terra
+    reflecteix una part de la llum que rep (l'<dfn>albedo</dfn>, ~0,25 per a asfalt i formigó): és una versió
+    simple de la <dfn>llum hemisfèrica</dfn>. (2) La pantalla no mostra la llum de manera lineal: els colors es
+    guarden en <dfn>sRGB</dfn>, que comprimeix les intensitats amb una <dfn>gamma</dfn> de ~2,2 perquè s'assembli
+    a com les percep l'ull. Si es multiplica el color per una llum lineal sense tenir-ho en compte, les ombres
+    queden massa fosques. Per això el contrast entre cares es codifica amb aquesta gamma: la cara més il·luminada
+    no canvia i les de l'ombra passen d'~1/4 a ~1/2 (com a les fotografies). Aproximació il·lustrativa, a
+    <a href="../basecode/shaders/edifici.frag"><code>edifici.frag</code></a>.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/shaders/terrain.frag"><code>terrain.frag</code></a>,
       <code>gradient()</code> a <a href="../dades/data_io.py"><code>dades/data_io.py</code></a>.</p>
@@ -797,6 +952,115 @@
     </ul>
     <p><span class="rotul">Limitacions:</span> <code>main.py</code> encara reuneix el temps, la llum i les
       vistes; de moment és prou curt (unes 440 línies) per llegir-lo sencer.</p>
+  </div>
+</div></details>
+</section>
+
+<!-- ======================================================================= O3 -->
+<section class="objectiu" id="o3">
+<h2>O3 · On es veurà l'eclipsi (aplicació de dades)</h2>
+<p class="intro-objectiu">Proposta del 30/10/2026 (D79), encara sense implementar. Un mapa de calor de com de bé
+  es veurà un eclipsi des de cada punt (un turó, un carrer, un terrat), perquè la gent pugui decidir on anar i
+  per preveure on s'acumularà. Per al 2026 (ja passat: serveix per validar), el 2027 (total, al sud, a mig matí)
+  i el 2028 (<em>anular</em>, a la posta). El criteri és geomètric: un punt veu l'eclipsi si en la direcció del
+  Sol res no tapa el disc. No es pot fer amb la llum, perquè a la totalitat no n'hi ha de directa.
+  Detall al pla (§11, O3). <span class="progres-objectiu"></span></p>
+
+<details class="sub" id="o3-1">
+<summary><span class="cap"><span class="titol">O3.1 · Circumstàncies de cada eclipsi</span></span>
+  <span class="frase">Quan comença, quan és el màxim i quant es tapa, a tot Espanya.</span></summary>
+<div class="cos">
+  <p>L'eclipsi passa a ser un paràmetre (efemèrides de JPL Horizons per a cada data). El model de cada punt
+    es calcula en una graella d'~1 km, perquè la part tapada canvia a poc a poc (quilòmetres), mentre que el que
+    tapa el Sol canvia en metres i es calcula a part. Cal afegir l'<dfn>anularitat</dfn>: la Lluna, més petita
+    que el Sol, hi passa per davant sense tapar-lo sencer.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers (previstos):</span> <code>dades/efemerides.py</code>, <code>dades/model_eclipsi.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Contactes de cada eclipsi contra el calculador de la NASA en punts de prova (F24).</li>
+      <li data-estat="pendent">2026: la graella contra les bandes del CNIG (hores, part tapada, durada) (F25).</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o3-2">
+<summary><span class="cap"><span class="titol">O3.2 · Mapa estàtic del relleu</span></span>
+  <span class="frase">Des d'on el relleu no tapa el Sol al màxim.</span></summary>
+<div class="cos">
+  <p>Per a cada píxel es calcula l'<dfn>horitzó</dfn> en la direcció del Sol: l'angle més alt del terreny en
+    aquella direcció, tenint en compte la curvatura de la Terra. El <dfn>marge</dfn> és l'elevació del Sol menys
+    l'horitzó: si és positiu, es veu. Els obstacles de prop surten del MDT de 5 m i els llunyans, del de 200 m.
+    Mesurat: ~20 s per direcció per a tot el Vallès a 5 m.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Comparació amb la capa <code>terrain_shadows</code> del CNIG (calculada a part, a ~200 m): matriu de confusió per classes.</li>
+      <li data-estat="pendent">Les sis ubicacions coincideixen amb <code>scripts/validar_horitzo.py</code>.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o3-3">
+<summary><span class="cap"><span class="titol">O3.3 · Edificis i terrats</span></span>
+  <span class="frase">Millor el terrat o el turó?</span></summary>
+<div class="cos">
+  <p>Una superfície amb el terreny i els edificis del Catastro a 1 m, amb els ulls a 1,7 m sobre el carrer o
+    sobre cada coberta. Resultat per edifici: des del terrat, es veu? Les altures són estimades (plantes × 3 m),
+    i per això es repeteix el càlcul amb altures un 20 % més baixes i més altes: si la resposta no canvia, és
+    segura.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Punts de prova contra el perfil exacte dels edificis (<code>perfil_edificis</code>).</li>
+      <li data-estat="pendent">Classe segura o incerta segons l'altura estimada.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o3-4">
+<summary><span class="cap"><span class="titol">O3.4 · Mapa dinàmic</span></span>
+  <span class="frase">Minut a minut, de l'inici al final, amb el màxim marcat a la barra.</span></summary>
+<div class="cos">
+  <p>Per a cada píxel es desa l'hora en què el Sol queda tapat (i, si torna a sortir, quan). Amb això i la
+    part del Sol que tapa la Lluna a cada instant, la capa sobre el terreny canvia amb la barra del temps, que
+    marca l'inici, la totalitat o el màxim, el final i la posta.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Al màxim, el dinàmic coincideix amb l'estàtic (O3.2).</li>
+      <li data-estat="pendent">Instants concrets contra el càlcul punt a punt.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o3-5">
+<summary><span class="cap"><span class="titol">O3.5 · Aplicació de planificació</span></span>
+  <span class="frase">Consultar un punt i trobar-ne un de millor a prop.</span></summary>
+<div class="cos">
+  <p>Un índex senzill i explicable: segons de totalitat (o anularitat) amb tot el disc per sobre de
+    l'horitzó; fora de la franja, la part del Sol tapada que es pot veure. Consulta d'un punt ("aquí el Sol
+    s'amaga a les 20:31"), el millor punt a menys de N km i exportació per a QGIS.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Les sis ubicacions donen el resultat esperat (casos coneguts).</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o3-6">
+<summary><span class="cap"><span class="titol">O3.6 · Afluència (opcional)</span></span>
+  <span class="frase">On s'acumularà la gent.</span></summary>
+<div class="cos">
+  <p>Un model de gravetat: cada zona atrau gent segons la població propera, l'índex de visibilitat i la
+    distància. És una estimació, no una mesura. Si hi ha dades reals del 2026 (aforaments, mobilitat), s'hi
+    compararà. Pendent de decisió (P14).</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="pendent">Decisió de l'equip i font de població verificada (P14).</li>
+    </ul>
   </div>
 </div></details>
 </section>

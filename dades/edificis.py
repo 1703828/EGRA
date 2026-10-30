@@ -32,9 +32,9 @@ import shapely
 from pyproj import Proj, Transformer
 
 from . import geodesia
+from .catastro import DIR_EDIFICIS
 
-ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIR_EDIFICIS = os.path.join(ARREL, 'data', 'edificis')
+RADI_ZONA_M = 2000.0         # edificis preparats al voltant de cada punt d'observacio (scripts/descarregar_edificis.py)
 ALCADA_PLANTA_M = 3.0
 SOTERRAMENT_M = 1.0          # les facanes baixen aixo per sota del punt mes baix del terra
 PAS_PERFIL_GRAUS = 0.01
@@ -87,11 +87,17 @@ def cotes(parts, terra_m, terra_malla_m=None):
 
 
 def malla_zona(parts, origen_ecef):
-    """Triangles (N x 3 x 3, km, ECEF - origen) de les cobertes i les facanes de totes les parts."""
+    """Triangles (N x 3 x 3, km, ECEF - origen) de les cobertes i les facanes de totes les parts, i els atributs
+    de cada vertex per a les textures (N x 3 x 4): u (m al llarg del costat de la facana), v (m sobre la cota del
+    sol de referencia: les plantes comencen a v = 0), llargada del costat (m; -1 a les cobertes) i index de la part.
+    Tots els triangles miren cap a fora (contorn exterior en sentit antihorari i patis en horari; cobertes cap
+    amunt): aixi la GPU pot descartar les cares del darrere (basecode/edificis.py)."""
     a_latlon = Transformer.from_crs(CRS, 'EPSG:4326', always_xy=True)
-    tri = []          # (x, y, z_m) de cada vertex de cada triangle
-    for geom, zc, zb in zip(parts.geometry, parts['cota_coberta'], parts['cota_base']):
+    tri, atr = [], []      # (x, y, z_m) i (u, v, llargada, part) de cada vertex de cada triangle
+    for k, (geom, zc, zb, zs) in enumerate(zip(parts.geometry, parts['cota_coberta'], parts['cota_base'],
+                                               parts['cota_sol'])):
         for p in poligons(geom):
+            p = shapely.geometry.polygon.orient(p, 1.0)      # exterior antihorari, patis horaris
             # coberta: triangulacio restringida al contorn (amb els patis)
             # (amb vertexs alineats, GEOS avisa d'un valor invalid; comprovat que l'area dels triangles es la
             # del contorn a totes les parts del Valles)
@@ -99,20 +105,27 @@ def malla_zona(parts, origen_ecef):
                 triangles = shapely.constrained_delaunay_triangles(p).geoms
             for t in triangles:
                 c = np.asarray(t.exterior.coords)[:3]
+                if (c[1, 0] - c[0, 0]) * (c[2, 1] - c[0, 1]) - (c[1, 1] - c[0, 1]) * (c[2, 0] - c[0, 0]) < 0:
+                    c = c[[0, 2, 1]]                          # antihorari vist des de dalt: normal cap amunt
                 tri.append(np.column_stack([c, np.full(3, zc)]))
+                atr.append(np.array([[0.0, 0.0, -1.0, k]] * 3))
             # facanes: un rectangle (dos triangles) per costat de cada anell
             for anell in [p.exterior, *p.interiors]:
                 c = np.asarray(anell.coords)
                 a, b = c[:-1], c[1:]
                 for (x0, y0), (x1, y1) in zip(a, b):
                     q = np.array([[x0, y0, zb], [x1, y1, zb], [x1, y1, zc], [x0, y0, zc]])
+                    llarg = math.hypot(x1 - x0, y1 - y0)
+                    w = np.array([[0.0, zb - zs, llarg, k], [llarg, zb - zs, llarg, k],
+                                  [llarg, zc - zs, llarg, k], [0.0, zc - zs, llarg, k]])
                     tri += [q[[0, 1, 2]], q[[0, 2, 3]]]
+                    atr += [w[[0, 1, 2]], w[[0, 2, 3]]]
     if not tri:
-        return np.zeros((0, 3, 3), 'f4')
+        return np.zeros((0, 3, 3), 'f4'), np.zeros((0, 3, 4), 'f4')
     v = np.array(tri).reshape(-1, 3)
     lon, lat = a_latlon.transform(v[:, 0], v[:, 1])
     ecef = geodesia.ecef(lat, lon, v[:, 2] / 1000.0) - origen_ecef
-    return ecef.reshape(-1, 3, 3)
+    return ecef.reshape(-1, 3, 3), np.array(atr, dtype='f4')
 
 
 def dins_dun_edifici(parts, x, y):
@@ -218,7 +231,7 @@ def fraccions_disc(perfil, ull_ecef, sol_ecef, radi_sol_km, lluna_ecef, radi_llu
 
 # ------------------------------------------------------------ malla preparada (memoria cau)
 
-VERSIO_MALLA = 2
+VERSIO_MALLA = 5            # 3: contorns (obstacles); 4: atributs de les textures; 5: triangles cap a fora
 
 
 def mostrejador(alt, transform):
@@ -232,6 +245,73 @@ def mostrejador(alt, transform):
         files = (transform.f - np.asarray(ys)) / res - 0.5
         return np.maximum(map_coordinates(alt, [files, cols], order=1, mode='nearest'), 0.0)
     return f
+
+
+def contorns_a_bytes(geoms):
+    """Contorns en WKB, tots seguits (np.savez sense pickle no desa objectes): bytes i on comenca cadascun."""
+    wkb = shapely.to_wkb(geoms)
+    inici = np.concatenate([[0], np.cumsum([len(b) for b in wkb])]).astype('i8')
+    return dict(contorns_wkb=np.frombuffer(b''.join(wkb), dtype='u1'), contorns_inici=inici)
+
+
+def contorns_de_bytes(m):
+    """El contrari de contorns_a_bytes: array de poligons shapely (EPSG:25830)."""
+    dades, inici = m['contorns_wkb'].tobytes(), m['contorns_inici']
+    return shapely.from_wkb([dades[a:b] for a, b in zip(inici[:-1], inici[1:])])
+
+
+VERSIO_COBERTES = 1
+
+
+def colors_cobertes(zona, contorns, general, detall):
+    """Color de cada coberta (RGB 0..1; NaN si l'ortofoto no la cobreix) a partir de l'ortofoto del PNOA: la
+    mediana de fins a 9 punts dins del contorn (un punt interior i punts a mig cami cap als vertexs). Es fa servir
+    la foto de detall (0,5 m) on n'hi ha i la de la zona (5 m) a la resta. Com que la foto no es ortofoto
+    vertadera, la teulada dels edificis alts hi es desplacada uns metres: els punts interiors en redueixen
+    l'efecte. Resultat a data/cache/cobertes_<zona>.npz (es refa si canvien els fitxers)."""
+    import rasterio
+    from . import data_io
+    fitxers = [c for c in (detall, general) if c]
+    clau = np.array([VERSIO_COBERTES, len(contorns)] + [os.path.getmtime(c) for c in fitxers])
+    cache = os.path.join(data_io.DIR_CACHE, f'cobertes_{zona}.npz')
+    if os.path.exists(cache):
+        with np.load(cache) as z:
+            if z['clau'].shape == clau.shape and np.array_equal(z['clau'], clau):
+                return z['colors']
+    punts, part = [], []
+    interiors = shapely.point_on_surface(contorns)
+    for k, (g, c) in enumerate(zip(contorns, interiors)):
+        p0 = np.array([c.x, c.y])
+        v = np.vstack([np.asarray(q.exterior.coords)[:-1] for q in poligons(g)])
+        v = v[np.linspace(0, len(v) - 1, min(8, len(v))).astype(int)]
+        q = p0 + 0.5 * (v - p0)
+        dins = shapely.contains_xy(g, q[:, 0], q[:, 1])
+        q = np.vstack([p0, q[dins]])
+        punts.append(q)
+        part.append(np.full(len(q), k))
+    punts, part = np.vstack(punts), np.concatenate(part)
+    mostres = np.full((len(punts), 3), np.nan)
+    for cami in fitxers:                          # primer el detall; la zona, on encara falta
+        with rasterio.open(cami) as f:
+            img = f.read()
+            fil, col = rasterio.transform.rowcol(f.transform, punts[:, 0], punts[:, 1])
+        fil, col = np.asarray(fil), np.asarray(col)
+        ok = np.isnan(mostres[:, 0]) & (fil >= 0) & (fil < img.shape[1]) & (col >= 0) & (col < img.shape[2])
+        mostres[ok] = img[:, fil[ok], col[ok]].T / 255.0
+        del img
+    colors = np.full((len(contorns), 3), np.nan)
+    ordre = np.argsort(part, kind='stable')
+    part, mostres = part[ordre], mostres[ordre]
+    inici = np.searchsorted(part, np.arange(len(contorns)))
+    final = np.searchsorted(part, np.arange(len(contorns)), side='right')
+    for k in range(len(contorns)):
+        m = mostres[inici[k]:final[k]]
+        m = m[~np.isnan(m[:, 0])]
+        if len(m):
+            colors[k] = np.median(m, axis=0)
+    os.makedirs(data_io.DIR_CACHE, exist_ok=True)
+    np.savez(cache, clau=clau, colors=colors)
+    return colors
 
 
 def preparar_malla(zona, cami_mdt):
@@ -251,7 +331,8 @@ def preparar_malla(zona, cami_mdt):
     parts = llegir_zona(zona)
     if parts is None or len(parts) == 0:
         return dict(triangles=np.zeros((0, 3, 3), 'f4'), origen=np.zeros(3), n_parts=np.array(0), clau=clau,
-                    vores=np.zeros((0, 5)))
+                    vores=np.zeros((0, 5)), contorns_wkb=np.zeros(0, 'u1'), contorns_inici=np.zeros(1, 'i8'),
+                    cota_coberta=np.zeros(0), cota_sol=np.zeros(0), atributs=np.zeros((0, 3, 4), 'f4'))
     d = data_io.carregar_terreny(cami_mdt, 16384, 1024)
     terra = mostrejador(d['alt'], d['transform'])
     # la malla del terreny (fora del pegat dens) fa servir l'altitud mitjanada per blocs als vertexs
@@ -262,10 +343,10 @@ def preparar_malla(zona, cami_mdt):
     x0, y0, x1, y1 = parts.total_bounds
     lon, lat = Transformer.from_crs(CRS, 'EPSG:4326', always_xy=True).transform((x0 + x1) / 2, (y0 + y1) / 2)
     origen = geodesia.ecef(lat, lon, 0.0)
-    tri = malla_zona(parts, origen).astype('f4')
-    r = dict(triangles=tri, origen=origen, n_parts=np.array(len(parts)), clau=clau,
+    tri, atributs = malla_zona(parts, origen)
+    r = dict(triangles=tri.astype('f4'), atributs=atributs, origen=origen, n_parts=np.array(len(parts)), clau=clau,
              cota_sol=parts['cota_sol'].to_numpy(), cota_coberta=parts['cota_coberta'].to_numpy(),
-             desnivell=parts['desnivell'].to_numpy(), vores=arestes(parts))
+             desnivell=parts['desnivell'].to_numpy(), vores=arestes(parts), **contorns_a_bytes(parts.geometry.values))
     os.makedirs(data_io.DIR_CACHE, exist_ok=True)
-    np.savez(cache, **r)
+    np.savez_compressed(cache, **r)    # comprimida: ~5 vegades menys espai; llegir-la tarda ~0,1 s mes
     return r

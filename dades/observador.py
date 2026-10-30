@@ -5,6 +5,11 @@ Es nomes una dada, sense cap dibuix. D'aquest mateix punt surten el model del So
 dades del CNIG del panell: els crea tots alhora GraphicsEngine.triar_punt() (main.py), de manera que
 sempre corresponen al mateix lloc. L'objecte no es pot modificar (frozen): canviar de punt vol dir
 crear-ne un de nou. Es independent de la camera: es pot explorar lluny sense moure l'observador.
+
+Referencia i posicio efectiva: el lloc triat (la coordenada de la llista o el punt clicat) es la referencia
+(lat_ref, lon_ref). Si cau dins d'un edifici o enganxat a una facana, els ulls es posen al punt exterior mes
+proper (dades/obstacles.py: a la placa o al carrer, no al terrat), i lat, lon son aquesta posicio efectiva,
+la que fan servir el model, el CNIG i la camera. desplacament_m diu quant s'han mogut.
 """
 from dataclasses import dataclass
 
@@ -31,3 +36,6 @@ class Observador:
     lon: float        # longitud (graus)
     altitud_m: float  # altitud del terra en aquest punt (superficie dibuixada), en metres
     nom: str = ''     # nom de la ubicacio, si s'ha triat de la llista
+    lat_ref: float = None         # lloc triat (referencia), si es diferent de la posicio efectiva
+    lon_ref: float = None
+    desplacament_m: float = 0.0   # distancia de la referencia a la posicio efectiva (m)

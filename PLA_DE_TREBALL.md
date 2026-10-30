@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-26 (F14: edificis a les zones de detall).
+Darrera actualització: 2026-10-30 (F23: llum de les façanes i llocs nous; proposta de l'objectiu O3, mapa de visibilitat, F24–F30).
 
 ---
 
@@ -101,12 +101,46 @@ Darrera actualització: 2026-10-26 (F14: edificis a les zones de detall).
 | D45 | (F12, equip) Espai de navegació: cub fix amb la Terra, la Lluna i el Sol a tot l'interval, en el mateix sistema que l'escena (ECEF); marge mínim d'un radi solar, ampliat fins que el Sol hi capiga sencer des de la paret. Parets translúcides visibles a prop. | 26/10 |
 | D46 | (F12, equip) Mirada amb el ratolí capturat: un clic a l'escena captura, Esc o perdre el focus alliberen; el doble clic amb el ratolí lliure continua triant el punt. Esc amb el ratolí lliure continua tancant el programa (comportament anterior conservat). | 26/10 |
 | D52 | (F14, equip) Edificis a les zones de detall per veure si tapen el Sol. Font: Catastro INSPIRE (parts d'edifici amb plantes); altures estimades amb plantes × 3 m, identificades com a estimació. Àrea: 2 km al voltant dels punts d'observació. Les dades i la memòria cau, fora del Git. | 26/10 |
-| D53 | (F14) Els punts d'observació que cauen dins d'un edifici no es mouen: es documenten i es proposa un punt exterior proper, pendent de la decisió de l'equip. | 26/10 |
+| D53 | (F14; substituïda per D60) Els punts d'observació que cauen dins d'un edifici no es mouen: es documenten i es proposa un punt exterior proper, pendent de la decisió de l'equip. | 26/10 |
+| D54 | (F15, equip) Mirada amb el ratolí: Tab (o clic dret a l'escena) captura a l'instant i Tab o Esc alliberen; el clic esquerre ja no captura (arrossegar i doble clic com abans, sense l'espera de 0,3 s). Sensibilitat única (`SENSIBILITAT`), proporcional al camp de visió. | 27/10 |
+| D55 | (F15, equip) Tercera vista, "Allunyar-se fins a l'espai (guiat)" (tecla G): la posició depèn només d'un progrés (roda, W/S) sobre una trajectòria fixa; la mirada és de l'usuari. Les altres vistes i el significat de les tecles existents no canvien. | 27/10 |
+| D56 | (F15) La trajectòria guiada es calcula amb el Sol i la Lluna de l'hora d'entrada (ancora): canviar l'hora no mou la càmera; Recentrar l'actualitza; canviar d'ubicació des del panell la recalcula amb el mateix progrés. | 27/10 |
+| D57 | (F15) Mides i distàncies reals també a la vista guiada: no es fan cabre els astres. La vista de l'espai és de context i no reprodueix l'eclipsi vist des del terra. | 27/10 |
+| D58 | (F16, equip) Mode "Caminar" dins d'Explorar, al costat de "Vol lliure" (selector del panell): W A S D a 1,5 m/s (Shift: córrer ×3), ulls a 1,7 m sobre el relleu dibuixat en pujada i en baixada; E/Q i la roda no hi fan res; sense salt, gravetat ni col·lisions amb edificis. | 27/10 |
+| D59 | (F16) Caminant, el mar i les zones sense relleu no es trepitgen: la càmera s'atura a la vora. Per entrar-hi cal ser a menys de 5 km sobre el relleu (es baixa en vertical); si no, el panell ho diu i ofereix "Caminar des del punt d'observació". | 27/10 |
+| D60 | (F17, equip) Els ulls de l'observador mai dins d'un edifici: si el lloc triat (llista o doble clic) hi cau, es posen al punt exterior més proper a 3 m de les façanes, a l'espai obert connectat amb els carrers (no a un pati tancat ni al terrat). La referència es conserva i es distingeix de la posició efectiva. Substitueix D53. | 27/10 |
+| D61 | (F17, equip) Els edificis que es mostren són obstacles: caminant (cos de 0,3 m, lliscant) i en vol lliure per sota de la coberta (es pot passar per sobre). Amagats, no fan d'obstacle. | 27/10 |
+| D62 | (F18, equip) Terra de les zones de detall: ortofoto del PNOA (IGN, CC BY 4.0) com a color base, primer només a Vic (zona a 5 m i 4 × 4 km a 0,5 m). L'ICGC queda descartada fins a confirmar-ne la llicència. Les ombres de la foto s'accepten provisionalment. | 27/10 |
+| D63 | (F18, equip) Després de validar el terra: façanes procedimentals (plantes reals) i cobertes amb el color de l'ortofoto. | 27/10 |
+| D64 | (F19, equip) Cel per dispersió (Rayleigh, Mie, ozó) amb la densitat decreixent amb l'altura i l'ombra de la Lluna a cada punt del raig; la mateixa atmosfera dona el color de la llum i de la boira. Dibuixat només on no hi ha res (no altera els discs ni la geometria). | 27/10 |
+| D65 | (F20, equip) Textures dels edificis abans de la validació del terra (petició explícita): façanes procedimentals amb les plantes reals i cobertes amb el color de l'ortofoto (D63). | 27/10 |
+| D66 | (F21, equip) Fotografia aèria a tot el territori i a la Terra, "com a Google Earth", carregada a mesura que cal (petició explícita: avança la descàrrega progressiva que CLAUDE.md deixava per a més endavant). Fonts: PNOA de l'IGN (WMTS, CC BY 4.0) i Sentinel-2 cloudless 2020 d'EOX (WMTS, CC BY-NC-SA 4.0, ús no comercial) on el PNOA no en té i als zooms de país i de la Terra. Les imatges de Google no es poden fer servir (condicions d'ús). Memòria cau al disc (`data/cache/teselles`, ignorada). | 28/10 |
+| D67 | (F21, equip) Vista aèria (vol lliure) amb controls de ratolí com Google Earth: arrossegar desplaça el terra, Shift + arrossegar (o botó del mig) orbita al voltant del centre de la pantalla, la roda s'acosta al punt del cursor amb una animació suau; inèrcia en deixar anar. Les tecles no canvien. Caminant i observant, el ratolí fa el mateix que abans. | 28/10 |
+| D68 | (F21, equip) Doble clic explorant: l'observador va al punt i la vista passa directament a primera persona (observar des del terra), mirant cap on mirava la càmera, en horitzontal. La càmera d'exploració no es mou (V hi torna). Substitueix la part de D43 i D46 sobre el doble clic. | 28/10 |
+| D69 | (F21, equip) Edificis: per defecte només en primera persona (observació i caminar), per veure l'horitzó que deixen; a la vista aèria (vol lliure i guiada) no, perquè no tapin la fotografia. Totes dues opcions es poden canviar al panell. | 28/10 |
+| D70 | (F21) Boira del terreny i de la Terra amb extinció exponencial (Beer-Lambert) i la densitat mitjana de l'aire en el camí de la càmera al punt (atmosfera exponencial, escala 8 km); 1/e cada 120 km a nivell del mar. La Terra (mar, països veïns) té la mateixa boira que el terreny. | 28/10 |
+| D71 | (F22) La coordenada Mercator dels vèrtexs del terreny es passa relativa a l'origen de cada terreny (un nombre petit, precís en float32), no partida en alta + baixa: el compilador de la GPU pot reordenar les sumes i la foto es movia ~1 m per vèrtex. | 28/10 |
+| D72 | (F22, equip) Lluna amb les dades d'alta resolució de la NASA (CGI Moon Kit): color de la LRO a 8192 × 4096 i relleu del LOLA (16 px/grau), baixats amb autorització explícita de l'equip (84 MB, fora del Git). De molt a prop (menys de ~0,5 km per píxel), cràters petits procedimentals, **il·lustratius**. | 28/10 |
+| D73 | (F22, equip) Sol amb aspecte de foc (taronja i vermell, flames animades) **només des de l'espai**: **il·lustratiu**, com les fotos fetes amb filtre. Des del terra, disc blanc que enlluerna; transició gradual en pujar fins a 60 km. | 28/10 |
+| D74 | (F22) La corona només apareix amb menys del 0,05 % del disc del Sol visible (els últims segons abans de la totalitat). Abans començava al 0,4 % i a Cerdanyola (99,74 %, parcial) se'n veia una part. | 28/10 |
+| D75 | (F23, equip) No es fan servir imatges ni models 3D de Google (Photorealistic 3D Tiles): cal clau i facturació, no es poden desar al disc, i arran de terra la malla es veu desfeta. Es milloren les nostres dades (llum de les façanes, edificis a qualsevol lloc). | 30/10 |
+| D76 | (F23) Llum de les façanes: una paret vertical veu mig cel i mig terra (que reflecteix el ~25 % de la llum que rep), i el contrast entre cares es codifica amb gamma 2,2 respecte d'una cara de cara al Sol. A l'ombra, la paret passa de ~1/4 a ~1/2 de la il·luminada. Les cobertes, com el terra (0,25 cel + 0,75 Sol). **Aproximació il·lustrativa.** | 30/10 |
+| D77 | (F23, equip) Llocs nous amb detall: el doble clic on no hi ha edificis a menys de 500 m prepara en segon pla el relleu de 5 m (6 × 6 km, WCS de l'IGN) i els edificis del Catastro (2 × 2 km, ZIP per municipi; el WFS per rectangle és massa lent). Com a molt 3 llocs al disc (~40–110 MB cadascun); s'esborren els més antics. Malles d'edificis comprimides. | 30/10 |
+| D78 | (equip) Les vistes en primera persona i aèria es donen per bones de moment. La transició cap a l'espai (fins a la Lluna i el Sol) no agrada, però queda aparcada: s'hi tornarà més endavant. | 30/10 |
+| D79 | (equip) Objectiu nou **O3 · On es veurà l'eclipsi** (aplicació de dades): mapa de visibilitat segons el que tapa el Sol (relleu i edificis), estàtic al màxim i dinàmic al llarg de l'eclipsi, per als eclipsis del 2026, 2027 i 2028. El número O3 es reutilitza (l'antic es va retirar a D31). Proposta a §11, O3; pendent de P14–P17. | 30/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
 
-Cap pregunta oberta en aquest moment. (Historial: P1–P13 resoltes a D15–D25 i D31.)
+(Historial: P1–P13 resoltes a D15–D25 i D31.) Obertes (O3, 30/10):
+
+- **P14** Afluència de gent (F30): s'hi inclou? Cal una dada nova de població (candidates: graella d'1 km de
+  l'INE o GHSL de la UE; llicència i mida per verificar) i és una estimació sense validar.
+- **P15** On viu l'aplicació: dins del programa (capa sobre el terreny, consulta d'un punt, barra temporal) i
+  exportació GeoTIFF per a QGIS (proposta), o una web a part (seria un segon projecte).
+- **P16** Resolució dels mapes a les zones de detall: 5 m (més espai) o 10 m (proposta, ~4 vegades menys).
+- **P17** Definició de "com de bé es veu" (l'índex del mapa de calor): proposta a O3, F29.
+- Aparcat (D78): la transició cap a l'espai.
 
 ---
 
@@ -133,6 +167,14 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Ombres del relleu (shadow mapping) a la zona de 5 m | `basecode/ombres_relleu.py`, `shaders/ombra.*`, `terrain.frag` | F11 (`FET`) |
 | Arrencada a C1 − 1 h; cub de navegació amb parets; mirada amb el ratolí capturat; roda i trackpad | `main.py`, `dades/navegacio.py`, `basecode/paret_cub.py`, `basecode/control_ratoli.py` | F12 (`FET`) |
 | Edificis del Catastro a les zones de detall (opacs, tapen el Sol, fan ombra), "Mostrar edificis" | `dades/edificis.py`, `basecode/edificis.py`, `shaders/edifici.*` | F14 (`FET`) |
+| Mirada amb el ratolí (Tab), límits de la mirada, "Mirar l'eclipsi" i vista guiada fins a l'espai | `basecode/control_ratoli.py`, `basecode/camera_guiada.py`, `dades/trajectoria.py`, `main.py`, `ui.py` | F15 (`FET`; Mouse Look `VALIDAT`) |
+| Caminar sobre el relleu dins d'Explorar (ulls a 1,7 m, W A S D, Shift) | `basecode/camera_exploracio.py`, `basecode/terrain.py` (`es_terra`), `main.py` (`altitud_caminable_km`), `ui.py` | F16 (`FET`) |
+| Punts d'observació a l'exterior dels edificis; edificis com a obstacles | `dades/obstacles.py`, `basecode/camera_exploracio.py`, `main.py` (`triar_punt`), `dades/observador.py` | F17 (`FET`) |
+| Ortofoto del PNOA com a color del terra (prova a Vic) | `scripts/descarregar_ortofoto.py`, `basecode/terrain.py`, `shaders/terrain.frag` | F18 (`FET`, pendent de valoració) |
+| Cel per dispersió, llum i boira de l'atmosfera | `dades/atmosfera.py`, `basecode/cel.py`, `shaders/cel.*`, `terrain.*`, `terra.*`, `esfera.frag` | F19 (`FET`) |
+| Façanes amb finestres per planta i cobertes de l'ortofoto | `dades/edificis.py`, `basecode/edificis.py`, `shaders/edifici.*` | F20 (`FET`) |
+| Fotografia aèria a tot arreu (PNOA + Sentinel-2), carregada en segon pla; controls aeris; doble clic a primera persona; edificis segons la vista | `dades/teselles.py`, `basecode/mosaic.py`, `shaders/mosaic.glsl`, `terrain.*`, `terra.*`, `camera_exploracio.py`, `main.py`, `ui.py` | F21 (`FET`) |
+| Llocs nous amb detall amb doble clic (relleu de 5 m i edificis a qualsevol lloc d'Espanya, en segon pla) | `dades/llocs.py`, `dades/catastro.py`, `dades/mdt_wcs.py`, `main.py`, `ui.py` | F23 (`FET`) |
 | Mode pla del terreny i càmera orbital, per als scripts | `basecode/terrain.py`, `basecode/camera_orbital.py` | Funciona |
 | Scripts: descàrregues, caches, captura, exercici 1.0, validacions | `scripts/` | Funcionen |
 
@@ -156,6 +198,7 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Vista coherent des de la Lluna | N | Opcional, gran | F8 |
 | Nivells de detall per rajoles i descàrrega en segon pla | N | Opcional | F8 |
 | MDS (arbres i edificis) | N | Opcional, només estudi ara | F8 |
+| O3 · Mapa de visibilitat de l'eclipsi (estàtic i dinàmic, relleu i edificis, 2026–2028) | N | Proposta (D79) | F24–F30 |
 
 ---
 
@@ -177,6 +220,7 @@ main.py                         GraphicsEngine: escena, temps, astres, cel i tec
 ui.py                           build_ui(app): panell i barra de temps
 basecode/                       ORIGINALS sense canvis, més els nostres objectes:
   terra.py                        Terra (el·lipsoide amb textura)
+  mosaic.py                       Mosaic (fotografia aèria per teselles, carregada a mesura que cal)
   terrain.py                      Terrain (mode globus i mode pla)
   astres.py                       Esfera (Sol, halo) i Lluna
   ombres_relleu.py                OmbresRelleu (shadow mapping de la zona de 5 m)
@@ -186,15 +230,21 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
   sol.py                          Sol (Light amb azimut i elevació)
   camera_exploracio.py            CameraExploracio (lliure, ECEF)
   camera_observador.py            CameraObservador (als ulls)
+  camera_guiada.py                CameraGuiada (vista guiada: progrés sobre una trajectòria)
   camera_orbital.py               CameraOrbital (mode pla, scripts)
-  programes.py                    carregar shaders amb #define
-  shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra, paret (nostres)
+  programes.py                    carregar shaders amb #define i #include
+  shaders/                        gouraud, phong (originals) + terrain, terra, esfera, ombra, paret, cel, edifici,
+                                  mosaic.glsl (nostres)
 dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
-                                observador.py, navegacio.py, edificis.py, data_io.py, eclipse_data.py
+                                observador.py, navegacio.py, trajectoria.py, edificis.py, data_io.py,
+                                eclipse_data.py, obstacles.py, atmosfera.py, teselles.py, mdt_wcs.py,
+                                catastro.py, llocs.py
 scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
                                 exercici_fotograma, validar_model, validar_ombra, prova_vistes,
                                 comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls,
-                                descarregar_edificis, validar_edificis
+                                descarregar_edificis, validar_edificis, prova_trajectoria,
+                                prova_caminar, prova_obstacles, descarregar_ortofoto, prova_ortofoto,
+                                prova_cel, prova_mosaic, prova_llocs
 models/                         .obj, com al repte 4
 data/                           MDT, CNIG, efemerides, textures, cache (veure data/FONTS.md)
 docs/                           web de seguiment
@@ -818,6 +868,8 @@ Disseny previst inicialment (es manté):
     O1.11 meteorologia, O1.12 validació del model.
   - **O2** Conceptes gràfics: O2.1 fotograma, O2.2 càmeres i transformacions, O2.3 textures i
     mipmaps, O2.4 normals i il·luminació, O2.5 shadow mapping, O2.6 organització del codi i del treball.
+  - **O3** On es veurà l'eclipsi (D79, proposta): O3.1 circumstàncies de cada eclipsi, O3.2 mapa estàtic del
+    relleu, O3.3 edificis i terrats, O3.4 mapa dinàmic, O3.5 aplicació de planificació, O3.6 afluència (opcional).
 - Percentatge: cada subobjectiu té una llista de criteris comprovables, i
   % = criteris `VALIDAT` / total. Res de percentatges a ull.
 - Comprovació: s'obre al navegador; cada desplegable s'obre; els percentatges coincideixen amb
@@ -1284,6 +1336,580 @@ plaça Major amb zoom i veure com hi entra l'edifici; (2) "Mostrar edificis" en 
 (3) explorar Cerdanyola i Vic des de l'aire; (4) decidir els punts exteriors de l'Escala, Cerdanyola,
 Montmeló i la UAB.
 
+### F15 — Ratolí i navegació de la càmera (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 15.1 | C | La captura del ratolí es desfeia a cada fotograma (slimgui); Tab captura/allibera; el clic esquerre ja no captura; sensibilitat única | `VALIDAT` (27/10: l'equip ha provat el Mouse Look amb el ratolí real i "funciona bé") |
+| 15.2 | C | Límits de la mirada comuns (rumb normalitzat, inclinació ±89°, valors no finits rebutjats) a tots els camins, també els botons | `FET` |
+| 15.3 | N | "Mirar l'eclipsi": orienta la càmera activa cap al Sol una sola vegada | `FET` |
+| 15.4 | N | Vista guiada fins a l'espai (`dades/trajectoria.py`, `basecode/camera_guiada.py`, tecla G) | `FET` |
+| 15.5 | N (prova) | `scripts/prova_trajectoria.py`; `scripts/prova_controls.py` ampliat | `FET` |
+| 15.6 | doc | README, pla i web | `FET` |
+
+**Problemes trobats (diagnòstic abans de canviar res).**
+- *La captura no durava.* `GlfwRenderer.new_frame()` de slimgui crida `_update_mouse_cursor()`, que fa
+  `glfw.set_input_mode(CURSOR, CURSOR_NORMAL)` a cada fotograma sense mirar si el cursor està desactivat (el
+  backend en C++ d'imgui sí que ho comprova). Reproduït: just després de capturar, `DISABLED`; després de
+  `new_frame()`, `NORMAL`. Per tant el cursor tornava a ser visible i topava amb les vores. La prova de la F12
+  no ho podia veure perquè substituïa `glfw.get_cursor_pos`. Correcció: `ControlRatoli` embolcalla aquest pas
+  del renderer i el salta mentre és capturat (no es toca la biblioteca).
+- *Tab bloquejava el teclat.* imgui fa servir Tab per passar d'un control al següent; després del primer Tab,
+  `want_capture_keyboard` era cert i el programa deixava de rebre P, V, W... Correcció: els controls del panell
+  i de la barra de temps es marquen `NO_TAB_STOP`.
+- *Clic per capturar.* El clic esperava 0,3 s (temps del doble clic) i, si es canviava de finestra en aquell
+  interval, la captura pendent no es cancel·lava. Ara el clic esquerre no captura.
+- *Sensibilitat dispersa:* 0,12 (capturat), 0,2 (arrossegar a l'exploració), 0,15 (arrossegar a l'observació).
+  Ara una sola constant de 0,15°/punt, proporcional al camp de visió.
+- *Mirada sense límits als botons:* `veure_ombra_des_de_lespai` i `CameraObservador.mirar` assignaven la
+  inclinació sense limitar-la; l'exploració permetia ±89,9°.
+- *Prova del panell (ja fallava abans de la F15):* el fitxer local `imgui.ini` deixa el panell plegat
+  (`Collapsed=1`); la prova ara el força obert. A la finestra real, si el panell surt plegat, s'obre amb la
+  fletxa del títol.
+- La càmera orbital (`camera_orbital.py`) només la fan servir `scripts/captura.py` i l'exercici 1.0: no s'ha tocat.
+
+**Ordre del bucle (sense canvis):** `poll_events` → Esc → `new_frame` d'slimgui (ara sense tocar el cursor
+capturat) → `imgui.new_frame` → `render()`: teclat (Tab, V, G, P, fletxes amb `dt`) → temps → astres →
+`ControlRatoli.fotograma()` (un sol delta per fotograma, sense `dt`; la roda va al panell o a la càmera, mai
+a tots dos) → càmera → dibuix → panell.
+
+**Vista guiada.** Punts clau del progrés s: 0 (a 300 m del punt, recta de 70° d'elevació d'esquena al Sol),
+S1 = 0,3 (100 km per la mateixa recta: per sobre del pla tangent al punt, fora de la Terra), S2 = 0,55 (la Terra
+a 30.000 km, entre la vertical del punt i el Sol), S3 = 0,8 (de costat respecte de la recta Terra–Lluna, a 1,6
+vegades la seva distància del punt mig) i 1 (a 1,2·10⁶ km, a 40° de la direcció oposada al Sol: hi caben la
+Terra, la Lluna i el Sol). De S1 a 1, altura en escala logarítmica i direcció (des del centre de la Terra) girant
+en proporció a l'altura guanyada. La primera versió interpolava el radi i girava la direcció linealment: a
+~100 km d'altura la càmera escombrava milers de km de costat (12,9 % de la distància per mostra, gir de 5°); la
+prova de continuïtat ho va detectar. Mirada de referència: cap al punt fins a S2, cap al punt mig Terra–Lluna a
+S3 i a mig camí entre la Terra i el Sol al final; "amunt" transportat amb el gir mínim. La mirada de l'usuari és
+(gir, inclinació) respecte d'aquesta referència i la base es construeix perpendicular (cap singularitat de
+`lookAt`). Salvaguardes, que no acumulen res: 20 m sobre el terreny dibuixat i fora de 1,5 radis lunars.
+
+**Comprovat automàticament.**
+- `python scripts/prova_trajectoria.py` (~17 s, sense finestra; 6 ubicacions × 16 hores d'ancora × 4.001 valors
+  del progrés): fins a S1, ≥ 282 m per sobre del pla tangent; des de S1, ≥ 6.463 km del centre de la Terra;
+  ≥ 129 radis lunars de la Lluna i ≥ 217 radis solars del Sol; ≥ 48 milions de km de les parets del cub (no fa
+  servir el límit); continuïtat ≤ 0,8 % de la distància per mostra, gir de la mirada ≤ 0,31°, "amunt" sense
+  inversions; el punt visible fins a S2; enquadraments a S2 (Terra sencera, 19,3° de 25°), S3 (17,4°) i final
+  (19,9°); anada i tornada amb 200 passos fraccionaris exacta; `orientacio`/`angles_cap_a` inversos; ±89°
+  finits i perpendiculars; `limitar_orientacio`.
+- `python scripts/prova_controls.py`: tot correcte (vegeu la llista de la secció 3 i la secció 7 de l'script).
+- Regressions: `prova_vistes.py`, `validar_horitzo.py`, `validar_ombres_relleu.py --totes` i
+  `validar_edificis.py`, tot correcte.
+
+**Inspeccionat visualment** (`captures/proves/guiat_*.png`, Vic al màxim): a prop (edificis i carrers, foscos
+pel màxim de l'eclipsi i el Sol baix); la Terra a S2 (cara de dia a dalt; el punt, a la part fosca, prop del
+terminador); a S3 la Terra (~15 px) i la Lluna (~4 px); al final el Sol (~16 px) i la Terra com un creixent
+(~6 px); la Lluna, amb la cara fosca, no es distingeix. El panell dibuixat amb la vista guiada i l'avís de
+captura.
+
+**Provat per l'equip:** encara no. Proves manuals (finestra real, ratolí i trackpad físics):
+1. Tab: el cursor desapareix i moure el ratolí gira la mirada sense topar amb la vora, durant estona; Tab o Esc
+   l'alliberen; Esc un altre cop tanca. Clic dret a l'escena també captura.
+2. Cmd+Tab amb el ratolí capturat i tornar: queda alliberat i la mirada no salta.
+3. Amb el cursor lliure: el panell funciona, arrossegar gira, el doble clic (explorar) tria el punt.
+4. G: vista guiada mirant el punt; roda i dos dits fins a la vista ampla i tornada; Recentrar; P durant la
+   vista guiada (la càmera no es mou); canviar d'ubicació des de la llista.
+5. "Mirar l'eclipsi" a les tres vistes.
+6. Si la sensibilitat de 0,15°/punt és còmoda (es canvia a `basecode/control_ratoli.py`).
+
+**Limitacions.** A escala real, des de l'espai els astres són petits i amb el Sol al camp la Terra és un
+creixent (D57). La trajectòria no segueix els astres si l'hora canvia (D56). La captura real del cursor
+continua sense poder-se provar amb la finestra amagada (macOS no hi aplica el cursor desactivat sense focus):
+la prova comprova el mode que GLFW té guardat, no el comportament del sistema. El moviment "raw" no és
+disponible a macOS. L'exploració lliure manté la seva roda (avançar en la direcció de la mirada).
+
+### F16 — Caminar sobre el relleu (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 16.1 | C | Vol lliure: la combinació de tecles es normalitza (W+D anava √2 més ràpid) | `FET` |
+| 16.2 | N | Mode Caminar: moviment relatiu a la càmera, seguiment del relleu, subdivisió, vores, entrada | `FET` |
+| 16.3 | C | Teclat: sense focus o amb un control del panell actiu, W A S D no mouen la càmera | `FET` |
+| 16.4 | N (prova) | `scripts/prova_caminar.py`; comparacions de posició més estrictes a les proves | `FET` |
+| 16.5 | doc | README, pla i web | `FET` |
+
+**Què ja funcionava.** `CameraExploracio.moure()` ja calculava el desplaçament horitzontal amb la base local
+(est, nord, amunt) del punt i el rumb, sense fer servir la inclinació: mirar amunt o avall no feia volar.
+El Mouse Look (F15) no s'ha tocat.
+
+**Què faltava.** (1) La diagonal no es normalitzava: W+D anava a √2 de la velocitat. (2) La velocitat
+creix amb l'altura (`max(20 m/s, 0,8 × altura)`): a terra, 20 m/s. (3) Només hi havia `no_sota_terra`: en
+pujada la càmera s'enfilava, però en baixada quedava flotant (mesurat: 20 m de baixada en vol lliure, 15 m
+per sobre del terra). (4) `altitud_terra_km` retorna 0 al mar i fora d'Espanya, i no distingeix on no hi ha
+relleu. (5) Sense focus o amb un control del panell actiu, el teclat continuava movent la càmera.
+
+**Implementació** (`basecode/camera_exploracio.py`):
+- `caminar_pas(endavant, dreta, dt, correr)`: entrada normalitzada; distància = 1,5 m/s (× 3 amb Shift) ×
+  dt; es fa en passos de 0,5 m com a molt (el MDT és de 5 m). A cada pas, la posició horitzontal nova (base
+  local del punt on es és, ECEF en float64) es posa a 1,7 m sobre el relleu **dibuixat** en aquell punt
+  (`app.altitud_caminable_km`: els mateixos triangles que la GPU, amb l'exageració i les transicions entre
+  nivells, igual que els ulls de l'observador). Sense suavitzat: l'altura és la de la superfície (contínua),
+  i per tant no pot penetrar-la.
+- On no hi ha relleu de terra (mar o sense dades, amb la mateixa màscara que el shader, `Terrain.es_terra`),
+  el pas no es fa: la càmera s'atura a l'últim punt bo i el panell ho indica.
+- `seguir_terra()` a cada fotograma caminant: si el relleu canvia (exageració, zona de detall que es carrega o
+  es descarrega), els ulls el segueixen.
+- `entrar_caminar()`: baixa o puja en vertical (sense moure's en horitzontal) si la càmera és a menys de 5 km
+  sobre el relleu; si no, no fa res i el panell ofereix l'acció explícita "Caminar des del punt d'observació".
+- Caminant, E/Q i la roda no fan res. Els botons que mouen la càmera d'exploració: triar una ubicació de la
+  llista la posa als ulls del punt nou (continua caminant); "Veure l'ombra des de l'espai" passa a vol lliure.
+- Teclat (`main.py`): sense focus (`ControlRatoli.focus`) o amb `imgui.is_any_item_active()`, W A S D no es
+  processen; `want_capture_keyboard` ja ho impedia mentre s'escriu. El `dt` del programa ja es limita a 0,1 s.
+
+**Comprovat automàticament** (`python scripts/prova_caminar.py`, ~30 s, programa real amb finestra amagada):
+- 6 rumbs × W/S/A/D: direcció exacta (error 0,000°), 1,5 m per segon, la mirada no canvia; mirant a −80°, 0° i
+  +80°, el mateix desplaçament; W+D = 1,500 m/s a 45°; Shift 4,5 m/s.
+- 2 s a 30, 60 i 144 FPS: 3,0000 m en tots tres casos; un fotograma de 5 s avança 15 cm (dt limitat).
+- Pujant (+91 m) i baixant pel pendent més fort a prop de Picos, 1.500 fotogrames: ulls a 1,700000 m.
+- Un pas de 30 s corrent en una sola crida (135 m): 270 passos, el camí queda ≥ 1,64 m sobre el relleu; la
+  recta directa hi quedaria 13 m per sota.
+- Sortint de la zona de 5 m cap al relleu de 200 m: just a la frontera, 0,5 cm de diferència en 1 cm (el
+  pendent, cap esglaó); l'Escala cap a l'est: s'atura a la costa (354 m) sense entrar al mar.
+- Entrar des de 2,9 km: baixa en vertical (0 mm en horitzontal); des de l'espai, no fa res i ho diu.
+- Sense moviment residual en deixar W, canviar de mode o d'ubicació; sense focus W no mou; E/Q i la roda no
+  mouen caminant; l'exageració ×3 i tornar a 1, els ulls la segueixen; amb un control del panell actiu, W no mou.
+- Les proves anteriors feien servir `np.allclose`, que té una tolerància relativa (1e-5 × 6.400 km ≈ 64 m en
+  ECEF): podia donar per iguals posicions separades desenes de metres. S'ha canviat per una distància
+  explícita (1 µm) a `prova_caminar.py`, `prova_controls.py` i `prova_vistes.py`.
+
+**Provat per l'equip:** encara no. Proves manuals: (1) Explorar → Caminar a Picos i Vic: W A S D, Shift, mirar
+amb el ratolí capturat mentre es camina; (2) baixar i pujar un pendent fort (cap salt ni tremolor); (3) a
+l'Escala, caminar cap al mar; (4) Cmd+Tab amb W premuda; (5) des de l'espai, "Caminar" (missatge) i "Caminar des
+del punt d'observació"; (6) si 1,5 m/s i ×3 són còmodes (`VELOCITAT_CAMINAR_M_S`, `FACTOR_CORRER`).
+
+**Limitacions.** Els edificis es travessaven (resolt a la F17). Sense salt ni gravetat. Els
+pendents no limiten el pas (es pot pujar un cingle). Lluny del punt d'observació el relleu és el de la graella de
+la zona (~20 m) o el de 200 m: es camina sobre la superfície que es dibuixa, no sobre el MDT de 5 m. El rumb es
+manté respecte del nord local (en distàncies llargues, una loxodròmica).
+
+### F17 — Edificis com a obstacles i punts d'observació exteriors (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 17.1 | C | Punts d'observació fora dels edificis (referència i posició efectiva) | `FET` |
+| 17.2 | N | Col·lisions caminant i en vol lliure; recuperació (`dades/obstacles.py`) | `FET` |
+| 17.3 | N (prova) | `scripts/prova_obstacles.py`; ajustos de proves de relleu (amaguen els edificis) | `FET` |
+
+**Causa (comprovada).** Les coordenades de l'ajuntament de Cerdanyola (geocodificador de l'ICGC: dona la posició
+de l'edifici) cauen dins d'una part del Catastro de 4 plantes, a 7 m de la façana. Els ulls quedaven dins del
+prisma: al voltant, les façanes per dins; a dalt, la coberta. Mesurat mirant amunt des d'aquell punt: 0 % de cel.
+El mateix passava a l'ajuntament de l'Escala, al de Montmeló i a la plaça Cívica de la UAB (ja ho deia D53); Vic
+i Picos no.
+
+**Punts d'observació (D60).** `Obstacles.punt_exterior`: dins d'un quadrat de 300 m, l'espai lliure és el quadrat
+menys els contorns eixamplats 3 m (si no n'hi ha, 1,5 i 0,5 m); se'n queden els trossos que toquen la vora del
+quadrat (carrers i places connectats; un pati tancat no) i s'agafa el punt més proper. Resultats (efectiu, a 3 m de
+les façanes): l'Escala a 13,7 m, Cerdanyola a 10,6 m, Montmeló a 8,9 m, UAB a 20,7 m (coincideixen amb les
+propostes de la F14 a ≤ 0,5 m); Vic i Picos sense canvis. `Observador` guarda `lat_ref`, `lon_ref` i
+`desplacament_m`; el model, el CNIG i la càmera fan servir la posició efectiva. Es fa amb els contorns encara que
+els edificis estiguin amagats (el punt no canvia en mostrar-los).
+
+**Col·lisions (D61).** Els contorns són prismes verticals, per tant tot es fa al pla horitzontal (EPSG:25830, m).
+`Obstacles.moure`: si cap contorn no és a prop del camí, el pas es fa sencer; si no, en passos de mig radi com a molt
+i, a cada pas, el cercle s'empeny fora de les vores que toca (punt més proper de cada contorn, `shapely`), fins a 6
+iteracions per resoldre les cantonades còncaves. Com que cap pas supera el radi, el centre no pot passar a l'altre
+costat d'una paret; si el resultat no és vàlid, el pas no es fa. Caminant, radi 0,3 m (`RADI_COS_M`), dins dels
+passos de 0,5 m de la F16. En vol lliure (`desplacar`), a l'altura dels edificis, en passos de 0,5 m: radi 0,5 m
+contra les parts de coberta més alta que la càmera menys 0,5 m; si un pas baixa sobre una coberta venint de dalt,
+es queda a 0,5 m del terrat (amb 1 cm de tolerància perquè els arrodoniments no la facin obstacle). La roda també hi
+passa. Recuperació (`sortir_dels_edificis`), a cada fotograma d'exploració: si la càmera és dins o enganxada a una
+façana, va al punt exterior més proper. Passar a caminar damunt d'un edifici baixa al carrer més proper i ho diu.
+Contorns a la memòria cau dels edificis (WKB, `VERSIO_MALLA` = 3); construir l'índex del Vallès (49.797 parts): 0,05 s.
+
+**Comprovat automàticament** (`python scripts/prova_obstacles.py`, ~55 s):
+- Geometries de prova: s'atura a 0,300 m de la paret; en diagonal hi llisca; un pas de 100 m no la travessa;
+  passa la cantonada convexa; a la còncava, 66 fotogrames empenyent-hi, quiet (cap vibració); no passa per una
+  escletxa de 0,2 m ni entre dos edificis que es toquen per una cantonada; el punt exterior d'un edifici amb pati
+  és al carrer.
+- Contorns reals del Vallès: 3.000 moviments a l'atzar de fins a 50 m d'un cop (1.052 contra edificis): cap acaba
+  dins ni a menys de 0,3 m. Temps: mediana 0,02 ms; percentil 95, 22 ms (moviments de desenes de metres;
+  caminant, un fotograma avança com a molt 0,45 m).
+- Programa real: a les sis ubicacions, els ulls a l'exterior i mirant amunt 72–100 % de cel (des de la referència
+  dins de l'edifici: 0 %); caminant cap a l'ajuntament de Cerdanyola de cara i a 40°, 30 s corrent: topa i queda a
+  0,300 m; un pas de 135 m: cap punt a menys de 0,3 m; en vol lliure no s'entra per la façana, baixant amb Q
+  s'atura a 0,50 m de la coberta i s'hi pot passar per sobre; recuperació; passar a caminar damunt de l'edifici;
+  doble clic dins d'un edifici; edificis amagats i tornats a mostrar.
+- Regressions: dues proves de relleu fallaven per l'aparició dels edificis (la UAB, des del punt nou, veu un edifici
+  alt pujant; a l'Escala, caminant cap al mar es topa amb un edifici abans): ara aquelles comprovacions de relleu
+  amaguen els edificis, com ja feien `validar_horitzo.py` i `validar_ombres_relleu.py`.
+
+**Provat per l'equip:** encara no. Proves manuals: (1) triar les sis ubicacions: es veu el cel i el panell diu on són
+els ulls; (2) caminar contra façanes, en diagonal i corrent, i resseguir-les; cantonades i carrers estrets; (3) vol
+lliure baixant sobre un terrat i passant-hi per sobre; (4) doble clic sobre un terrat; (5) dir si 3 m de marge
+per als punts és adequat.
+
+**Limitacions.** Només les parts del Catastro (2 km al voltant dels punts) fan d'obstacle; voladissos, porxos i
+passatges sota edificis no existeixen al model (prismes). Els edificis amagats no són obstacles. Un pas sobre el relleu
+pot pujar un desnivell gran (no hi ha límit de pendent).
+
+### F18 — Prova d'ortofoto a Vic (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 18.1 | dades | Fonts verificades; `scripts/descarregar_ortofoto.py`; `data/ortofoto/` (ignorada pel Git) | `FET` |
+| 18.2 | N | Ortofoto com a color base del terra de la zona (`terrain.py`, `terrain.frag`), interruptor a Avançat | `FET` |
+| 18.3 | N (prova) | `scripts/prova_ortofoto.py`: alineació, memòria, temps per fotograma, captures | `FET` |
+
+**Fonts verificades (27/10/2026).** PNOA màxima actualitat (IGN), WMS: el GetCapabilities diu `AccessConstraints`
+"CC BY 4.0 scne.es" i `Fees` "No se aplican condiciones"; EPSG:25830 disponible; màxim 4096 px per petició. A Vic:
+vol de juliol de 2024, 0,25 m, "Ortoimagen verdadera: NO". ICGC (25 cm, 2009–2025): disponible, però el
+GetCapabilities diu "copyright" i la pàgina de condicions no especifica la llicència d'aquesta capa: no es fa servir.
+
+**Dades.** `vic_5m.tif`: tota la zona amb la graella del MDT (4000 × 4000 px, 5,3 MB); `vic_vic_0p5m.tif`: 4 × 4 km
+a 0,5 m (8000 × 8000 px, 19,8 MB). Descàrrega: 20,1 MB en 123 s.
+
+**Dibuix.** Al shader del terreny, la foto substitueix la rampa per altitud com a color base; la llum és la mateixa
+(Sol aparent, ombra de la Lluna, ombres del relleu i dels edificis). La de detall es barreja amb la de la zona al 3 %
+de la seva vora. Les dues textures es llegeixen sempre (dins d'un `if` per píxel, el mipmap no estaria definit);
+mipmaps i filtre anisotròpic ×16. Els samplers sempre tenen una textura (1 píxel si no n'hi ha).
+
+**Comprovat automàticament** (`python scripts/prova_ortofoto.py vic`): alineació foto–Catastro (vores, 8.294 parts
+en 1,5 × 1,5 km): màxim a +0,5 m est, +0,5 m nord (1 píxel); memòria de textura calculada: 85 MB (zona) + 341 MB
+(detall) amb RGBA8 i mipmaps (el controlador no la informa; és una estimació); carregar la zona amb l'ortofoto,
+el relleu i els edificis: 2,5 s; temps per fotograma (finestra amagada 1280 × 860): 8,7–11,0 ms amb foto i
+8,7–10,6 ms sense (+0,0–0,5 ms).
+
+**Inspeccionat visualment** (`captures/proves/ortofoto_vic_*.png` i `ortofoto_vic_lamina.jpg`): des de 400 m i 3 km
+es reconeixen la plaça Major, les Rambles, els carrers i els camps; al carrer, la plaça (sauló) és la real però
+borrosa; a 60 m, a la vora de la plaça es veuen franges de façanes fotografiades (inclinació dels edificis); a 20
+km, frontera visible entre la zona i el color per altitud; al màxim de l'eclipsi, tot molt fosc (amb foto i sense),
+i les ombres de la foto no s'hi distingeixen.
+
+**Provat per l'equip:** encara no. Proves: caminar per la plaça Major i carrers del voltant, volar de 50 m a 20 km,
+canviar l'hora (16:30, ~19:45 i el màxim) i l'interruptor d'Avançat; valorar les ombres de la foto i decidir si
+s'estén a la resta de zones (l'Escala, Vallès amb tres punts, Picos).
+
+**Limitacions.** Ombres del migdia del vol; edificis inclinats a la foto; al carrer, 0,5 m per píxel és borrós i els
+arbres i cotxes són taques planes; frontera de color al límit de la zona; 341 MB de textura per a cada detall de
+4 × 4 km (al Vallès, si es carreguessin els tres detalls alhora, el triple: ara només es carrega el del punt).
+
+### F19 — Cel i llum de l'atmosfera (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 19.1 | N | Model d'atmosfera (`dades/atmosfera.py`) i cel (`basecode/cel.py`, `shaders/cel.*`) | `FET` |
+| 19.2 | C | Llum del Sol amb el color que li dona l'atmosfera, llum del cel i boira del color de l'horitzó (terreny, Terra, edificis, disc del Sol) | `FET` |
+| 19.3 | N (prova) | `scripts/prova_cel.py` | `FET` |
+
+**Abans.** El cel era un color pla (`COLOR_CEL` barrejat amb un to de posta i un de nit segons l'elevació del Sol i
+la part tapada), la boira era d'aquest color i la llum del terreny era blanca.
+
+**Model** (detalls i aproximacions a `dades/atmosfera.py`; el shader n'és una còpia). Dispersió simple (Nishita):
+Rayleigh (β = 5,8 / 13,6 / 33,1 ·10⁻³ km⁻¹, escala 8 km), Mie (escala 1,2 km, g = 0,8) i absorció de l'ozó
+(capa de 10–40 km); atmosfera fins a 80 km; 12 mostres per raig, més denses a prop de la càmera (amb mostres
+uniformes l'horitzó sortia groc: l'aire proper, que conserva el blau, quedava mal representat), i 4 cap al Sol;
+el raig comença a l'altitud de la càmera; l'ombra de la Terra es té en compte. A cada mostra, la part visible
+del Sol des d'aquell punt (eclipsi). Compressió dels colors: meitat per canal i meitat sobre la lluminositat,
+més un 15 % de desaturació (cap canal saturat sol). Il·lustratiu: exposició; adaptació de l'ull a l'eclipsi
+(×visible⁻⁰·⁶, com a molt ×16); llum mínima dins de l'ombra (0,3 %, en lloc de la dispersió múltiple: sense,
+el cel de la totalitat era negre); color del cel ambient.
+
+**Integració.** El cel es calcula abans del fotograma en una textura petita (com a molt 400 px d'amplada) i es
+copia a la pantalla amb la profunditat màxima i el test "<=", sense escriure profunditat: només on no hi ha res.
+El color de la llum del Sol (transmissió per la massa d'aire de Kasten i Young) i el del cel es calculen per
+vèrtex al terreny i a la Terra (per fragment costava massa); la boira té el color del cel a l'horitzó (model
+de la CPU, cap al Sol i al contrari, recalculat si l'hora canvia o la càmera es mou) i la seva densitat decreix
+amb l'altura de la càmera. El disc del Sol i el halo prenen el color de la llum que arriba a la càmera.
+
+**Comprovat automàticament** (`python scripts/prova_cel.py`): shader = model de la CPU (≤ 0,6/255); amb cel i
+sense, els 589.543 píxels d'objectes (Sol, Lluna, terreny, edificis) idèntics; de C1 − 30 min a 20 min després de
+la posta a Vic, canvi màxim per minut 3,8/255 al terreny i 13,9/255 al cel, al màxim de l'eclipsi (en passos de
+10 s, 1,5–4,0/255: continu); cap píxel de cel amb un canal saturat i un altre fosc; a Picos, a la totalitat el
+zenit és fosc i l'horitzó oposat en té més, i en una posta amb el Sol a la mateixa altura el zenit és clar. El
+mode pla (`captura.py`) dona la mateixa imatge (0 píxels diferents).
+
+**Inspeccionat visualment** (`captures/proves/cel_*.png` i captures de prova): Vic a les 16:30 (blau, resplendor
+blanc al voltant del Sol), parcial (horitzó daurat), màxim (blau fosc i taronja a l'horitzó), posta (vermells);
+Picos abans de la totalitat (blau fosc, horitzó encès) i a la totalitat (blau marí, resplendor taronja); la
+Terra des de l'espai amb el contorn de l'atmosfera.
+
+**Rendiment** (finestra amagada; varia ±3 ms entre execucions): 1280 × 860, ~14–17 ms per fotograma; 2560 × 1720
+(pantalla Retina), ~22–42 ms segons la vista, contra ~25 ms a l'últim commit (F14) a la mateixa vista. Mesurat per
+passada (GPU, Retina): cel 2,6 ms; la resta de l'augment ve de la zona de 5 m amb l'ortofoto, la Terra i els
+edificis. S'han provat filtre anisotròpic ×8 i cel a 256 px: sense millora mesurable.
+
+**Provat per l'equip:** encara no. Proves: posta i eclipsi des del carrer a Vic i a Picos (mirant el Sol i
+d'esquena), des de l'aire i des de l'espai; fluïdesa a la finestra real.
+
+**Limitacions.** Dispersió simple (sense dispersió múltiple: el crepuscle profund és massa fosc i la llum dins
+de l'ombra és una constant); Terra esfèrica per al cel; sense estrelles; el color del cel ambient és una funció
+de l'elevació del Sol, no del model; l'adaptació de l'ull és una tria visual.
+
+### F20 — Aspecte dels edificis (27/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 20.1 | N | Atributs de malla (posició a la façana, llargada, part), triangles cap a fora (`VERSIO_MALLA` = 5) | `FET` |
+| 20.2 | N | Façanes procedimentals amb les plantes reals; cobertes amb el color de l'ortofoto (`colors_cobertes`) | `FET` |
+| 20.3 | C | Descart de cares del darrere (`CULL_FACE`) i càlculs per vèrtex | `FET` |
+
+**Façanes** (estètic): un color per edifici d'una paleta de sis tons mediterranis; finestres d'1,2 m cada 3,2 m,
+centrades a cada costat, una fila per planta (plantes del Catastro, 3 m), més altes a la planta baixa; a més de
+400 m o quan una finestra ocupa menys d'un parell de píxels, el seu color mitjà (sense parpelleig). **Cobertes**
+(dada real): la mediana de fins a 9 punts de l'ortofoto dins de cada contorn (detall de 0,5 m o zona de 5 m) —
+100 % de les parts de Vic. Fora de l'ortofoto, un color de teula o de terrat per edifici.
+
+**Rendiment.** Escriure `gl_FragDepth` impedeix que la GPU descarti abans els fragments tapats: totes les façanes
+de darrere executen el shader. Amb els triangles orientats cap a fora (comprovat: 100 % de les cobertes cap amunt
+i 3.000 de 3.000 façanes cap a fora) es descarten les cares del darrere, i el color de la part i la boira es
+calculen per vèrtex: els edificis han passat d'~11 a ~5,6 ms de GPU (Retina; 4,7 ms abans de les textures).
+
+Conseqüència: des de dins d'un edifici ja no es veu la coberta per dins (es veu a través); la càmera no hi pot
+quedar (F17). `prova_obstacles.py` ara comprova que la referència dels quatre punts desplaçats és dins d'un
+edifici en lloc de mirar amunt des d'allà. Regressions: totes les proves correctes; mode pla, 0 píxels diferents.
+
+**Provat per l'equip:** encara no. **Limitacions:** finestres i colors de façana inventats; sense balcons ni
+portes; les cobertes són planes amb un sol color; els edificis no reben ombres.
+
+### F21 — Fotografia aèria a tot arreu i controls com Google Earth (28/10/2026, petició de l'equip)
+
+| Tasca | Tipus | Canvia | Estat |
+|---|---|---|---|
+| 21.1 | N | Teselles Web Mercator: fonts, memòria cau al disc, descàrrega en fils (`dades/teselles.py`) | `FET` |
+| 21.2 | N | Mosaic de nivells de zoom a la GPU (`basecode/mosaic.py`, `shaders/mosaic.glsl`) al terreny i a la Terra | `FET` |
+| 21.3 | N | Controls de la vista aèria: arrossegar, orbitar, roda cap al cursor, inèrcia (`camera_exploracio.py`) | `FET` |
+| 21.4 | C | Doble clic → primera persona; edificis segons la vista (`main.py`, `ui.py`) | `FET` |
+| 21.5 | C | Boira de la Terra i boira amb la densitat del camí (D70) | `FET` |
+| 21.6 | N (prova) | `scripts/prova_mosaic.py`; adaptacions de `validar_edificis.py` i `prova_controls.py` | `FET` |
+
+**Abans.** Fora de les zones de detall el terra tenia el color segons l'altitud (i la Terra, la textura de 2.048 px
+de la NASA, ~20 km per píxel); la fotografia aèria només hi era a Vic (F18, fitxers descarregats a mà).
+
+**Com funciona** (un "clipmap", explicat a la web, O2). Les imatges es demanen en teselles de 256 px de la
+quadrícula Web Mercator (la de Google Maps i del WMTS de l'IGN): al zoom z, 2^z × 2^z teselles; z = 19 són
+~0,22 m per píxel a Catalunya. Per a 12 zooms alhora (del que demana l'altura de la càmera cap avall) hi ha una
+finestra de 8 × 8 teselles centrada a sota de la càmera, cada una en una capa d'una `TextureArray` (2.048² px,
+~270 MB amb mipmaps). Cada zoom va sempre a la capa z mod 12 i cada tesella a la posició (x mod 8, y mod 8):
+quan la càmera es mou o puja, només s'escriuen les teselles noves. El shader tria, per a cada píxel, el nivell
+amb un texel per píxel de pantalla (barrejant dos nivells, sense salts) i, si aquella tesella encara no ha
+arribat, fa servir la del nivell següent, menys detallat: la imatge sempre és contínua i es va afinant.
+Precisió: la coordenada Mercator de cada vèrtex es calcula a la CPU en doble precisió i es passava partida
+(alta + baixa en float32); el shader en restava la de la càmera (error ~10⁻⁴ píxels a z = 19 a la CPU; restant
+directament en float32 serien ~4 píxels). *A la GPU no va funcionar al pegat de 5 m (vegeu la F22): ara es passa
+relativa a l'origen de cada terreny (D71).* A la Terra es calcula per fragment (la diferència de longitud amb un sol `atan`).
+
+**Fonts** (`data/FONTS.md`): PNOA màxima actualitat (IGN) a partir de z = 12; on el PNOA no té imatge (color lila
+uniforme) i per sota de z = 12, Sentinel-2 cloudless 2020 (EOX). Per sota de z = 12 el PNOA barreja mosaics
+(món molt saturat, mar gris a z = 9–10, mar buit a z = 11) i en canviar de nivell el mar feia un cercle al voltant
+de la càmera. Les descàrregues van en 8 fils; el bucle de dibuix només puja les teselles ja descodificades (amb
+les reduccions per als mipmaps), com a molt 4 ms per fotograma. Sense connexió: colors d'abans, sense errors.
+**Contradicció registrada:** CLAUDE.md deia que la descàrrega progressiva era una ampliació per a més endavant;
+la petició explícita de l'equip (28/10) la demana ara (D66).
+
+**Controls (D67, D68, D69).** Vol lliure, cursor lliure: arrossegar agafa el terra pel punt clicat (la càmera
+gira al voltant del centre de la Terra perquè el raig del cursor hi torni a passar); en deixar-lo anar en
+moviment, inèrcia que s'atura en ~1 s; Shift + arrossegar o botó del mig, orbitar al voltant del punt del centre
+de la pantalla (sense passar sota el seu horitzó ni mirar amunt); roda, apropar-se al punt del cursor (×0,74 per
+pas, repartit en uns quants fotogrames); si el cursor és al cel, com abans. Doble clic: primera persona al punt.
+Edificis: en primera persona sí, a la vista aèria no (opcions al panell).
+
+**Comprovat automàticament** (`python scripts/prova_mosaic.py`, 19 condicions): tesella de Vic a z = 17 igual que
+la de l'IGN; precisió alta + baixa; reduccions; sense xarxa no hi ha excepcions; alineació del mosaic contra
+l'ortofoto de Vic de la F18 (un altre camí, WMS en UTM): 0,10 m (1 píxel = 0,43 m); Terra contra terreny al
+delta de l'Ebre: 4,8 m (1 píxel = 3,3 m; la Terra calcula la latitud en float32, ~1 m, i la seva malla és plana
+entre vèrtexs); arrossegar deixa el punt a 0,7 px del cursor; la roda el deixa a 0,1 px i la distància es
+multiplica exactament per 1,35⁻²; orbitar el deixa a ~1,3 px del centre i no passa sota el terra; la inèrcia
+s'atura; doble clic → primera persona mirant on mirava la càmera; edificis segons la vista. Regressions: totes
+correctes (`prova_controls`, `prova_vistes`, `prova_obstacles`, `prova_caminar`, `prova_trajectoria`,
+`prova_cel`, `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu --totes`); exercici 1.0 coincideix;
+mode pla 0 píxels diferents. `validar_edificis.py` fa servir els edificis també a la vista aèria i desactiva la
+fotografia (escena quieta); `prova_controls.py`: el picking de prova accepta un píxel.
+
+**Inspeccionat visualment:** la vista de l'enllaç de Google Earth (Vic a 1,45 km, 35°), Catalunya a 20 km, la
+Cerdanya a 6 km, la costa de l'Empordà a 3 km, Montserrat i el Pirineu des del terra, Vic des del carrer amb
+edificis, la Terra des de l'espai. Captures a `captures/proves/mosaic_*.png`.
+
+**Rendiment** (finestra amagada): 1280 × 860, 5–11 ms; 2560 × 1720, Vic des del carrer 26 ms (20 sense el
+mosaic), Pirineu des de 6 km 12 ms (9 sense). Primera visita a un lloc: ~770 teselles, ~35 s fins a la resolució
+màxima (es veu de seguida una imatge borrosa que s'afina); des del disc, ~2 s.
+
+**Provat per l'equip:** encara no. Proves: (1) explorar des de l'aire amb el ratolí (arrossegar, Shift, roda) i
+amb les tecles; (2) doble clic en un poble i en una muntanya fora de les zones; (3) la continuïtat en moure's de
+pressa; (4) costa i mar; (5) fluïdesa a la finestra real.
+
+**Limitacions.** El relleu fora de les zones de detall continua sent el de 200 m (Google Earth en té de més
+detall): de prop, la foto es veu sobre un relleu suau. Els edificis només hi són a les zones de detall. Les
+fotos tenen les ombres i la llum del dia del vol. Al mar hi ha diferències entre fonts (reflexos del Sol a les
+fotos del PNOA, Sentinel-2 molt fosc). La memòria cau no té límit de mida (es pot esborrar `data/cache/teselles`).
+El relleu de França i Portugal és pla (la Terra), amb fotografia.
+
+### F22 — Correccions de la F21, Lluna, Sol i atmosfera vista des de l'espai (28/10/2026, petició de l'equip)
+
+**Prova de l'equip de la F21 (28/10).** Viatjant des de Vic fins a l'Escala, doble clic, primera persona i V: de
+tornada a la vista aèria, el mapa es veia esmicolat (Image #6); la Terra des de fora, rància a les vores; la Lluna
+de prop, poc detallada; el Sol, massa pàl·lid ("més vermell, com foc"). Pregunta: si la llum de l'eclipsi parcial
+a l'Escala és correcta.
+
+**22.1 Foto esmicolada al pegat de 5 m** (`FET`). *Causa:* després del doble clic, al voltant del punt nou hi ha el
+pegat de 5 m (un vèrtex per píxel del MDT). La coordenada Mercator de cada vèrtex era correcta a la CPU (error
+10⁻⁷ píxels de z = 19, comprovat llegint el VBO), però a la GPU la suma alta + baixa perdia precisió: la foto es
+movia de 1 a 5 píxels (~1 m) d'un vèrtex a l'altre. A la graella general (vèrtexs cada 20 m) l'error era el mateix
+però variava a poc a poc i no es notava. Diagnòstic: captura amb el pegat i sense, desplaçament bloc a bloc
+(correlació de fase), i el pegat aplanat (l'error hi era igual: no venia del relleu). *Correcció (D71):* la
+coordenada de cada vèrtex es guarda relativa a l'origen del terreny (`Terrain.origen_merc`) i la CPU passa la de
+la càmera també relativa (`render_globus`). Atributs a la cache: versió 3. *Comprovat automàticament:*
+`prova_mosaic.py` (nova condició): 9 blocs del centre, pegat contra graella, com a molt 0,1 px.
+També: punts taronja dins de les ombres fosques (el color "sense dades" del PNOA coincidia amb algunes ombres);
+ara només compten les zones sense dades de 7 × 7 píxels o més (`dades/teselles.py`).
+
+**22.2 La Terra des de l'espai** (`FET`). *Vora:* abans hi havia una línia blava d'1–2 píxels sobre el negre (amb
+dents de serra, sense antialiasing). Ara hi ha una closca d'atmosfera (`shaders/atmosfera_terra.*`): cada píxel
+suma un blau segons la quantitat d'aire que travessa la mirada (poca mirant avall, molta a la vora; per sobre de
+la vora s'esvaeix amb l'altura), només al costat de dia, vermellosa al crepuscle. **Il·lustratiu:** gruix de 400 km
+i escala de 70 km, molt més que l'aire real (8 km), perquè es vegi de lluny com a Google Earth. *Pol:* la
+fotografia s'acabava de cop a 85° i feia un cercle; ara s'esvaeix entre 80° i 84°.
+
+**22.3 La Lluna** (`FET`). Amb autorització explícita de l'equip (84 MB): color de la LRO a 8192 × 4096 (~1,3 km
+per píxel) i altituds del LOLA a 16 píxels per grau (`scripts/descarregar_textures.py --alta`; convertits a
+`data/textures/lluna_8k.jpg` i `lluna_altitud.npy`, fora del Git). El shader inclina la normal segons el pendent
+del relleu (diferències entre veïns, de la mida d'un píxel de pantalla de lluny): els cràters fan ombra prop del
+terminador. Llum de Lambert lunar (barreja de Lambert i Lommel-Seeliger, McEwen): la Lluna plena es veu clara fins
+a la vora. Corregida la línia fosca de pol a pol (el salt de la coordenada u a la costura disparava el nivell de
+mipmap). De molt a prop, cràters petits (cel·les de 4, 1,1 i 0,33 km, més petits que grans) i variació de color:
+**il·lustratius**. Sense les dades d'alta resolució, el programa fa servir la textura d'1k. Sense ombres
+projectades (només la inclinació de la normal). GPU: ~180 MB més.
+
+**22.4 El Sol** (`FET`, il·lustratiu, D73): soroll fractal deformat per un altre soroll (flames que es mouen),
+granulació, vora fosca i vermella (enfosquiment del limbe, físic). Paleta de vermell fosc a groc pàl·lid.
+*Correcció després de la prova de l'equip (28/10):* des del terra es veia estrany (una bola de foc al cel). Ara,
+des de dins de l'atmosfera, el Sol és un disc blanc que enlluerna (amb el color de l'atmosfera, daurat a la
+posta) i l'aspecte de foc només apareix en pujar (barreja segons `app.atmosfera`, de 0 a 60 km).
+Inspeccionat visualment des del terra, a 30 km i a 70 km; `prova_cel` i `prova_vistes` correctes.
+
+**22.5 Llum a l'eclipsi parcial (pregunta de l'equip).** Al màxim, a l'Escala (ajuntament), la Lluna tapa el
+98,7 % del disc (taula de §10: 98,67 %): queda l'1,3 % del Sol. El model fa: llum directa = part visible del
+disc (per àrea); el cel, per a cada punt del raig, amb la part visible des d'aquell punt (l'aire lluny, fora de
+l'ombra, en rep més); l'ull s'adapta a la foscor (×visible^−0,6, il·lustratiu). Resultat: llum directa a l'1,3 %,
+cel i llum difusa al ~20 % del normal. Que el cel continuï clar i que no hi hagi corona és el que passa: la corona
+és ~10⁻⁶ de la brillantor del disc i l'1 % que queda l'enlluerna. *Correcció trobada en revisar-ho (D74):* la
+corona començava amb el 0,4 % del disc visible i a Cerdanyola (99,74 %) se'n veia una part; ara només amb menys
+del 0,05 %. *Aproximacions:* la part visible es mesura per àrea, sense enfosquiment del limbe (la falç que queda és
+a la vora, més fosca: la llum real seria ~0,6 vegades la calculada); sense dispersió múltiple; l'adaptació de l'ull
+es tria per a la pantalla. A l'Escala, des de l'ajuntament, el relleu tapa el Sol al màxim (§10, 6,45° contra 3,7°).
+
+**Inspeccionat visualment:** l'Escala abans i després del doble clic (a migdia i a l'hora de l'eclipsi), la Lluna
+a 6.000, 1.500, 200, 20 i 3 km, el Sol des de l'espai, la Terra a 8.000, 14.000 i 20.000 km.
+**Rendiment:** la Lluna omplint la pantalla, 7–9 ms per fotograma (1280 × 860, finestra amagada).
+
+**Provat per l'equip:** encara no. Proves: (1) el mateix camí Vic → l'Escala → doble clic → V; (2) la Terra des de
+l'espai; (3) acostar-se a la Lluna fins a pocs km; (4) el Sol; (5) a Cerdanyola, al màxim, que no surti la corona.
+
+### F23 — Llum de les façanes i llocs nous amb detall (30/10/2026, petició de l'equip)
+
+**Petició.** A la UAB costava reconèixer la plaça Cívica comparada amb Google Earth (Street View): façanes gairebé
+negres a l'ombra. Pregunta: si es poden fer servir les imatges de Google (no: D75) i si es poden carregar edificis a
+qualsevol lloc amb doble clic (per exemple, viatjant de Cerdanyola a Manresa). Problemes d'espai al disc.
+
+| Tasca | Tipus | Fitxers | Estat |
+|---|---|---|---|
+| 23.1 | dades | Neteja de caches que el codi actual no llegeix (1,8 GB) | `FET` |
+| 23.2 | N | Llum de les façanes (D76): `shaders/edifici.frag`, `basecode/edificis.py` | `FET` |
+| 23.3 | reorganització | Peticions al WCS del MDT i descàrrega del Catastro, de `scripts/` a `dades/mdt_wcs.py` i `dades/catastro.py` (els scripts les importen) | `FET` |
+| 23.4 | N | Llocs nous amb doble clic (D77): `dades/llocs.py`, `main.py`, `ui.py` | `FET` |
+| 23.5 | N (prova) | `scripts/prova_llocs.py`; `prova_controls.py` sense descàrregues | `FET` |
+
+**23.1 Neteja.** Esborrades (es poden regenerar): les caches del globus de versions antigues (`*.globus_*`,
+`*.globus2_*`; la vigent és `globus3`), les rajoles del MDT ja convertides en GeoTIFF (`data/cache/rajoles`) i els
+derivats de Luarca, Astúries i `PNOA_MDT05_..._0011` (scripts antics). Les malles dels edificis ara es desen
+comprimides (`np.savez_compressed`, ~5 vegades menys; llegir-les costa ~0,1 s més): les existents s'han recomprimit
+amb el mateix contingut (comprovat array per array). `data/cache`: de 3,6 a 1,9 GB.
+
+**23.2 Llum de les façanes.** *Abans:* llum = 0,30 cel + 0,70 Sol × Lambert; una façana a l'ombra rebia 0,30 del
+cel i, sense correcció gamma, es veia gairebé negra. *Ara (D76):* la paret rep el cel segons la part que en veu
+(½ si és vertical), la llum reflectida pel terra (albedo 0,25) per l'altra meitat, i el contrast entre cares es
+codifica com el veu la pantalla (gamma 2,2), respecte de la llum d'una cara de cara al Sol: la cara més il·luminada
+no canvia i, durant l'eclipsi, la llum total baixa igual que al terreny. Les cobertes fan servir els pesos del
+terreny (0,25 / 0,75), perquè tenen el mateix color de foto. **Il·lustratiu**: no és un model de radiància.
+*Inspeccionat visualment:* plaça Cívica, 18:31 i 13:00, mirant a 141° i 320° (abans i després).
+*Comprovat automàticament:* `validar_edificis.py` (20 OK: la fracció del Sol tapada no depèn del color).
+
+**23.4 Llocs nous.** *Com funciona:* en fer doble clic (Explorar), si el punt és a terra a la península i no hi ha
+edificis preparats a menys de 500 m (zones de detall: 2 km al voltant dels seus punts; llocs: el seu quadrat),
+`dades/llocs.Preparacio` obre un fil que: (1) baixa 6 × 6 km del MDT de 5 m en una petició; (2) busca als canals
+ATOM del Catastro els municipis que toquen el quadrat de 2 × 2 km, baixa els seus ZIP, en llegeix només les parts
+dins del quadrat i els esborra; (3) desa el relleu i prepara la malla. Mentrestant, l'observador ja és al punt (sobre
+el relleu de 200 m) i la barra del temps mostra el pas. En acabar, si l'observador encara hi és, el programa carrega
+el lloc des del fil principal (OpenGL) com una zona de detall més. En reproducció s'espera a la pausa (canviaria el
+relleu sota l'observador). *Per què ZIP i no WFS:* el WFS per rectangle accepta com a molt ~1 km² per petició i va
+tardar 2,5 min per 1 km² del centre de Manresa (24 MB); el ZIP de tot Manresa, 6,6 MB en 20 s (comprovat el 30/10).
+*Espai:* Manresa 108 MB (16 de malla, 33 de derivats del relleu, 46 de la cache del globus, 9 del GeoPackage, 4
+del MDT), Igualada 97 MB. Com a molt `MAX_LLOCS` = 3: en preparar-ne un de nou s'esborren els més antics (no el
+carregat). Fitxers: `data/mdt/llocs/`, `data/edificis/lloc_*.gpkg`, `data/cache/*lloc_*` (ignorats pel Git).
+*Temps:* Manresa 53 s, Igualada 39 s (connexió de l'equip).
+*Comprovat automàticament:* `prova_llocs.py --xarxa` (10 OK): clau i cobertura, esborrat dels antics (carpeta
+temporal), UAB i mar sense lloc nou, Igualada preparada en segon pla (560 fotogrames dibuixats en 40 s), observador
+sobre el relleu de 5 m, espera a la pausa. `prova_vistes` (102), `prova_controls` (69), `prova_caminar` (26),
+`prova_obstacles` (25) i `validar_edificis` (20), tots OK.
+*Inspeccionat visualment:* Manresa i Igualada des dels ulls i des de l'aire.
+*Limitacions:* als llocs no hi ha ortofoto descarregada: les cobertes tenen colors de teula o terrat (des de l'aire
+amb "Edificis també a la vista aèria", el centre de Manresa es veu vermell uniforme); el terra sí que té la foto del
+mosaic. Sense Navarra ni el País Basc (cadastres propis). Un sol lloc es prepara a la vegada. Si es tanca el programa
+a mitja preparació, el lloc pot quedar sense malla: es calcula en carregar-lo (més lent la primera vegada).
+
+**Provat per l'equip:** encara no. Proves: (1) la plaça Cívica al vespre: façanes a l'ombra; (2) viatjar de
+Cerdanyola a Manresa, doble clic i esperar el missatge de la barra; (3) tornar a Manresa més tard (ha de ser
+immediat).
+
+### O3 — On es veurà l'eclipsi: mapa de visibilitat (proposta, 30/10/2026, petició de l'equip)
+
+**Què es vol.** Una aplicació de dades perquè la gent decideixi on anar a veure un eclipsi: un mapa de calor de
+com de bé es veurà des de cada punt (turó, carrer o terrat), estàtic al màxim i dinàmic minut a minut, per al
+2026 i els dos eclipsis següents a Espanya. Ha de servir també per preveure on s'acumularà la gent.
+
+**El criteri és geomètric, no de llum.** Un punt "veu" l'eclipsi si, en la direcció del Sol, res no tapa el disc:
+ni el relleu (turons, muntanyes, també llunyanes) ni els edificis. No s'agafen els punts més alts, sinó els que
+tenen el camí lliure cap al Sol. Al màxim no hi ha llum directa (a la totalitat), per això no es pot fer amb la
+llum ni amb el mapa d'ombres de dibuix: es calcula l'**horitzó** (l'angle més alt que tapa la vista) en
+l'azimut del Sol i es compara amb l'elevació aparent del Sol (amb refracció).
+
+**Els tres eclipsis** (a comprovar amb les nostres efemèrides, F24):
+- 12/08/2026, **total**, al capvespre. El Sol al màxim és a −1–24° (banda 1 del CNIG): el relleu ho decideix.
+  Ja ha passat; serveix per validar.
+- 02/08/2027, **total** al sud de la península, a mig matí. Amb el Sol alt, el relleu tapa poc: hi compten més els
+  carrers estrets i la meteorologia.
+- 26/01/2028, **anular** (no total: queda un anell de Sol), a la posta. El Sol molt baix: el relleu i els edificis
+  tornen a decidir. El model actual no detecta l'anularitat (F24).
+
+**Què ja tenim i es reutilitza.** El model de l'eclipsi per a qualsevol punt (`dades/model_eclipsi.py`);
+l'horitzó cap al Sol (`scripts/validar_horitzo.py`) i el perfil dels edificis (`dades/edificis.perfil_edificis`),
+comprovats; els MDT (península 200 m, zones de 5 m, llocs nous) i els edificis del Catastro (amb altures
+**estimades**, plantes × 3 m); les capes del CNIG dibuixades sobre el terreny i la barra del temps.
+**Referència oficial independent:** la capa `terrain_shadows` del CNIG és un mapa estàtic del 2026 al màxim
+(només relleu, GMTED2010 a ~200 m, rutina `insol`, en 4 classes). No l'hem fet servir per ajustar res: comparar-
+s'hi és una validació independent. El que hi afegim: 5 m (i 1 m amb edificis), terrats, l'evolució en el temps,
+els altres eclipsis i l'afluència.
+
+**Mesura feta (30/10):** horitzó en un azimut per a tots els píxels del Vallès a 5 m (6.331 × 5.692 px,
+distàncies de 5 m a 20 km, amb curvatura), NumPy: **~20 s**. És un càlcul per fer una vegada i desar.
+
+| Fase | Tipus | Què | Validació | Estat |
+|---|---|---|---|---|
+| F24 | reorganització + correcció | Eclipsi com a paràmetre (2026, 2027, 2028): efemèrides de JPL Horizons per a cada data (~45 KB cadascuna), anularitat (C2/C3 quan la Lluna és més petita que el Sol) | Contactes contra el calculador de la NASA en punts de cada eclipsi (com la F11) | `PENDENT` |
+| F25 | N | Circumstàncies en graella (Espanya, ~1 km, vectoritzat): contactes, màxim, part tapada, durada de la totalitat o l'anularitat, Sol (azimut, elevació) | 2026: contra les bandes del CNIG; 2027–28: contra la NASA en punts | `PENDENT` |
+| F26 | N | Mapa estàtic al màxim (relleu): horitzó per escombrat en la direcció del Sol, prop amb 5 m i lluny amb 200 m; marge = elevació del Sol − horitzó (graus) i classes 0–3 com el CNIG | Contra `terrain_shadows` (matriu de confusió per classes, a la seva resolució) i `validar_horitzo.py` a les sis ubicacions | `PENDENT` |
+| F27 | N | Edificis i terrats: superfície MDT + edificis a 1 m als quadrats amb edificis; ulls a 1,7 m sobre el carrer o la coberta; taula per edifici ("des del terrat es veu?") | Contra `perfil_edificis` (càlcul exacte) en punts de prova; incertesa: repetit amb altures × 0,8 i × 1,2 (classe segura o incerta) | `PENDENT` |
+| F28 | N | Mapa dinàmic: per píxel, l'hora en què el Sol queda tapat (i, si torna, quan reapareix), a partir de l'horitzó en els azimuts del recorregut del Sol (cada 0,5°); a cada instant, visible = no tapat × part no tapada per la Lluna; capa sobre el terreny i marques C1, C2, màxim, C3, C4 i posta a la barra | Instants concrets contra F26 (al màxim) i contra el càlcul punt a punt | `PENDENT` |
+| F29 | N | Aplicació: índex de qualitat (P17), consulta d'un punt ("aquí la totalitat es veu sencera; el Sol s'amaga a les 20:31"), el millor punt a menys de N km, exportació GeoTIFF/GeoPackage | Casos coneguts (les sis ubicacions) | `PENDENT` |
+| F30 | N (opcional, P14) | Afluència: model de gravetat (població × atractiu ÷ distància) | **Estimació, no validada.** Si hi ha dades reals del 2026 (aforaments, mobilitat), s'hi compara: a verificar si existeixen | `PENDENT` |
+
+**Índex proposat (P17).** Totalitat (o anularitat): segons de la fase central amb tot el disc per sobre de
+l'horitzó (0 si no hi ha fase central); a més, la classe al màxim (0–3). Parcial: la part del Sol tapada al
+màxim que es pot veure. Definició transparent i explicable: res de pesos inventats.
+
+**Espai (memòria: disc limitat).** Circumstàncies d'Espanya a ~1 km: desenes de MB per eclipsi. Mapa estàtic de la
+península a 200 m: ~50 MB (int16). Zones: a 5 m ~70 MB per zona i eclipsi, a 10 m ~18 MB (P16). Dinàmic: 2 hores
+per píxel (2 × uint16) ~6 MB per zona a 25 m. Es calcula la primera vegada que es demana una zona i es desa
+(comprimit, a `data/cache/`, amb límit). Pressupost proposat: < 300 MB en total.
+
+**Limitacions previstes.** Sense arbres (el MDT és terra nu; el MDS del LiDAR és l'estudi de §9). Altures dels
+edificis estimades. Fora d'Espanya el MDT val 0 (muntanyes del Marroc o de França: no tapen). Sense refracció
+terrestre (D18). Sense meteorologia, que en un eclipsi real decideix tant com el relleu (es podria afegir la
+probabilitat climatològica de núvols, O1.11, font a verificar). L'afluència és un model, no una mesura.
+
+**Proposta d'ordre.** F24 → F25 → F26 (mapa del 2026 comparat amb el CNIG: la primera evidència forta) → F28 →
+F27 → F29, i F30 si l'equip ho decideix.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -1323,3 +1949,11 @@ Montmeló i la UAB.
 | 26/10/2026 | F12 (petició de l'equip): arrencada a C1 − 1 h, cub de navegació (1,647 UA), mirada amb el ratolí capturat, roda i trackpad, correcció del halo (12.0). D44–D47. Commits locals, sense push. |
 | 26/10/2026 | La F13 (mirada fixa al món, E/Q segons la mirada, Mirar/Apropar-s'hi, velocitat segons l'astre més proper, parets amagades) **revertida a petició de l'equip**: els controls nous no eren intuïtius i preferia els d'abans, amb les tecles. Es torna a l'estat de la F12 (commits de revert, sense reescriure l'historial). |
 | 26/10/2026 | F14 (petició de l'equip): edificis del Catastro INSPIRE a les zones de detall (Vallès, Vic, l'Escala; Picos sense edificis a 2 km), dibuixats i opacs, "Mostrar edificis", part del Sol tapada, ombres dels edificis al mapa, `validar_edificis.py`. D52–D53. Quatre punts d'observació dins d'edificis: propostes pendents de l'equip. Commits locals, sense push. |
+| 27/10/2026 | F15 (petició de l'equip): captura del ratolí corregida (slimgui la desfeia a cada fotograma), Tab i clic dret, sensibilitat única, límits de la mirada, "Mirar l'eclipsi" i vista guiada fins a l'espai. D54–D57. Sense commit (pendent d'autorització). |
+| 27/10/2026 | L'equip valida el Mouse Look amb el ratolí real (15.1 `VALIDAT`). F16 (petició de l'equip): mode Caminar dins d'Explorar, diagonal normalitzada, teclat sense focus o amb el panell actiu, proves amb distàncies explícites. D58–D59. Sense commit. |
+| 27/10/2026 | F17 (petició de l'equip): punts d'observació a l'exterior (referència i posició efectiva), edificis com a obstacles caminant i en vol lliure, `prova_obstacles.py`. F18: fonts d'ortofoto verificades, ortofoto del PNOA a Vic, `prova_ortofoto.py`. D60–D63 (D53 substituïda). Sense commit. |
+| 27/10/2026 | F19 (petició de l'equip): cel per dispersió amb l'ombra de la Lluna, llum i boira de l'atmosfera, `prova_cel.py`. F20: façanes amb finestres per planta i cobertes de l'ortofoto, descart de cares del darrere. D64–D65. Sense commit. |
+| 28/10/2026 | F21 (petició de l'equip): fotografia aèria a tot arreu (PNOA + Sentinel-2, per teselles i en segon pla), controls aeris com Google Earth, doble clic a primera persona, edificis segons la vista, boira de la Terra. D66–D70. Sense commit. |
+| 28/10/2026 | F22 (prova i petició de l'equip): foto esmicolada al pegat de 5 m (precisió a la GPU) i punts taronja corregits; atmosfera de la Terra des de l'espai i pol; Lluna amb dades de la NASA a 8k i relleu (baixada autoritzada); Sol de foc (il·lustratiu); revisió de la llum de l'eclipsi parcial i corona només a la totalitat. D71–D74. Sense commit. |
+| 30/10/2026 | F23 (petició de l'equip): neteja de caches (1,8 GB), llum de les façanes, llocs nous amb detall amb doble clic, malles comprimides, `prova_llocs.py`. D75–D77. Sense commit. |
+| 30/10/2026 | Proposta de l'objectiu O3 (mapa de visibilitat, F24–F30), D78 (vistes aparcades) i D79; preguntes P14–P17. Mesurat: horitzó d'un azimut a 5 m al Vallès en ~20 s. Res implementat. |

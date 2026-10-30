@@ -25,26 +25,22 @@ Executa (des de l'arrel, amb l'entorn egra):
     python scripts/descarregar_edificis.py             # totes les zones
     python scripts/descarregar_edificis.py valles      # nomes una
 """
-import io
 import os
 import sys
-import zipfile
 
 import geopandas as gpd
 import pandas as pd
-import requests
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
 from dades.observador import UBICACIONS  # noqa: E402
-from dades.edificis import DIR_EDIFICIS, fitxer_zona, ZONA_DE_LA_UBICACIO, preparar_malla  # noqa: E402
+from dades.edificis import fitxer_zona, ZONA_DE_LA_UBICACIO, RADI_ZONA_M, preparar_malla  # noqa: E402
 from dades.data_io import ZONES_DETALL  # noqa: E402
+from dades.catastro import DIR_ZIPS, descarregar, llegir_parts  # noqa: E402
 
-DIR_ZIPS = os.path.join(DIR_EDIFICIS, 'catastro')
-URL = 'https://www.catastro.hacienda.gob.es/INSPIRE/Buildings/{prov}/{codi}-{nom}/A.ES.SDGC.BU.{codi}.zip'
-RADI_M = 2000.0
+RADI_M = RADI_ZONA_M
 CRS_TERRENY = 'EPSG:25830'
 
 # municipis que toquen els cercles de 2 km al voltant dels punts d'observacio (comprovat amb les dades: el
@@ -61,30 +57,6 @@ MUNICIPIS = {
     'escala': [('17', '17068', 'L ESCALA')],
     'picos': [('24', '24119', 'POSADA DE VALDEON'), ('39', '39015', 'CAMALEÑO'), ('33', '33008', 'CABRALES')],
 }
-
-
-def descarregar(prov, codi, nom):
-    cami = os.path.join(DIR_ZIPS, f'A.ES.SDGC.BU.{codi}.zip')
-    if not os.path.exists(cami):
-        r = requests.get(URL.format(prov=prov, codi=codi, nom=nom), timeout=600)
-        r.raise_for_status()
-        with open(cami, 'wb') as f:
-            f.write(r.content)
-        print(f'  baixat {codi} {nom}: {len(r.content) / 1e6:.1f} MB')
-    return cami
-
-
-def llegir_parts(cami_zip, codi):
-    """Parts d'edifici (amb l'us de l'edifici al qual pertanyen) d'un ZIP del Catastro."""
-    with zipfile.ZipFile(cami_zip) as z:
-        parts = gpd.read_file(io.BytesIO(z.read(f'A.ES.SDGC.BU.{codi}.buildingpart.gml')))
-        edificis = gpd.read_file(io.BytesIO(z.read(f'A.ES.SDGC.BU.{codi}.building.gml')))
-    parts['edifici'] = parts['localId'].str.split('_part').str[0]
-    us = edificis[['localId', 'currentUse']].rename(columns={'localId': 'edifici', 'currentUse': 'us'})
-    parts = parts.merge(us, on='edifici', how='left')
-    parts['plantes'] = pd.to_numeric(parts['numberOfFloorsAboveGround'], errors='coerce').fillna(0).astype(int)
-    parts['versio'] = parts['beginLifespanVersion'].astype(str).str[:10]
-    return parts[['localId', 'edifici', 'plantes', 'us', 'versio', 'geometry']].rename(columns={'localId': 'id'})
 
 
 def preparar(zona):

@@ -6,6 +6,11 @@ in float base;
 in vec3 amunt;
 in vec3 tx;
 in float logz;
+in vec3 color_sol_v;    // color de la llum del Sol i del cel (terrain.vert)
+in vec3 color_amb_v;
+in vec3 boira_v;        // color de la boira (terrain.vert)
+in vec2 merc_rel;       // Mercator relativa a la camera (mosaic d'imatges)
+in float dens_boira;    // mode globus: densitat de la boira en el cami fins aqui (terrain.vert)
 uniform sampler2D tex_altitud;
 uniform sampler2D tex_gradient;
 uniform sampler2D tex_costa;
@@ -59,6 +64,14 @@ uniform vec3 cam_menys_ancora;      // camera - ancora (km)
 uniform float desplacament_normal;  // km: el punt es mira una mica fora de la superficie (acne)
 uniform float biaix_profunditat;    // i una mica mes a prop del Sol (unitats de profunditat)
 uniform bool depuracio_ombra;       // depuracio (scripts): el color es el factor d'ombra del relleu
+// ortofoto del PNOA (basecode/terrain.py, posar_ortofoto): color base del terra en lloc de la rampa
+uniform bool usar_orto;
+uniform sampler2D tex_orto;          // tota la zona, mateixes UV que el terreny (graella del MDT)
+uniform sampler2D tex_orto_detall;   // detall (0,5 m) al voltant del punt d'observacio
+uniform bool hi_ha_detall;
+uniform vec4 rect_detall;            // rectangle del detall en UV del terreny (u0, v0, u1, v1)
+// atmosfera (dades/atmosfera.py): la boira es del color del cel a l'horitzo segons la direccio (terrain.vert)
+#include "mosaic.glsl"
 #endif
 
 // rampa hipsometrica absoluta: la mateixa altitud te el mateix color a tots els fitxers
@@ -145,7 +158,7 @@ vec3 color_globus(vec3 up, vec3 sol, float visible) {
     vec3 c = texture(tex_terra, vec2(lon / 6.2831853 + 0.5, 0.5 - lat / 3.14159265)).rgb;
     float cos_sol = dot(up, sol);
     float dia = smoothstep(-0.10, 0.10, cos_sol);
-    c *= 0.03 + dia * visible * (0.25 + 0.95 * max(cos_sol, 0.0));
+    c *= 0.03 + dia * visible * (0.25 * color_amb_v + 0.95 * max(cos_sol, 0.0) * color_sol_v);
     float vora = pow(1.0 - max(dot(up, normalize(-pos_mon)), 0.0), 3.0);
     return c + vec3(0.30, 0.50, 1.00) * vora * 0.6 * dia * (1.0 - atmosfera);
 }
@@ -190,10 +203,12 @@ void main() {
 #ifdef PROFUNDITAT_LOG
     gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
     float tapat = tapat_des_de(pos_mon), d_tapat = fwidth(tapat);   // abans de cap discard
+    vec2 merc_dx = dFdx(merc_rel), merc_dy = dFdy(merc_rel);
 #endif
     float d = texture(tex_costa, uv).r;          // km a la costa (mar > 0, terra < 0)
     vec3 sol = normalize(sun_dir);
     float llum_sol_aqui = llum_sol, llum_cel_aqui = llum_cel;
+    vec3 color_sol = vec3(1.0), color_amb = vec3(1.0), boira = color_cel;   // mode pla: llum blanca
     if (globus) {
         // el mar i les zones sense dades (Portugal, Franca) no es dibuixen: es veu el globus
         // (excepte a les zones de detall de la costa, que dibuixen el mar a 0 m)
@@ -207,10 +222,15 @@ void main() {
         llum_sol_aqui = visible * smoothstep(-0.0175, 0.0175, elev);   // entre -1 i +1 graus
         float dia = smoothstep(-0.105, 0.07, elev);                    // crepuscle: de -6 a +4 graus
         llum_cel_aqui = max(0.03, dia * (0.04 + 0.96 * pow(visible, 0.4)));
+#ifdef PROFUNDITAT_LOG
+        color_sol = color_sol_v;
+        color_amb = color_amb_v;
+        boira = boira_v;
+#endif
     }
     // aigua: mes clara a prop de la costa, mes fosca mar endins; menys llum amb el Sol baix
     vec3 aigua = mix(vec3(0.16, 0.42, 0.58), vec3(0.04, 0.14, 0.32), 1.0 - exp(-max(d, 0.0) / escala_mar));
-    aigua *= (0.5 + 0.5 * max(globus ? dot(sol, normalize(amunt)) : sol.y, 0.0)) * llum_cel_aqui;
+    aigua *= (0.5 + 0.5 * max(globus ? dot(sol, normalize(amunt)) : sol.y, 0.0)) * llum_cel_aqui * color_amb;
 #ifdef PROFUNDITAT_LOG
     if (dibuixar_mar) {
         // les parets (faldilles) sobre el mar no es dibuixen: a la vora de la zona hi ha el mar del globus
@@ -229,7 +249,7 @@ void main() {
         vec3 n = normalize(cross(dFdx(pos_mon), dFdy(pos_mon)));
         if (dot(n, cam_pos - pos_mon) < 0.0) n = -n;
         vec3 paret = d > 0.0 ? aigua * 0.6 : mix(vec3(0.45, 0.35, 0.25), vec3(0.22, 0.16, 0.11), base);
-        color = paret * (0.35 * llum_cel_aqui + 0.65 * llum_sol_aqui * max(dot(n, sol), 0.0));
+        color = paret * (0.35 * llum_cel_aqui * color_amb + 0.65 * llum_sol_aqui * max(dot(n, sol), 0.0) * color_sol);
     } else {
         float height = texture(tex_altitud, uv).r;
         vec2 g = texture(tex_gradient, uv).rg;   // (dh/dx, dh/dz) a resolucio completa
@@ -246,7 +266,21 @@ void main() {
 #ifdef PROFUNDITAT_LOG
         relleu = llum_relleu(normal);
 #endif
-        vec3 terra = rampa(height) * (0.25 * llum_cel_aqui + 0.75 * llum_sol_aqui * relleu * max(dot(normal, sol), 0.0));
+        vec3 base = rampa(height);
+#ifdef PROFUNDITAT_LOG
+        if (usar_orto) {
+            // fotografia aeria (dada real); a la vora del detall (3 % del costat) es passa suaument a la de la
+            // zona: es la mateixa foto, nomes canvia la resolucio
+            // (les dues textures es llegeixen sempre: dins d'un if que depen del pixel, el nivell de mipmap
+            // no estaria ben definit a la vora)
+            vec2 t = (uv - rect_detall.xy) / (rect_detall.zw - rect_detall.xy);
+            vec3 detall = texture(tex_orto_detall, clamp(t, 0.0, 1.0)).rgb;
+            float w = hi_ha_detall ? smoothstep(0.0, 0.03, min(min(t.x, 1.0 - t.x), min(t.y, 1.0 - t.y))) : 0.0;
+            base = mix(texture(tex_orto, uv).rgb, detall, w);
+        }
+#endif
+        vec3 llum = 0.25 * llum_cel_aqui * color_amb + 0.75 * llum_sol_aqui * relleu * max(dot(normal, sol), 0.0) * color_sol;
+        vec3 terra = base * llum;
 #ifdef PROFUNDITAT_LOG
         if (depuracio_ombra) { fragColor = vec4(vec3(relleu), 1.0); return; }
 #endif
@@ -254,6 +288,12 @@ void main() {
         // fwidth = quant canvia d en un pixel de pantalla -> transicio d'1 pixel (antialias)
         float w = max(fwidth(d), 1e-6);
         color = mix(terra, aigua, smoothstep(-w, w, d));
+#ifdef PROFUNDITAT_LOG
+        // fotografia aeria (mosaic): a terra i al mar de la costa, en lloc de la rampa i de l'aigua dibuixada; on
+        // encara no hi es (s'esta baixant), el que hi havia
+        vec4 foto = color_mosaic(merc_rel, merc_dx, merc_dy);
+        color = mix(color, foto.rgb * llum, foto.a);
+#endif
 
         // vores de les zones de detall: linies de ~2 pixels dibuixades sobre el relleu
         for (int i = 0; i < n_zones; i++)
@@ -271,8 +311,10 @@ void main() {
     }
 
     // boira exponencial quadratica segons la distancia a la camera (a partir d'inici_boira)
-    float f = exp(-pow(max(length(pos_mon - cam_pos) - inici_boira, 0.0) * densitat_boira, 2.0));
-    color = mix(color_cel, color, f);
+    float dist_boira = max(length(pos_mon - cam_pos) - inici_boira, 0.0);
+    float f = globus ? exp(-dist_boira * dens_boira)                     // extincio (Beer-Lambert)
+                     : exp(-pow(dist_boira * densitat_boira, 2.0));      // mode pla: com sempre
+    color = mix(boira, color, f);
 #ifdef PROFUNDITAT_LOG
     if (ressaltar_ombra)
         color = ressaltar(color, tapat, d_tapat, smoothstep(-0.03, 0.0, dot(normalize(amunt), normalize(sol_rel - pos_mon))));

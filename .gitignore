@@ -3,6 +3,7 @@ data/cache/
 
 # --- MDT de les zones de detall (es tornen a baixar amb scripts/descarregar_mdt.py) ---
 data/mdt/zones/
+data/mdt/llocs/
 
 # --- dades que no fa servir el programa ---
 data/mdt05/altres/
@@ -25,3 +26,11 @@ imgui.ini
 
 # --- edificis del Catastro (es tornen a baixar amb scripts/descarregar_edificis.py) ---
 data/edificis/
+
+# --- ortofotos del PNOA (es tornen a baixar amb scripts/descarregar_ortofoto.py) ---
+data/ortofoto/
+
+# --- textures d'alta resolucio de la Lluna (es tornen a baixar amb scripts/descarregar_textures.py --alta) ---
+data/textures/originals/
+data/textures/lluna_8k.jpg
+data/textures/lluna_altitud.npy

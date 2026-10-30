@@ -22,6 +22,10 @@ Terreny: MDT dibuixat amb un heightmap com a textura (T2-T6).
   per costat). La graella general no es dibuixa dins del pegat ni dins dels terrenys mes detallats
   que hi ha a sobre (forats). A la vora de cada nivell, l'altura passa suaument a la del nivell de
   sota (transicio), perque no hi hagi esglaons ni escletxes.
+- Ortofoto (mode globus, zones de detall): si n'hi ha (scripts/descarregar_ortofoto.py), el color del terra es la
+  fotografia aeria del PNOA en lloc de la rampa per altitud: una textura de tota la zona amb la graella del MDT
+  (mateixes UV) i una de detall (0,5 m) al voltant del punt d'observacio. La llum (Sol, ombra de la Lluna,
+  ombres del relleu) s'hi aplica igual que a la rampa: la foto fa de color base.
 """
 import os
 import math
@@ -32,9 +36,8 @@ import moderngl as mgl
 import rasterio
 from pyproj import Transformer
 
-from . import shaders
 from .programes import carregar_programa
-from dades import data_io, eclipse_data, geodesia
+from dades import data_io, eclipse_data, geodesia, teselles
 
 MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella
 MAX_ZONES = 4                   # rectangles de zones de detall que pot dibuixar el shader
@@ -43,7 +46,10 @@ MIDA_PEGAT = 512                # pixels del fitxer per costat del pegat dens al
 TRANSICIO = 0.12                # fraccio de cada nivell (des de la vora) on l'altura passa a la del de sota
 FALDILLA_GLOBUS_KM = 0.03       # al mode globus, les faldilles baixen 30 m per sota de la vora
 COLOR_CEL = (0.62, 0.76, 0.90)  # color del fons i de la boira
+UNITAT_ORTO, UNITAT_ORTO_DETALL = 7, 8   # unitats de textura de l'ortofoto (0-5 terreny, 6 mapa d'ombres)
 RADI_TERRA = 6371.0             # km
+UNITAT_MOSAIC = 9               # unitat de textura del mosaic d'imatges (basecode/mosaic.py)
+VERSIO_ATRIBUTS = 3             # atributs del globus a la cache (3: Mercator relativa a l'origen del terreny)
 
 # overlays de l'eclipsi: nom al panell i colors (els fan servir el shader i la llegenda del panell)
 OVERLAYS = ['Cap', 'Enfosquiment maxim', 'Durada de la totalitat', 'Ombres del relleu (CNIG)']
@@ -141,6 +147,7 @@ class Terrain:
         # copies a la CPU per consultar altituds (camera enganxada al terreny, punt d'observacio)
         self.alt = h                        # resolucio completa
         self.alt_vertexs = d['alt_vertexs']  # la que fa servir la geometria (mitjana de blocs)
+        self.costa = d['costa']             # distancia a la costa (km; mar i sense dades > 0), com tex_costa
         self.max_height = float(h.max())
         self.origen_utm = (transform.c, transform.f)  # cantonada nord-oest, en metres
         self.crs = d['crs']
@@ -175,6 +182,7 @@ class Terrain:
             # origen del terreny: el seu centre sobre l'el·lipsoide (km, ECEF, float64)
             lon_c, lat_c = self.a_latlon.transform(*self.utm_de_uv(0.5, 0.5))
             self.origen_ecef = geodesia.ecef(lat_c, lon_c, 0.0)
+            self.origen_merc = np.array(teselles.mercator(lat_c, lon_c))   # Web Mercator de l'origen (float64)
         self.vbo, self.ibo, self.vbo_faldilla, self.ibo_faldilla = self.get_vbo()
         self.shader_program = self.get_shader_program()
         self.vao, self.vao_faldilla = self.get_vao()
@@ -203,6 +211,11 @@ class Terrain:
         self.llum_sol = 1.0
         self.llum_cel = 1.0
         self.color_cel = COLOR_CEL
+        # ortofoto (mode globus): textures i camins carregats; sense ortofoto, una textura d'1 pixel lligada a
+        # les unitats perque el controlador no avisi de samplers sense textura
+        self.orto, self.orto_detall, self.rect_detall = None, None, (0.0, 0.0, 0.0, 0.0)
+        self.camins_orto = (None, None)
+        self.tex_buida = self.ctx.texture((1, 1), 3, bytes((128, 128, 128)))
         self.on_init()
 
     # ------------------------------------------------------------ objecte OpenGL
@@ -242,8 +255,8 @@ class Terrain:
     def get_vao(self):
         # la graella porta in_uv (+ els atributs del globus): in_base hi val 0 (valor per defecte d'un
         # atribut sense buffer)
-        g = ' 3f 3f 3f' if self.globus else ''
-        noms_g = ('in_offset', 'in_amunt', 'in_tx') if self.globus else ()
+        g = ' 3f 3f 3f 2f' if self.globus else ''
+        noms_g = ('in_offset', 'in_amunt', 'in_tx', 'in_merc') if self.globus else ()
         h, h_f = ([(self.vbo_h, '1f', 'in_h')], [(self.vbo_h_faldilla, '1f', 'in_h')]) if self.globus else ([], [])
         vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '2f' + g, 'in_uv', *noms_g)] + h,
                                     index_buffer=self.ibo)
@@ -258,10 +271,12 @@ class Terrain:
 
     def atributs_globus(self, us, vs, desar=True):
         """Per a cada UV: posicio sobre l'el·lipsoide relativa a l'origen (km), vertical del lloc i
-        direccio de les columnes (cap on creix u), en ECEF. Es desa a data/cache/<nom>.globus_<n>.npz
+        direccio de les columnes (cap on creix u), en ECEF; i la coordenada Web Mercator (dades/teselles.py) per
+        al mosaic d'imatges, relativa a la de l'origen del terreny: es un nombre petit, que el float32 guarda amb
+        precisio (~1 mm), i el shader hi resta la de la camera, tambe relativa a l'origen (render_globus). Es desa a data/cache/<nom>.globus_<n>.npz
         (el pegat, que canvia amb l'observador, no: desar=False)."""
         nom = os.path.splitext(os.path.basename(self.cami))[0]
-        cache = os.path.join(data_io.DIR_CACHE, f'{nom}.globus_{len(us)}_{self.n_cols}x{self.n_files}.npz')
+        cache = os.path.join(data_io.DIR_CACHE, f'{nom}.globus{VERSIO_ATRIBUTS}_{len(us)}_{self.n_cols}x{self.n_files}.npz')
         if desar and os.path.exists(cache) and os.path.getmtime(cache) > os.path.getmtime(self.cami):
             with np.load(cache) as z:
                 return z['g']
@@ -274,7 +289,9 @@ class Terrain:
         tx /= np.linalg.norm(tx, axis=1, keepdims=True)
         fi, la = np.radians(lat), np.radians(lon)
         amunt = np.stack([np.cos(fi) * np.cos(la), np.cos(fi) * np.sin(la), np.sin(fi)], axis=1)
-        g = np.hstack([p - self.origen_ecef, amunt, tx]).astype('f4')
+        mx, my = teselles.mercator(lat, lon)
+        merc = np.stack([mx, my], axis=1) - self.origen_merc
+        g = np.hstack([p - self.origen_ecef, amunt, tx, merc]).astype('f4')
         if desar:
             os.makedirs(data_io.DIR_CACHE, exist_ok=True)
             np.savez(cache, g=g)
@@ -282,10 +299,8 @@ class Terrain:
 
     def get_shader_program(self):
         # el shader viu a basecode/shaders/terrain.vert i .frag (editable sense tocar Python);
-        # al mode globus es compila amb la profunditat logaritmica
-        if self.globus:
-            return carregar_programa(self.ctx, 'terrain', ['PROFUNDITAT_LOG'])
-        return shaders.load_program(self.ctx, 'terrain')
+        # al mode globus es compila amb la profunditat logaritmica (i el mosaic d'imatges, mosaic.glsl)
+        return carregar_programa(self.ctx, 'terrain', ['PROFUNDITAT_LOG'] if self.globus else [])
 
     def get_model_matrix(self):
         return glm.mat4()
@@ -349,6 +364,15 @@ class Terrain:
     def conte(self, lat, lon, marge=0.0):
         u, v = self.latlon_a_uv(lat, lon)
         return marge <= u <= 1 - marge and marge <= v <= 1 - marge
+
+    def es_terra(self, lat, lon):
+        """True si al punt hi ha terra dibuixada: la mateixa mascara que fa servir el shader (tex_costa <= 0);
+        el mar i les zones sense dades (Portugal, Franca) no ho son. False si el punt es fora del terreny."""
+        u, v = self.latlon_a_uv(lat, lon)
+        if not (0 <= u <= 1 and 0 <= v <= 1):
+            return False
+        files, cols = self.costa.shape
+        return bool(self.costa[min(int(v * files), files - 1), min(int(u * cols), cols - 1)] <= 0)
 
     def altitud_latlon(self, lat, lon, dibuixada=True):
         """Altitud (m, el mar a 0) en un punt geografic: de la superficie dibuixada o del MDT a
@@ -432,13 +456,53 @@ class Terrain:
         vbo_h = self.ctx.buffer(h.astype('f4'))
         vbo_h_f = self.ctx.buffer(self.alcades_faldilla(h, finestra, vertexs_f[:, :2]))
         ibo, ibo_f = self.ctx.buffer(index), self.ctx.buffer(index_f)
-        sp, g3 = self.shader_program, '2f 3f 3f 3f'
-        vao = self.ctx.vertex_array(sp, [(vbo, g3, 'in_uv', 'in_offset', 'in_amunt', 'in_tx'), (vbo_h, '1f', 'in_h')],
-                                    index_buffer=ibo)
-        vao_f = self.ctx.vertex_array(sp, [(vbo_f, '2f 1f 3f 3f 3f', 'in_uv', 'in_base', 'in_offset', 'in_amunt', 'in_tx'),
+        sp, g3 = self.shader_program, '2f 3f 3f 3f 2f'
+        vao = self.ctx.vertex_array(sp, [(vbo, g3, 'in_uv', 'in_offset', 'in_amunt', 'in_tx', 'in_merc'),
+                                         (vbo_h, '1f', 'in_h')], index_buffer=ibo)
+        vao_f = self.ctx.vertex_array(sp, [(vbo_f, '2f 1f 3f 3f 3f 2f', 'in_uv', 'in_base', 'in_offset', 'in_amunt',
+                                            'in_tx', 'in_merc'),
                                            (vbo_h_f, '1f', 'in_h')], index_buffer=ibo_f)
         self.pegat = dict(finestra=finestra, h=h, vao=vao, vao_faldilla=vao_f,
                           recursos=(vao, vao_f, vbo, vbo_f, vbo_h, vbo_h_f, ibo, ibo_f))
+
+    def posar_ortofoto(self, general, detall):
+        """Carrega l'ortofoto de la zona (general: GeoTIFF amb la graella del MDT) i la de detall (o None). Nomes
+        torna a llegir el que ha canviat. La general ha de tenir el CRS i els limits del MDT (mateixes UV); la de
+        detall, el mateix CRS: el seu rectangle en UV del terreny es calcula dels seus limits."""
+        if (general, detall) == self.camins_orto:
+            return
+        g_ant, d_ant = self.camins_orto
+        if general != g_ant:
+            if self.orto is not None:
+                self.orto.release()
+            self.orto = self.textura_ortofoto(general, comprovar_graella=True) if general else None
+        if detall != d_ant:
+            if self.orto_detall is not None:
+                self.orto_detall.release()
+            self.orto_detall = self.textura_ortofoto(detall) if detall else None
+            if detall:
+                with rasterio.open(detall) as f:
+                    b = f.bounds
+                u0, v0 = self.uv_de_utm(b.left, b.top)
+                u1, v1 = self.uv_de_utm(b.right, b.bottom)
+                self.rect_detall = (u0, v0, u1, v1)
+        self.camins_orto = (general, detall)
+
+    def textura_ortofoto(self, cami, comprovar_graella=False):
+        """Textura RGB8 amb mipmaps i filtre anisotropic (el terra es veu molt inclinat des del carrer)."""
+        with rasterio.open(cami) as f:
+            assert f.crs.to_string() == self.crs.to_string(), f'{cami}: CRS {f.crs} (el terreny es {self.crs})'
+            if comprovar_graella:
+                x0, y0 = self.origen_utm
+                assert abs(f.bounds.left - x0) < 1e-3 and abs(f.bounds.top - y0) < 1e-3 and \
+                    abs(f.bounds.right - x0 - self.mida.x * 1000) < 1e-3, f'{cami}: no te la graella del MDT'
+            rgb = np.ascontiguousarray(np.moveaxis(f.read(), 0, 2))
+        tex = self.ctx.texture((rgb.shape[1], rgb.shape[0]), 3, rgb.tobytes(), alignment=1)
+        tex.build_mipmaps()
+        tex.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
+        tex.anisotropy = 16.0
+        tex.repeat_x = tex.repeat_y = False
+        return tex
 
     def treure_pegat(self):
         if self.pegat is not None:
@@ -525,7 +589,11 @@ class Terrain:
         sp['exaggeration'].value = self.exaggeration
         sp['color_cel'].value = tuple(app.color_cel)
         sp['densitat_boira'].value = app.densitat_boira
+        sp['alcada_camera'].value, sp['boira_terra'].value = app.alcada_camera_km, app.boira_terra
         sp['inici_boira'].value = 0.0
+        sp['boira_sol'].value, sp['boira_contra'].value = app.boira_sol, app.boira_contra
+        sp['sol_horitzontal'].write(app.sol_horitzontal)
+        sp['amunt_camera'].write(app.amunt_camera)
         sp['curvatura'].value = False
         sp['n_zones'].value = 0
         sp['dibuixar_mar'].value = self.dibuixar_mar
@@ -535,6 +603,14 @@ class Terrain:
         app.terra.textura.use(5)
         sp['tex_terra'].value = 5
         app.ombres.aplicar(sp, self)   # ombres del relleu (nomes les rep la zona de 5 m)
+        app.mosaic.aplicar(sp, UNITAT_MOSAIC)   # fotografia aeria (PNOA / Sentinel-2) com a color del terra
+        sp['cam_merc'].value = tuple(np.array(app.mosaic.cam_merc) - self.origen_merc)   # en float64, i petita
+        (self.orto or self.tex_buida).use(UNITAT_ORTO)
+        (self.orto_detall or self.tex_buida).use(UNITAT_ORTO_DETALL)
+        sp['tex_orto'].value, sp['tex_orto_detall'].value = UNITAT_ORTO, UNITAT_ORTO_DETALL
+        sp['usar_orto'].value = self.orto is not None and getattr(app, 'usar_ortofoto', True)
+        sp['hi_ha_detall'].value = self.orto_detall is not None
+        sp['rect_detall'].value = self.rect_detall
         sp['profunditat_faldilla'].value = FALDILLA_GLOBUS_KM
         for i, tex in enumerate((self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi, self.tex_ombres)):
             tex.use(i)
@@ -562,7 +638,7 @@ class Terrain:
         self.treure_pegat()
         objectes = [self.vbo, self.ibo, self.vao, self.vbo_faldilla, self.ibo_faldilla, self.vao_faldilla,
                     self.shader_program, self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi,
-                    self.tex_ombres]
+                    self.tex_ombres, self.tex_buida] + [t for t in (self.orto, self.orto_detall) if t is not None]
         if self.globus:
             objectes += [self.vbo_h, self.vbo_h_faldilla]
         for obj in objectes:

@@ -19,6 +19,7 @@ from dades import geodesia
 
 TEXTURA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'textures', 'terra_2048.jpg')
 N_LON, N_LAT = 1024, 512
+ALCADA_ATMOSFERA_KM = 400.0    # gruix de la closca de la resplendor vista des de l'espai (render_atmosfera; il·lustratiu)
 
 
 class Terra:
@@ -35,6 +36,10 @@ class Terra:
         self.textura.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
         self.textura.repeat_y = False
         self.visible = True
+        # resplendor de l'atmosfera des de l'espai: la mateixa malla, aixecada (shaders/atmosfera_terra.*)
+        self.programa_atmosfera = carregar_programa(self.ctx, 'atmosfera_terra')
+        self.vao_atmosfera = self.ctx.vertex_array(self.programa_atmosfera, [(self.vbo, '3f 3f 8x', 'in_position', 'in_normal')],
+                                                   index_buffer=self.ibo)
 
     def get_vbo(self):
         lon = np.linspace(-180.0, 180.0, N_LON + 1)
@@ -60,12 +65,42 @@ class Terra:
         sp['lluna_rel'].write(glm.vec3(*(app.lluna_ecef - rel)))
         sp['radi_sol'].value, sp['radi_lluna'].value = app.radi_sol_km, app.radi_lluna_km
         sp['coef_log'].value = app.coef_log
-        sp['atmosfera'].value = app.atmosfera
         sp['ressaltar_ombra'].value = app.ressaltar_ombra
         self.textura.use(0)
         sp['textura'].value = 0
+        sp['cam_ecef'].write(glm.vec3(*rel))
+        sp['alcada_camera'].value, sp['boira_terra'].value = app.alcada_camera_km, app.boira_terra
+        sp['boira_sol'].value, sp['boira_contra'].value = app.boira_sol, app.boira_contra
+        sp['sol_horitzontal'].write(app.sol_horitzontal)
+        sp['amunt_camera'].write(app.amunt_camera)
+        sp['cam_asinh'].value = app.mosaic.cam_asinh
+        app.mosaic.aplicar(sp, 1)    # fotografia aeria on ja s'ha baixat (basecode/mosaic.py)
         self.vao.render()
 
+    def render_atmosfera(self):
+        """La resplendor blava de l'atmosfera al voltant del disc, vista des de l'espai (il·lustrativa). Es suma al
+        que hi ha (transparent), sense escriure profunditat, despres dels objectes opacs."""
+        app = self.app
+        if not self.visible or app.atmosfera > 0.99:
+            return
+        sp, rel = self.programa_atmosfera, app.camera.posicio
+        sp['m_proj'].write(app.camera.m_proj)
+        sp['m_view'].write(app.camera.m_view)
+        sp['m_model'].write(glm.translate(glm.vec3(*(-rel))))
+        sp['centre_rel'].write(glm.vec3(*(-rel)))
+        sp['sol_dir'].write(glm.vec3(*(app.sol_ecef / np.linalg.norm(app.sol_ecef))))
+        sp['alcada'].value = ALCADA_ATMOSFERA_KM
+        sp['coef_log'].value = app.coef_log
+        sp['intensitat'].value = 1.0 - app.atmosfera
+        self.ctx.enable(mgl.BLEND)
+        self.ctx.blend_func = mgl.ONE, mgl.ONE
+        fbo = self.ctx.fbo
+        fbo.depth_mask = False
+        self.vao_atmosfera.render()
+        fbo.depth_mask = True
+        self.ctx.disable(mgl.BLEND)
+
     def destroy(self):
-        for obj in (self.vbo, self.ibo, self.vao, self.shader_program, self.textura):
+        for obj in (self.vbo, self.ibo, self.vao, self.shader_program, self.textura, self.vao_atmosfera,
+                    self.programa_atmosfera):
             obj.release()
