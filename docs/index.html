@@ -960,10 +960,11 @@
 <section class="objectiu" id="o3">
 <h2>O3 · On es veurà l'eclipsi (aplicació de dades)</h2>
 <p class="intro-objectiu">Proposta del 30/10/2026 (D79), encara sense implementar. Un mapa de calor de com de bé
-  es veurà un eclipsi des de cada punt (un turó, un carrer, un terrat), perquè la gent pugui decidir on anar i
-  per preveure on s'acumularà. Per al 2026 (ja passat: serveix per validar), el 2027 (total, al sud, a mig matí)
+  es veurà un eclipsi des de cada punt (un turó, un carrer, un terrat), perquè la gent pugui decidir on anar.
+  Per al 2026 (ja passat: serveix per validar), el 2027 (total, al sud, a mig matí)
   i el 2028 (<em>anular</em>, a la posta). El criteri és geomètric: un punt veu l'eclipsi si en la direcció del
   Sol res no tapa el disc. No es pot fer amb la llum, perquè a la totalitat no n'hi ha de directa.
+  L'afluència de gent queda fora (D80).
   Detall al pla (§11, O3). <span class="progres-objectiu"></span></p>
 
 <details class="sub" id="o3-1">
@@ -978,7 +979,8 @@
     <p><span class="rotul">Fitxers (previstos):</span> <code>dades/efemerides.py</code>, <code>dades/model_eclipsi.py</code></p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="pendent">Contactes de cada eclipsi contra el calculador de la NASA en punts de prova (F24).</li>
+      <li data-estat="fet">Contactes del 2027 i el 2028 contra el calculador de la NASA (8 punts cadascun): com a molt 6,4 s i 0,01° de posició del Sol; el 2026 no canvia (<code>scripts/comparar_nasa.py --eclipsi</code>).</li>
+      <li data-estat="fet">Graella de circumstàncies contra el model punt a punt: contactes a ≤ 0,01 s, màxim a 1 s (<code>scripts/validar_visibilitat.py</code>).</li>
       <li data-estat="pendent">2026: la graella contra les bandes del CNIG (hores, part tapada, durada) (F25).</li>
     </ul>
   </div>
@@ -996,7 +998,7 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="pendent">Comparació amb la capa <code>terrain_shadows</code> del CNIG (calculada a part, a ~200 m): matriu de confusió per classes.</li>
-      <li data-estat="pendent">Les sis ubicacions coincideixen amb <code>scripts/validar_horitzo.py</code>.</li>
+      <li data-estat="fet">Marge al màxim contra un raig exacte en coordenades terrestres (30 píxels de Manresa): mediana 0,021°, màxim 0,153° (<code>scripts/validar_visibilitat.py</code>).</li>
     </ul>
   </div>
 </div></details>
@@ -1005,15 +1007,14 @@
 <summary><span class="cap"><span class="titol">O3.3 · Edificis i terrats</span></span>
   <span class="frase">Millor el terrat o el turó?</span></summary>
 <div class="cos">
-  <p>Una superfície amb el terreny i els edificis del Catastro a 1 m, amb els ulls a 1,7 m sobre el carrer o
-    sobre cada coberta. Resultat per edifici: des del terrat, es veu? Les altures són estimades (plantes × 3 m),
-    i per això es repeteix el càlcul amb altures un 20 % més baixes i més altes: si la resposta no canvia, és
-    segura.</p>
+  <p>Una superfície amb el terreny i els edificis, amb els ulls a 1,7 m sobre el carrer o sobre cada coberta.
+    Només amb altures <strong>mesurades</strong> (LiDAR), no estimades amb les plantes (D81). Fonts candidates:
+    el MDS normalitzat d'edificació del CNIG (2,5 m) i el LiDAR territorial de l'ICGC (CC BY 4.0).</p>
   <div class="fitxa">
     <p class="rotul">Criteris</p>
     <ul class="criteris">
+      <li data-estat="fet">LiDAR de l'ICGC a la UAB (3 × 3 km, rasters d'1 m): el terra coincideix amb el MDT de l'IGN (mediana +0,13 m); l'altura estimada amb les plantes s'equivoca 2,8 m de mitjana (només el 36 % dins de ±1,5 m) (<code>scripts/comparar_altures.py</code>).</li>
       <li data-estat="pendent">Punts de prova contra el perfil exacte dels edificis (<code>perfil_edificis</code>).</li>
-      <li data-estat="pendent">Classe segura o incerta segons l'altura estimada.</li>
     </ul>
   </div>
 </div></details>
@@ -1029,7 +1030,7 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="pendent">Al màxim, el dinàmic coincideix amb l'estàtic (O3.2).</li>
-      <li data-estat="pendent">Instants concrets contra el càlcul punt a punt.</li>
+      <li data-estat="fet">Hores de visibilitat contra el raig exacte minut a minut: mediana 2 s, màxim 85 s (<code>scripts/validar_visibilitat.py</code>).</li>
     </ul>
   </div>
 </div></details>
@@ -1049,20 +1050,6 @@
   </div>
 </div></details>
 
-<details class="sub" id="o3-6">
-<summary><span class="cap"><span class="titol">O3.6 · Afluència (opcional)</span></span>
-  <span class="frase">On s'acumularà la gent.</span></summary>
-<div class="cos">
-  <p>Un model de gravetat: cada zona atrau gent segons la població propera, l'índex de visibilitat i la
-    distància. És una estimació, no una mesura. Si hi ha dades reals del 2026 (aforaments, mobilitat), s'hi
-    compararà. Pendent de decisió (P14).</p>
-  <div class="fitxa">
-    <p class="rotul">Criteris</p>
-    <ul class="criteris">
-      <li data-estat="pendent">Decisió de l'equip i font de població verificada (P14).</li>
-    </ul>
-  </div>
-</div></details>
 </section>
 
 <footer>

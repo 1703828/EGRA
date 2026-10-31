@@ -241,15 +241,29 @@ Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m
 
 ### Panell i barra de temps
 
-- **Panell**: reproduir o pausar, hora, fase, part del Sol tapada al punt triat i velocitat (x1 a x1000,
-  o *Auto*, que va lenta a la totalitat); la vista; el punt d'observació (llista d'ubicacions, doble
-  clic al terreny i *Tornar al punt d'observació*); una ajuda curta dels controls.
-- **Avançat** (tancat per defecte): FPS i posició de la càmera, les dades del CNIG del punt amb les
-  hores del nostre model al costat, les capes del CNIG sobre el terreny (enfosquiment, durada, ombres
-  del relleu i límits de la totalitat), l'interruptor de les ombres del relleu i eines de depuració
-  (exageració del relleu, filferros).
-- **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar, de 16:00 a
-  23:30 (hora d'estiu). A sota, les hores de l'eclipsi al punt triat.
+- **Panell "Opcions"** (només controls): l'eclipsi (12/08/2026 total, 02/08/2027 total, 26/01/2028 anular); el
+  temps (reproduir o pausar, hora, fase, part del Sol tapada i velocitat: *Auto* o x1 a x1000); la vista
+  (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra des de l'espai); el punt
+  d'observació (llista, tornar-hi, anar al màxim); el mapa de visibilitat; les capes (fotografia aèria,
+  edificis, ombres del relleu, línies de l'ombra de la Lluna i, el 2026, les capes del CNIG). *Tecles* i
+  *Avançat* (FPS, exageració, filferros, dades del CNIG) són desplegables tancats.
+- **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar. Marques al punt triat:
+  inici i final (groc), fase central (lila), màxim (blanc) i posta (taronja); a sota, les hores.
+
+### Mapa de visibilitat de l'eclipsi (on anar a veure'l)
+
+Per a cada punt del relleu, si el relleu tapa el Sol durant l'eclipsi: el centre del Sol es veu si queda per
+sobre de l'horitzó en la seva direcció (des dels ulls, a 1,7 m; amb la curvatura de la Terra i el relleu llunyà
+fins a 200 km). No depèn de la llum. Tres opcions al panell:
+- **Al màxim**: tapat, menys de mig Sol, més de mig Sol o sencer (les classes de la capa del CNIG).
+- **Totalitat visible**: segons de totalitat (o anularitat) que es veuen sense que el relleu tapi el Sol.
+- **Instant actual**: segueix la barra de temps: on el relleu tapa el Sol, la part que en tapa la Lluna i la
+  fase central.
+
+Es calcula la primera vegada que es demana per a cada terreny i eclipsi (en segon pla; la península, ~20 min; una
+zona de 5 m, 15–30 min) i es desa a `data/cache/visibilitat_*.npz`. Per tenir-los preparats:
+`python scripts/preparar_visibilitat.py [2026 2027 2028]`. Comprovació: `python scripts/validar_visibilitat.py
+<MDT> [--cnig]`. Limitacions: només el relleu del MDT (sense arbres ni edificis); fora d'Espanya el MDT val 0.
 
 ### Com es calcula l'eclipsi (`dades/`)
 
@@ -318,6 +332,8 @@ dades/                   Lectura i càlcul de dades, sense OpenGL:
   mdt_wcs.py             Peticions al servei WCS del MDT de l'IGN
   catastro.py            Edificis del Catastro: canals ATOM, ZIP per municipi i lectura
   llocs.py               Llocs nous amb detall (doble clic): relleu i edificis en segon pla
+  eclipsis.py            Els tres eclipsis (data, tipus, efemèrides, hora local)
+  visibilitat.py         Mapa de visibilitat: circumstàncies en graella i horitzó cap al Sol per a cada píxel
   teselles.py            Fotografia aèria: coordenades Web Mercator, descàrrega en fils i memòria cau
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
 scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
@@ -366,6 +382,7 @@ data/
     Eclipses_2026.gpkg              Corbes de nivell (durada, enfosquiment, avanç de l'ombra)
     LLEGENDA.md                     Què conté cada banda, classe i capa
     doc/                            Documentació original del CNIG
+  lidar/                (no es puja al git) rasters d'1 m del LiDAR de l'ICGC (UAB: superfície, terra, edificis)
   edificis/             (no es puja al git) edificis del Catastro de les zones de detall
     catastro/             ZIP originals per municipi (~45 MB)
     valles.gpkg, vic.gpkg, escala.gpkg, picos.gpkg   parts d'edifici a 2 km dels punts (EPSG:25830)
@@ -396,7 +413,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_mdt.py` | Torna a descarregar un MDT del WCS de l'IGN, o en descarrega un de nou |
 | `captura.py` | Desa una imatge del terreny en PNG sense obrir cap finestra |
 | `exercici_fotograma.py` | Exercici 1.0: segueix un vèrtex del terreny fins al píxel de la pantalla (`docs/exercici_1_0_vertex_a_pixel.md`) |
-| `descarregar_efemerides.py` | Descarrega les posicions del Sol i la Lluna de JPL Horizons (`data/efemerides/`) |
+| `descarregar_efemerides.py` | Descarrega les posicions del Sol i la Lluna de JPL Horizons (`data/efemerides/`) per a un eclipsi (`2026`, `2027` o `2028`) |
 | `descarregar_textures.py` | Descarrega les textures de la Terra i la Lluna (NASA, `data/textures/`); amb `--alta`, la Lluna a 8k i el seu relleu (84 MB) |
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
@@ -410,6 +427,10 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_ortofoto.py` | Descarrega l'ortofoto del PNOA d'una zona (tota la zona a 5 m i 4 × 4 km a 0,5 m al voltant de cada punt) |
 | `prova_mosaic.py` | Fotografia aèria i controls aeris: coordenades de les teselles, precisió, sense xarxa, alineació amb l'ortofoto de Vic i entre la Terra i el terreny, temps, arrossegar, roda, orbitar, inèrcia, doble clic i edificis segons la vista; captures a `captures/proves/mosaic_*.png` |
 | `prova_caminar.py` | Mode Caminar amb el programa real: direcció amb W/S/A/D a diferents rumbs, diagonal, inclinació, FPS, pendents (ulls a 1,7 m), pas llarg subdividit, vora de zona i mar, entrar/sortir, focus, panell |
+| `validar_visibilitat.py` | Mapa de visibilitat d'un MDT: circumstàncies de la graella contra el model punt a punt, marge al màxim i hores contra un raig exacte; amb `--cnig`, classes contra la capa del CNIG |
+| `descarregar_lidar.py` | Baixa el LiDAR de l'ICGC al voltant d'un punt (`uab`: 3 × 3 km) i en fa rasters d'1 m (superfície, terra, edificis); els LAZ s'esborren (`data/lidar/`) |
+| `comparar_altures.py` | Altures dels edificis estimades amb el Catastro contra les del LiDAR, i terra del LiDAR contra el MDT de l'IGN |
+| `preparar_visibilitat.py` | Precalcula els mapes de visibilitat de la península i les zones de detall (per eclipsi) |
 | `prova_llocs.py` | Llocs nous amb doble clic: claus, cobertura i esborrat dels antics; UAB i mar sense lloc nou; Manresa (o, amb `--xarxa`, Igualada preparada de nou) en segon pla, observador sobre el relleu de 5 m, espera a la pausa |
 | `prova_trajectoria.py` | Sense finestra: la trajectòria guiada no travessa la Terra, la Lluna ni el Sol, és contínua, enquadra cada tram i és reversible, a les sis ubicacions i 16 hores; límits de la mirada |
 | `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |

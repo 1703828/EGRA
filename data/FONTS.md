@@ -44,7 +44,10 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - `horizons_sol_lluna_20260812.csv` (44 kB, al Git): posicions geocèntriques del Sol i la Lluna en km,
   sistema ICRF, corregides pel temps de la llum, cada minut del 12/08/2026 de 14:00 a 21:30 TU.
 - **Font:** JPL Horizons (NASA/JPL), `https://ssd.jpl.nasa.gov/horizons/`, descarregat el 22/10/2026.
-- **Com es reprodueix:** `python scripts/descarregar_efemerides.py`.
+- `horizons_sol_lluna_20270802.csv` (36 kB) i `horizons_sol_lluna_20280126.csv` (40 kB, al Git): el mateix
+  per al 02/08/2027 (de 06:00 a 12:00 TU) i el 26/01/2028 (de 13:00 a 19:30 TU), descarregats el 30/10/2026.
+- **Com es reprodueix:** `python scripts/descarregar_efemerides.py [2026|2027|2028]` (intervals a
+  `dades/eclipsis.py`).
 - **Ús:** dades públiques de NASA/JPL.
 
 ## Edificis (Catastro INSPIRE) — `data/edificis/` (no al Git)
@@ -83,6 +86,22 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
   d'OpenStreetMap, ODbL), consultat amb l'API Overpass el 26/10/2026 (400 m al voltant de la UAB;
   `data/edificis/osm_uab.json`).
 
+## LiDAR de l'ICGC (altures mesurades) — `data/lidar/` (no al Git)
+
+- **Font:** Institut Cartogràfic i Geològic de Catalunya (ICGC), *LiDAR territorial* v3r1, 3a cobertura
+  (vols 2021–2023): núvol de punts LAS 1.4 classificat segons l'ASPRS, ≥ 8 punts/m², fulls d'1 × 1 km en LAZ,
+  EPSG:25831. Pàgina: <https://www.icgc.cat/en/Geoinformation-and-Maps/Data-and-products/Elevations/Territorial-elevations/Territorial-LiDAR>.
+  Índex de fulls: <https://datacloud.icgc.cat/datacloud/lidar-territorial/json/lidar-territorial-tall.json>;
+  fitxers a `https://datacloud.icgc.cat/datacloud/lidar-territorial/laz_unzip/full10km<ID10K>/`.
+- **Llicència:** CC BY 4.0 (ICGC). Atribució: "Geoinformació de l'Institut Cartogràfic i Geològic de Catalunya".
+- **Què es guarda:** cada full (280–470 MB) es baixa, es converteix en rasters d'1 m i s'esborra. Rasters
+  (`<zona>_mds_1m.tif`, `_terra_1m.tif`, `_edificis_1m.tif`, EPSG:25831, sense reprojectar): la cota més alta
+  dels punts que no són soroll (superfície: edificis, arbres i terra), la mitjana dels punts de terra (classe 2) i
+  la més alta dels punts d'edifici (classe 6). `<zona>.json`: fulls, URL, mides, punts i data.
+- **Zona:** UAB, 3 × 3 km centrats a la plaça Cívica (9 fulls, ~3 GB baixats d'un en un), descarregada el
+  30/10/2026 amb autorització de l'equip (D81).
+- **Com es reprodueix:** `python scripts/descarregar_lidar.py uab` (cal `laspy` i `lazrs`, a `requirements.txt`).
+
 ## Comprovació externa (NASA) — `data/nasa/`
 
 - `circumstancies_nasa.csv` (2 kB, al Git): circumstàncies locals de l'eclipsi (tipus, magnitud,
@@ -92,6 +111,9 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
   `SEcirc.js`. "Eclipse Predictions by Fred Espenak, NASA's GSFC"; calculador de Xavier Jubier.
 - **Com es reprodueix:** `python scripts/comparar_nasa.py --calcular` (descarrega la pàgina i el codi a
   `data/cache/nasa/`, que no és al Git, i l'executa amb JavaScriptCore, `osascript`, només a macOS).
+- `circumstancies_nasa_2027.csv` i `circumstancies_nasa_2028.csv`: el mateix per als eclipsis del 2027 i el
+  2028 (pàgines `SE2027Aug02Tgoogle.html` i `SE2028Jan26Agoogle.html`), a Tarifa, Cadis, Màlaga, Sevilla,
+  València, Barcelona, la UAB i Picos, calculats el 30/10/2026 (`comparar_nasa.py --calcular --eclipsi 2027`).
 - **Convencions:** ΔT = 71,4 s; observador a 0 m; altura del Sol geomètrica (sense refracció); vora mitjana
   de la Lluna; valors sense arrodonir (el globus del mapa els arrodoneix a 0,1 s i 0,1°).
 

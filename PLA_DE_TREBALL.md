@@ -128,18 +128,18 @@ Darrera actualització: 2026-10-30 (F23: llum de les façanes i llocs nous; prop
 | D77 | (F23, equip) Llocs nous amb detall: el doble clic on no hi ha edificis a menys de 500 m prepara en segon pla el relleu de 5 m (6 × 6 km, WCS de l'IGN) i els edificis del Catastro (2 × 2 km, ZIP per municipi; el WFS per rectangle és massa lent). Com a molt 3 llocs al disc (~40–110 MB cadascun); s'esborren els més antics. Malles d'edificis comprimides. | 30/10 |
 | D78 | (equip) Les vistes en primera persona i aèria es donen per bones de moment. La transició cap a l'espai (fins a la Lluna i el Sol) no agrada, però queda aparcada: s'hi tornarà més endavant. | 30/10 |
 | D79 | (equip) Objectiu nou **O3 · On es veurà l'eclipsi** (aplicació de dades): mapa de visibilitat segons el que tapa el Sol (relleu i edificis), estàtic al màxim i dinàmic al llarg de l'eclipsi, per als eclipsis del 2026, 2027 i 2028. El número O3 es reutilitza (l'antic es va retirar a D31). Proposta a §11, O3; pendent de P14–P17. | 30/10 |
+| D80 | (equip, P14–P17) L'afluència (F30) es descarta. L'aplicació és part del programa (capa sobre el terreny i opció del menú), no una web a part. Els mapes, a la resolució del MDT (5 m a les zones; no es redueix). L'índex: classes al màxim i segons de fase central visibles (proposta de F29). | 30/10 |
+| D81 | (equip) Als mapes de visibilitat, els edificis només hi entraran amb **altures mesurades**, no estimades (plantes × 3 m). Candidates: MDS normalitzat d'edificació del CNIG (LiDAR PNOA, 2,5 m, primera cobertura) i el LiDAR territorial de l'ICGC (3a cobertura, CC BY 4.0, fulls d'1 × 1 km). Pendent d'autorització de la descàrrega (F27). | 30/10 |
+| D82 | (equip) Menú d'imgui net: només controls (eclipsi, temps, vista, punt, mapa de visibilitat, capes); sense textos d'explicació; les tecles i la depuració en desplegables tancats. Substitueix la part de CLAUDE.md sobre l'"ajuda curta" visible. | 30/10 |
+| D83 | (equip, P18) LiDAR territorial de l'ICGC (3a cobertura, CC BY 4.0) a la UAB: 3 × 3 km (9 fulls) centrats a la plaça Cívica. Instal·lades `laspy` i `lazrs` (lectura de LAZ). Cada full es converteix en rasters d'1 m i el LAZ s'esborra. | 30/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
 
 (Historial: P1–P13 resoltes a D15–D25 i D31.) Obertes (O3, 30/10):
 
-- **P14** Afluència de gent (F30): s'hi inclou? Cal una dada nova de població (candidates: graella d'1 km de
-  l'INE o GHSL de la UE; llicència i mida per verificar) i és una estimació sense validar.
-- **P15** On viu l'aplicació: dins del programa (capa sobre el terreny, consulta d'un punt, barra temporal) i
-  exportació GeoTIFF per a QGIS (proposta), o una web a part (seria un segon projecte).
-- **P16** Resolució dels mapes a les zones de detall: 5 m (més espai) o 10 m (proposta, ~4 vegades menys).
-- **P17** Definició de "com de bé es veu" (l'índex del mapa de calor): proposta a O3, F29.
+- P14–P17 resoltes a D80.
+- P18 resolta a D83.
 - Aparcat (D78): la transició cap a l'espai.
 
 ---
@@ -1885,13 +1885,13 @@ distàncies de 5 m a 20 km, amb curvatura), NumPy: **~20 s**. És un càlcul per
 
 | Fase | Tipus | Què | Validació | Estat |
 |---|---|---|---|---|
-| F24 | reorganització + correcció | Eclipsi com a paràmetre (2026, 2027, 2028): efemèrides de JPL Horizons per a cada data (~45 KB cadascuna), anularitat (C2/C3 quan la Lluna és més petita que el Sol) | Contactes contra el calculador de la NASA en punts de cada eclipsi (com la F11) | `PENDENT` |
-| F25 | N | Circumstàncies en graella (Espanya, ~1 km, vectoritzat): contactes, màxim, part tapada, durada de la totalitat o l'anularitat, Sol (azimut, elevació) | 2026: contra les bandes del CNIG; 2027–28: contra la NASA en punts | `PENDENT` |
-| F26 | N | Mapa estàtic al màxim (relleu): horitzó per escombrat en la direcció del Sol, prop amb 5 m i lluny amb 200 m; marge = elevació del Sol − horitzó (graus) i classes 0–3 com el CNIG | Contra `terrain_shadows` (matriu de confusió per classes, a la seva resolució) i `validar_horitzo.py` a les sis ubicacions | `PENDENT` |
-| F27 | N | Edificis i terrats: superfície MDT + edificis a 1 m als quadrats amb edificis; ulls a 1,7 m sobre el carrer o la coberta; taula per edifici ("des del terrat es veu?") | Contra `perfil_edificis` (càlcul exacte) en punts de prova; incertesa: repetit amb altures × 0,8 i × 1,2 (classe segura o incerta) | `PENDENT` |
-| F28 | N | Mapa dinàmic: per píxel, l'hora en què el Sol queda tapat (i, si torna, quan reapareix), a partir de l'horitzó en els azimuts del recorregut del Sol (cada 0,5°); a cada instant, visible = no tapat × part no tapada per la Lluna; capa sobre el terreny i marques C1, C2, màxim, C3, C4 i posta a la barra | Instants concrets contra F26 (al màxim) i contra el càlcul punt a punt | `PENDENT` |
-| F29 | N | Aplicació: índex de qualitat (P17), consulta d'un punt ("aquí la totalitat es veu sencera; el Sol s'amaga a les 20:31"), el millor punt a menys de N km, exportació GeoTIFF/GeoPackage | Casos coneguts (les sis ubicacions) | `PENDENT` |
-| F30 | N (opcional, P14) | Afluència: model de gravetat (població × atractiu ÷ distància) | **Estimació, no validada.** Si hi ha dades reals del 2026 (aforaments, mobilitat), s'hi compara: a verificar si existeixen | `PENDENT` |
+| F24 | reorganització + correcció | Eclipsi com a paràmetre (2026, 2027, 2028): efemèrides de JPL Horizons per a cada data (~40 KB cadascuna), anularitat (C2/C3 quan un disc queda sencer dins de l'altre) | Contactes contra el calculador de la NASA en punts de cada eclipsi (com la F11) | `FET` |
+| F25 | N | Circumstàncies en graella (~1 km a les zones, 4 km a la península; vectoritzat): contactes, màxim, fase central, Sol (azimut de quadrícula, elevació aparent) | Contra `ModelEclipsi` punt a punt; 2026, contra les bandes del CNIG (pendent) | `FET` |
+| F26 | N | Mapa estàtic al màxim (relleu): horitzó per direccions d'1°, prop amb el MDT del terreny i lluny amb 200 m; marge i classes 0–3 com el CNIG | Contra un raig exacte en ECEF; contra `terrain_shadows` del CNIG | `EN CURS` |
+| F27 | N | Edificis, arbres i terrats amb **altures mesurades** (D81, D83): LiDAR de l'ICGC a la UAB baixat; falta fer-lo servir al mapa | Contra `perfil_edificis` en punts de prova | `EN CURS` |
+| F28 | N | Mapa dinàmic: per píxel, primer i darrer moment amb el centre del Sol visible; a cada instant, el shader hi afegeix la part tapada per la Lluna; marques a la barra | Hores contra el raig exacte minut a minut | `FET` |
+| F29 | N | Aplicació: el menú "Mapa de visibilitat" (al màxim, totalitat visible, instant actual); consulta d'un punt i exportació, pendents | Inspecció de captures | `EN CURS` |
+| F30 | — | Afluència | Descartada (D80) | — |
 
 **Índex proposat (P17).** Totalitat (o anularitat): segons de la fase central amb tot el disc per sobre de
 l'horitzó (0 si no hi ha fase central); a més, la classe al màxim (0–3). Parcial: la part del Sol tapada al
@@ -1909,6 +1909,61 @@ probabilitat climatològica de núvols, O1.11, font a verificar). L'afluència �
 
 **Proposta d'ordre.** F24 → F25 → F26 (mapa del 2026 comparat amb el CNIG: la primera evidència forta) → F28 →
 F27 → F29, i F30 si l'equip ho decideix.
+
+#### Fet el 30/10 (F24, F25, F26, F28 i menú)
+
+**F24.** `dades/eclipsis.py`: registre dels tres eclipsis (data, tipus, interval de les efemèrides, hora local:
+2028 en hora d'hivern, TU + 1). `Efemerides` i `efemerides(clau)` per eclipsi; `scripts/descarregar_efemerides.py
+<any>`; `ModelEclipsi` detecta l'anularitat (fase "ANULARITAT"). Al programa, `canviar_eclipsi` (desplegable del
+menú): torna a calcular el punt, l'hora (C1 − 1 h), el cub de navegació; les capes del CNIG només el 2026.
+*Comprovat automàticament* (`comparar_nasa.py --calcular --eclipsi 2027/2028`, 8 punts cadascun): model − NASA
+com a molt 4,3 s (C1), 6,4 s (C2), 3,7 s (màxim), 5,5 s (C3), 3,2 s (C4), 0,07 punts de Sol tapat, 0,01° de
+posició del Sol; la diferència és gairebé constant (+3,3 a +3,7 s de mitjana), com al 2026 (escala de temps, §6.3).
+El 2026 no canvia (regressió). Resultats: 2027 a Tarifa 4 min 41 s de totalitat a les 10:47 (hora d'estiu), Sol a
+l'est a 38°; 2028 anular, Sol tapat un 83 %, de Cadis a Barcelona, amb el Sol a 0–8° a la posta.
+
+**F25, F26 i F28.** `dades/visibilitat.py` (mètode a la capçalera), `scripts/validar_visibilitat.py`,
+`scripts/preparar_visibilitat.py`, `basecode/terrain.py` (`posar_visibilitat`, textura RGBA 16 bits),
+`shaders/terrain.frag` (`color_mapa`), `main.py` (`actualitzar_mapa`, en un fil), `ui.py`.
+*Comprovat automàticament* (lloc de Manresa, 30 píxels a l'atzar): contactes de la graella contra `ModelEclipsi`
+≤ 0,01 s (màxim 1,0 s); marge al màxim contra un raig exacte en ECEF (azimut geogràfic, cada 5 m): mediana
+0,021°, màxim 0,153°; hores de visibilitat: mediana 2 s, màxim 85 s (el raig exacte es mostreja cada minut).
+Toleràncies justificades a l'script. Errors trobats i corregits en comprovar-ho: (1) el relleu de 200 m dins de la
+zona de 5 m alçava l'horitzó; ara només compta fora de la zona; (2) llegir el píxel més proper (en lloc
+d'interpolar) a 80–400 m donava fins a 0,3° d'error als vessants; ara bilineal a totes les distàncies i 300 passos.
+*Temps:* el lloc de Manresa (1,4 M de píxels), 63 s; la península (24 M de píxels, 200 m), 850 s.
+*Inspeccionat visualment:* Manresa al màxim i 10 min després (instant actual).
+
+*Península, 2026 (`validar_visibilitat.py peninsula_200m.tif --cnig`):* contactes ≤ 0,13 s; marge contra el raig
+exacte, mediana 0,009°, màxim 0,155°; hores, mediana 1 s, màxim 69 s. Primera execució: tres errors trobats i
+corregits: (1) el màxim i C2/C3 s'ajustaven amb una paràbola sobre la separació (forma de V): el màxim
+s'equivocava fins a 5 s i C3 fins a 42 s a la vora de la franja; ara una paràbola sobre la separació al quadrat
+(que ho és) i C2/C3 d'aquesta paràbola: ≤ 0,5 s als tres eclipsis; (2) el raig començava a un píxel (200 m) i un
+obstacle dins de la primera cel·la quedava fora: ara comença a un quart de píxel. **Contra el CNIG**
+(`terrain_shadows`, calculada a part amb el GMTED2010 i `insol`): mateixa classe al 82,3 % dels píxels i mateixa
+resposta a "es veu més de mig Sol" al 88,7 %: l'objectiu provisional (> 90 %) **no s'assoleix**. El desacord
+principal: el CNIG diu "tot tapat" on nosaltres veiem el Sol (27 % de la seva classe 0), repartit per tota la
+península. En 10 d'aquests píxels a l'atzar, el raig exacte sobre el MDT de l'IGN confirma el nostre marge
+(diferència ≤ 0,09°): no és un error del nostre càlcul sinó de les dades (GMTED2010 contra IGN) o del mètode del
+CNIG, que no documenta; la seva capa canvia de classe en menys d'1 km (veïnats amb "tot tapat" i "res tapat"
+barrejats). Hipòtesi descartada: l'ombra pròpia del pendent (només n'explica el 4 %). Coherent amb la F11 (74–95 %
+d'acord local).
+
+**LiDAR de la UAB (F27, D83).** `scripts/descarregar_lidar.py uab`: 9 fulls (2.800 MB en total, de 20 a 32 milions
+de punts cadascun, EPSG:25831 a la capçalera), baixats i convertits d'un en un en 8 min; queden
+`data/lidar/uab_{mds,terra,edificis}_1m.tif` (44 MB). `scripts/comparar_altures.py uab` (*comprovat automàticament*):
+- **Terra:** LiDAR − MDT de 5 m de l'IGN, mediana +0,13 m (p5 a p95: −0,63 a +1,49 m; 200.000 punts): mateix
+  sistema vertical (si no, hi hauria ~50 m de diferència) i coherents.
+- **Edificis** (2.787 parts del Catastro amb prou punts d'edifici, de 6.855): l'estimació plantes × 3 m queda,
+  de mediana, **1,9 m per sota** de la mesurada; error absolut mitjà 2,8 m; només el 36 % dins de ±1,5 m i el 68 %
+  dins de ±3 m. Per plantes: 1 planta → 5,3 m mesurats (naus, cobertes inclinades, ampits); 2 → 8,4 m;
+  3 → 10,2 m; als edificis alts, ~2,75 m per planta (11 plantes → 30,4 m). Casos extrems: una part d'1 planta
+  amb 29 m mesurats (el Catastro i la realitat no coincideixen). Confirma que l'estimació no serveix per decidir si
+  un terrat o un carrer veuen el Sol baix (D81).
+
+**Menú (D82).** Seccions: eclipsi, temps, vista, punt d'observació, mapa de visibilitat (amb llegenda), capes;
+"Tecles" i "Avançat" tancats; marques a la barra del temps (inici, final, fase central, màxim, posta).
+`prova_controls` (69 OK) i `prova_caminar` (26 OK) amb el menú nou.
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
@@ -1957,3 +2012,5 @@ F27 → F29, i F30 si l'equip ho decideix.
 | 28/10/2026 | F22 (prova i petició de l'equip): foto esmicolada al pegat de 5 m (precisió a la GPU) i punts taronja corregits; atmosfera de la Terra des de l'espai i pol; Lluna amb dades de la NASA a 8k i relleu (baixada autoritzada); Sol de foc (il·lustratiu); revisió de la llum de l'eclipsi parcial i corona només a la totalitat. D71–D74. Sense commit. |
 | 30/10/2026 | F23 (petició de l'equip): neteja de caches (1,8 GB), llum de les façanes, llocs nous amb detall amb doble clic, malles comprimides, `prova_llocs.py`. D75–D77. Sense commit. |
 | 30/10/2026 | Proposta de l'objectiu O3 (mapa de visibilitat, F24–F30), D78 (vistes aparcades) i D79; preguntes P14–P17. Mesurat: horitzó d'un azimut a 5 m al Vallès en ~20 s. Res implementat. |
+| 30/10/2026 | O3: F24 (tres eclipsis, anularitat, comparats amb la NASA), F25, F26 i F28 (mapa de visibilitat del relleu, validat contra un raig exacte), menú net (D82). D80–D82, P18. Sense commit. |
+| 30/10/2026 | LiDAR de l'ICGC a la UAB (D83): 9 fulls convertits a rasters d'1 m; comparació amb el Catastro (l'estimació plantes × 3 m s'equivoca 2,8 m de mitjana) i amb el MDT de l'IGN (+0,13 m). Península 2026 validada (contra el CNIG, 88,7 %). Sense commit. |
