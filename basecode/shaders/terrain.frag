@@ -68,6 +68,20 @@ uniform bool depuracio_ombra;       // depuracio (scripts): el color es el facto
 uniform bool usar_orto;
 uniform sampler2D tex_orto;          // tota la zona, mateixes UV que el terreny (graella del MDT)
 uniform sampler2D tex_orto_detall;   // detall (0,5 m) al voltant del punt d'observacio
+// mapa de visibilitat de l'eclipsi (dades/visibilitat.py, objectiu O3); mateixes UV que el relleu, NEAREST.
+// R, G: primer i darrer moment amb el centre del Sol per sobre de l'horitzo (s des de l'inici de les efemerides);
+// B: marge al maxim (centesimes de grau + 32768); A: segons de fase central visibles x 10. 65535: sense valor.
+uniform sampler2D tex_visibilitat;
+uniform bool hi_ha_mapa;             // el del terreny (n'hi pot haver nomes el de detall)
+uniform sampler2D tex_vis_detall;    // el mateix a 1 m amb el LiDAR, dins de rect_vis_detall (UV del terreny)
+uniform bool hi_ha_vis_detall;
+uniform vec4 rect_vis_detall;
+uniform int mapa;                    // 0 cap, 1 al maxim, 2 totalitat visible, 3 instant actual
+uniform float hora_s;                // l'hora de la barra, en s des de l'inici de les efemerides
+uniform float radi_sol_graus;
+uniform float durada_central_max;    // s
+uniform vec3 colors_central[5];
+uniform vec3 color_tapat_relleu;
 uniform bool hi_ha_detall;
 uniform vec4 rect_detall;            // rectangle del detall en UV del terreny (u0, v0, u1, v1)
 // atmosfera (dades/atmosfera.py): la boira es del color del cel a l'horitzo segons la direccio (terrain.vert)
@@ -199,6 +213,45 @@ vec3 ressaltar(vec3 c, float f, float df, float pes) {
 }
 #endif
 
+#ifdef PROFUNDITAT_LOG
+// fase central (totalitat o anularitat) vista des del punt p: un disc sencer dins de l'altre
+bool central_des_de(vec3 p) {
+    vec3 s = sol_rel - p, l = lluna_rel - p;
+    float rs = asin(radi_sol / length(s)), rl = asin(radi_lluna / length(l));
+    float d = 2.0 * asin(min(1.0, 0.5 * length(normalize(s) - normalize(l))));
+    return d < abs(rl - rs);
+}
+
+// color (rgb) i opacitat (a) del mapa de visibilitat en aquest punt; tapat = part del Sol que tapa la Lluna aqui
+vec4 color_mapa(float tapat) {
+    vec2 td = (uv - rect_vis_detall.xy) / (rect_vis_detall.zw - rect_vis_detall.xy);
+    bool detall = hi_ha_vis_detall && all(greaterThanEqual(td, vec2(0.0))) && all(lessThanEqual(td, vec2(1.0)));
+    if (!detall && !hi_ha_mapa) return vec4(0.0);
+    vec4 v = (detall ? texture(tex_vis_detall, td) : texture(tex_visibilitat, uv)) * 65535.0;
+    if (mapa == 1) {
+        if (v.b < 0.5) return vec4(0.0);                // sense eclipsi
+        float m = (v.b - 32768.0) / 100.0;              // marge (graus)
+        int classe = m > radi_sol_graus ? 3 : (m > 0.0 ? 2 : (m > -radi_sol_graus ? 1 : 0));
+        return vec4(colors_ombres[classe], 0.8);
+    }
+    if (mapa == 2) {
+        if (v.a > 65534.5) return vec4(0.0);            // fora de la franja central
+        float t = clamp(v.a / 10.0 / durada_central_max, 0.0, 1.0) * 4.0;
+        int i = min(int(t), 3);
+        return vec4(mix(colors_central[i], colors_central[i + 1], t - float(i)), 0.85);
+    }
+    if (mapa == 3) {
+        if (tapat <= 0.0) return vec4(0.0);             // aqui no hi ha eclipsi en aquest instant
+        if (v.r > 65534.5 || hora_s < v.r || hora_s > v.g) return vec4(color_tapat_relleu, 0.85);   // el relleu el tapa
+        if (central_des_de(pos_mon)) return vec4(color_totalitat, 0.85);
+        float t = clamp(tapat, 0.0, 1.0) * 3.0;
+        int i = min(int(t), 2);
+        return vec4(mix(colors_enfosquiment[i], colors_enfosquiment[i + 1], t - float(i)), 0.75);
+    }
+    return vec4(0.0);
+}
+#endif
+
 void main() {
 #ifdef PROFUNDITAT_LOG
     gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
@@ -302,6 +355,13 @@ void main() {
         // overlay de l'eclipsi
         vec4 o = color_overlay();
         color = mix(color, o.rgb, opacitat * o.a);
+#ifdef PROFUNDITAT_LOG
+        // mapa de visibilitat (nomes a terra)
+        if (mapa != 0) {
+            vec4 mv = color_mapa(tapat);
+            color = mix(color, mv.rgb, mv.a * (1.0 - smoothstep(-w, w, d)));
+        }
+#endif
         // limits de la franja de totalitat: on la mascara (filtrada, suau) passa per 0.5
         if (limits_totalitat) {
             float b = texture(tex_eclipsi, uv).b;

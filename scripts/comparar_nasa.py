@@ -15,6 +15,8 @@ Dos passos:
                                                els executa amb JavaScriptCore (osascript, nomes macOS)
                                                i desa data/nasa/circumstancies_nasa.csv
   python scripts/comparar_nasa.py              compara el CSV amb el nostre model i amb el CNIG
+Amb --eclipsi 2027 o 2028 (dades/eclipsis.py), la pagina d'aquell eclipsi, un CSV propi
+(circumstancies_nasa_<any>.csv) i punts de la seva franja; el CNIG nomes te dades del 2026.
 
 Convencions de la NASA (llegides al codi): hores en TU amb un dT = TT - TU de 71,4 s (previst quan es
 va fer el mapa); observador a 0 m (nivell del mar); elevacio del Sol geometrica (sense refraccio);
@@ -23,6 +25,7 @@ Per comparar en les mateixes condicions, el nostre model es calcula a 0 m i amb 
 """
 import argparse
 import csv
+import datetime
 import json
 import os
 import re
@@ -32,10 +35,11 @@ import urllib.request
 
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
-from dades import eclipse_data  # noqa: E402
+from dades import eclipse_data, eclipsis  # noqa: E402
 from dades.model_eclipsi import ModelEclipsi  # noqa: E402
 from dades.observador import UBICACIONS  # noqa: E402
 
+PAGINES = {'2026': 'SE2026Aug12Tgoogle.html', '2027': 'SE2027Aug02Tgoogle.html', '2028': 'SE2028Jan26Agoogle.html'}
 URL_PAGINA = 'https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html'
 URL_CODI = 'https://eclipse.gsfc.nasa.gov/SEgoogle/SEcirc.js'
 DIR_CACHE = os.path.join(ARREL, 'data', 'cache', 'nasa')
@@ -43,6 +47,10 @@ CSV = os.path.join(ARREL, 'data', 'nasa', 'circumstancies_nasa.csv')
 # les sis ubicacions del programa i tres punts mes (els mateixos que scripts/validar_model.py)
 PUNTS = [(nom.split(',')[0].split(' (')[0], lat, lon) for nom, lat, lon in UBICACIONS] + [
     ('Burgos', 42.3439, -3.6969), ('Valencia', 39.4699, -0.3763), ('Palma', 39.5696, 2.6502)]
+# 2027 i 2028: punts de la franja central i de fora, al sud i a l'est
+PUNTS_NOUS = [('Tarifa', 36.014, -5.604), ('Cadis', 36.529, -6.292), ('Malaga', 36.721, -4.421),
+              ('Sevilla', 37.389, -5.984), ('Valencia', 39.4699, -0.3763), ('Barcelona', 41.387, 2.170),
+              ('UAB', 41.5022, 2.1042), ('Picos', 43.262, -4.949)]
 CONTACTES = ('c1', 'c2', 'maxim', 'c3', 'c4')
 
 # s'afegeix al final de SEcirc.js: calcula un punt (les mateixes funcions que el clic al mapa) i en
@@ -75,7 +83,7 @@ def descarregar(url, fitxer):
 def calcular():
     """Executa el calculador de la NASA per a cada punt i desa el CSV."""
     os.makedirs(DIR_CACHE, exist_ok=True)
-    pagina = descarregar(URL_PAGINA, os.path.join(DIR_CACHE, 'SE2026Aug12Tgoogle.html'))
+    pagina = descarregar(URL_PAGINA, os.path.join(DIR_CACHE, os.path.basename(URL_PAGINA)))
     codi = descarregar(URL_CODI, os.path.join(DIR_CACHE, 'SEcirc.js'))
     elements = re.search(r'var elements = new Array\((.*?)\);', pagina, re.S).group(1)
     elements = re.sub(r'//[^\n]*', '', elements)   # comentaris de JavaScript
@@ -90,10 +98,10 @@ def calcular():
     os.makedirs(os.path.dirname(CSV), exist_ok=True)
     with open(CSV, 'w', newline='') as f:
         f.write(f'# Calculador de circumstancies locals de la NASA (Espenak/GSFC, Jubier), executat el '
-                f'2026-10-26 amb scripts/comparar_nasa.py --calcular\n')
+                f'{datetime.date.today()} amb scripts/comparar_nasa.py --calcular\n')
         f.write(f'# {URL_PAGINA}\n')
         f.write(f'# Hores TU (decimals) amb dT = {resultats[0]["dT"]} s; observador a 0 m; elevacio geometrica '
-                f'(sense refraccio); azimut des del nord en sentit horari. tipus: 1 parcial, 3 total\n')
+                f'(sense refraccio); azimut des del nord en sentit horari. tipus: 1 parcial, 2 anular, 3 total\n')
         w = csv.writer(f)
         w.writerow(['punt', 'lat', 'lon', 'tipus', 'magnitud', 'obscuracio']
                    + [f'{k}_{x}' for k in CONTACTES for x in ('tu', 'elev', 'azimut')])
@@ -120,7 +128,7 @@ def comparar():
     for r in files:
         lat, lon = float(r['lat']), float(r['lon'])
         m = ModelEclipsi(lat, lon, 0.0)
-        cnig = eclipse_data.punt(lat, lon)
+        cnig = eclipse_data.punt(lat, lon) if eclipsis.actiu() == '2026' else {'hores_tu': {}}
         cols, cols_cnig = '', ''
         for k in CONTACTES:
             nasa = float(r[f'{k}_tu']) if r[f'{k}_tu'] else None
@@ -141,10 +149,12 @@ def comparar():
         d_el, d_az = el - float(r['maxim_elev']), (az - float(r['maxim_azimut']) + 180) % 360 - 180
         for clau, v in (('tapat', abs(tapat)), ('elev', abs(d_el)), ('azim', abs(d_az))):
             pitjor[clau] = max(pitjor.get(clau, 0.0), v)
-        print(f"{r['punt']:16s}{cols}{tapat:+8.2f}{d_el:+8.3f}{d_az:+8.3f}   |             {cols_cnig}")
+        cnig_text = f'   |             {cols_cnig}' if eclipsis.actiu() == '2026' else ''
+        print(f"{r['punt']:16s}{cols}{tapat:+8.2f}{d_el:+8.3f}{d_az:+8.3f}{cnig_text}")
     print('Diferencia maxima model - NASA:', ', '.join(f'{k} {v:.3f}' if k in ('elev', 'azim', 'tapat')
                                                          else f'{k} {v:.1f} s' for k, v in pitjor.items()))
-    print('Diferencia maxima CNIG - NASA:', ', '.join(f'{k} {v:.1f} s' for k, v in pitjor_cnig.items()))
+    if pitjor_cnig:
+        print('Diferencia maxima CNIG - NASA:', ', '.join(f'{k} {v:.1f} s' for k, v in pitjor_cnig.items()))
     sensibilitat_radi(files)
 
 
@@ -175,7 +185,15 @@ def sensibilitat_radi(files):
 def main():
     p = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     p.add_argument('--calcular', action='store_true', help='executar el calculador de la NASA (macOS, xarxa)')
-    if p.parse_args().calcular:
+    p.add_argument('--eclipsi', default='2026', choices=list(PAGINES))
+    a = p.parse_args()
+    global URL_PAGINA, CSV, PUNTS
+    eclipsis.triar(a.eclipsi)
+    if a.eclipsi != '2026':
+        URL_PAGINA = URL_PAGINA.replace(PAGINES['2026'], PAGINES[a.eclipsi])
+        CSV = CSV.replace('.csv', f'_{a.eclipsi}.csv')
+        PUNTS = PUNTS_NOUS
+    if a.calcular:
         calcular()
     comparar()
 

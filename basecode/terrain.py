@@ -49,6 +49,8 @@ COLOR_CEL = (0.62, 0.76, 0.90)  # color del fons i de la boira
 UNITAT_ORTO, UNITAT_ORTO_DETALL = 7, 8   # unitats de textura de l'ortofoto (0-5 terreny, 6 mapa d'ombres)
 RADI_TERRA = 6371.0             # km
 UNITAT_MOSAIC = 9               # unitat de textura del mosaic d'imatges (basecode/mosaic.py)
+UNITAT_VISIBILITAT = 10         # mapa de visibilitat de l'eclipsi (dades/visibilitat.py)
+UNITAT_VISIBILITAT_DETALL = 11  # el mateix a 1 m amb el LiDAR (scripts/visibilitat_lidar.py), dins de la zona
 VERSIO_ATRIBUTS = 3             # atributs del globus a la cache (3: Mercator relativa a l'origen del terreny)
 
 # overlays de l'eclipsi: nom al panell i colors (els fan servir el shader i la llegenda del panell)
@@ -60,6 +62,11 @@ COLOR_TOTALITAT = (0.85, 0.00, 0.85)
 COLORS_DURADA = [(1.00, 0.95, 0.50), (0.50, 0.85, 0.40), (0.20, 0.70, 0.85),
                  (0.15, 0.30, 0.80), (0.35, 0.05, 0.50)]
 COLORS_OMBRES = [(0.20, 0.05, 0.40), (0.90, 0.20, 0.15), (1.00, 0.75, 0.20), (0.30, 0.80, 0.40)]
+# mapa de visibilitat (objectiu O3): 0 cap, 1 al maxim (classes com COLORS_OMBRES), 2 segons de fase central
+# visibles, 3 l'instant de la barra de temps
+MAPES = ['Cap', 'Al maxim', 'Totalitat visible', 'Instant actual']
+COLORS_CENTRAL = [(0.25, 0.05, 0.30), (0.70, 0.10, 0.40), (0.95, 0.40, 0.20), (1.00, 0.80, 0.30), (1.00, 1.00, 0.75)]
+COLOR_TAPAT_RELLEU = (0.12, 0.14, 0.22)
 
 def build_grid(n_cols, n_files):
     """Graella plana de n_cols x n_files vertexs amb nomes coordenades UV (0..1).
@@ -216,6 +223,9 @@ class Terrain:
         self.orto, self.orto_detall, self.rect_detall = None, None, (0.0, 0.0, 0.0, 0.0)
         self.camins_orto = (None, None)
         self.tex_buida = self.ctx.texture((1, 1), 3, bytes((128, 128, 128)))
+        self.tex_visibilitat, self.visibilitat = None, None   # mapa de visibilitat (posar_visibilitat)
+        self.tex_vis_detall, self.vis_detall = None, None      # i el de detall (posar_visibilitat_detall)
+        self.tex_visibilitat_buida = self.ctx.texture((1, 1), 4, np.zeros(4, 'u2').tobytes(), dtype='nu2')
         self.on_init()
 
     # ------------------------------------------------------------ objecte OpenGL
@@ -316,6 +326,9 @@ class Terrain:
         sp['durada_min'].value, sp['durada_max'].value = self.durada_min, self.durada_max
         sp['colors_durada'].write(np.array(COLORS_DURADA, 'f4').tobytes())
         sp['colors_ombres'].write(np.array(COLORS_OMBRES, 'f4').tobytes())
+        if 'colors_central' in sp:   # nomes el mode globus
+            sp['colors_central'].write(np.array(COLORS_CENTRAL, 'f4').tobytes())
+            sp['color_tapat_relleu'].value = COLOR_TAPAT_RELLEU
         sp['m_model'].write(self.m_model)
         sp['mida_km'].write(self.mida)
         sp['lod_vertexs'].value = self.lod_vertexs
@@ -504,6 +517,34 @@ class Terrain:
         tex.repeat_x = tex.repeat_y = False
         return tex
 
+    def textura_visibilitat(self, r):
+        """Textura RGBA de 16 bits d'un mapa de visibilitat: t_ini, t_fi, marge + 32768 i segons centrals x 10."""
+        dades = np.stack([r['t_ini'], r['t_fi'], (r['marge'].astype('i4') + 32768).astype('u2'), r['central']], -1)
+        files, cols = dades.shape[:2]
+        tex = self.ctx.texture((cols, files), 4, np.ascontiguousarray(dades).tobytes(), dtype='nu2')
+        tex.filter = (mgl.NEAREST, mgl.NEAREST)
+        tex.repeat_x = tex.repeat_y = False
+        return tex, dict(clau=str(r['clau']), inici=float(r['inici']), radi_sol=float(r['radi_sol']),
+                         durada_max=float(r['durada_max']))
+
+    def posar_visibilitat(self, r):
+        """Mapa de visibilitat de l'eclipsi (dict de dades/visibilitat.py, o None per treure'l), amb les mateixes UV
+        que el relleu."""
+        if self.tex_visibilitat is not None:
+            self.tex_visibilitat.release()
+        self.tex_visibilitat, self.visibilitat = self.textura_visibilitat(r) if r is not None else (None, None)
+
+    def posar_visibilitat_detall(self, r, limits):
+        """Mapa de visibilitat de detall (LiDAR, 1 m) dins del terreny: r (dict) i els seus limits UTM (x0, y0, x1,
+        y1, el mateix CRS que el terreny); None per treure'l. El shader el fa servir dins del rectangle."""
+        if self.tex_vis_detall is not None:
+            self.tex_vis_detall.release()
+        self.tex_vis_detall, self.vis_detall = self.textura_visibilitat(r) if r is not None else (None, None)
+        if r is not None:
+            u0, v1 = self.uv_de_utm(limits[0], limits[1])
+            u1, v0 = self.uv_de_utm(limits[2], limits[3])
+            self.vis_detall['rect'] = (u0, v0, u1, v1)
+
     def treure_pegat(self):
         if self.pegat is not None:
             for obj in self.pegat['recursos']:
@@ -617,6 +658,20 @@ class Terrain:
         sp['overlay'].value = self.overlay
         sp['opacitat'].value = self.opacitat
         sp['limits_totalitat'].value = self.limits_totalitat
+        v = self.visibilitat or self.vis_detall
+        (self.tex_visibilitat or self.tex_visibilitat_buida).use(UNITAT_VISIBILITAT)
+        sp['tex_visibilitat'].value = UNITAT_VISIBILITAT
+        (self.tex_vis_detall or self.tex_visibilitat_buida).use(UNITAT_VISIBILITAT_DETALL)
+        sp['tex_vis_detall'].value = UNITAT_VISIBILITAT_DETALL
+        sp['hi_ha_mapa'].value = self.visibilitat is not None
+        sp['hi_ha_vis_detall'].value = self.vis_detall is not None
+        if self.vis_detall is not None:
+            sp['rect_vis_detall'].value = self.vis_detall['rect']
+        sp['mapa'].value = getattr(app, 'mapa_visibilitat', 0) if v is not None else 0
+        if v is not None:
+            sp['hora_s'].value = (app.hora - v['inici']) * 3600.0
+            sp['radi_sol_graus'].value = v['radi_sol']
+            sp['durada_central_max'].value = max(v['durada_max'], 1.0)
         self.ctx.wireframe = self.wireframe
         # forats: on hi ha un terreny mes detallat (fills) no es dibuixa; la graella general tampoc
         # dins del pegat, que es dibuixa a continuacio
@@ -638,7 +693,8 @@ class Terrain:
         self.treure_pegat()
         objectes = [self.vbo, self.ibo, self.vao, self.vbo_faldilla, self.ibo_faldilla, self.vao_faldilla,
                     self.shader_program, self.tex_altitud, self.tex_gradient, self.tex_costa, self.tex_eclipsi,
-                    self.tex_ombres, self.tex_buida] + [t for t in (self.orto, self.orto_detall) if t is not None]
+                    self.tex_ombres, self.tex_buida, self.tex_visibilitat_buida] + \
+            [t for t in (self.orto, self.orto_detall, self.tex_visibilitat, self.tex_vis_detall) if t is not None]
         if self.globus:
             objectes += [self.vbo_h, self.vbo_h_faldilla]
         for obj in objectes:

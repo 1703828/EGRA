@@ -1,5 +1,6 @@
 """
-Model geometric de l'eclipsi del 12/08/2026 vist des d'un punt de la Terra.
+Model geometric d'un eclipsi (l'actiu de dades/eclipsis.py; per defecte, el del 12/08/2026) vist des d'un
+punt de la Terra.
 
 No s'ajusta a cap dada del CNIG. Per a cada instant:
   1. Les posicions del Sol i la Lluna surten de JPL Horizons (dades/efemerides.py), en coordenades
@@ -9,8 +10,9 @@ No s'ajusta a cap dada del CNIG. Per a cada instant:
   3. Des de l'observador, el Sol i la Lluna es veuen com dos discs. La mida aparent de cadascun
      (radi angular) es radi / distancia, i la separacio es l'angle entre les dues direccions.
   4. La part del Sol tapada es l'area on els dos discs se solapen, dividida per l'area del Sol.
-Els contactes surten d'aquesta geometria: C1 i C4 quan els discs es toquen per fora, C2 i C3 quan la
-Lluna cobreix el Sol del tot, i el maxim quan la separacio es minima.
+Els contactes surten d'aquesta geometria: C1 i C4 quan els discs es toquen per fora, C2 i C3 quan un disc
+queda sencer dins de l'altre (fase central): si la Lluna es mes gran, la tapa del tot (totalitat); si es
+mes petita, en queda un anell (anularitat). El maxim es quan la separacio es minima.
 
 Aproximacions: la vora de la Lluna es un cercle (sense muntanyes, ~1-3 s als contactes); no
 s'inclou la refraccio als contactes (afecta igual el Sol i la Lluna); l'elevacio del Sol que es
@@ -21,7 +23,7 @@ import math
 import glm
 import numpy as np
 
-from . import geodesia
+from . import eclipsis, geodesia
 from .efemerides import Efemerides, RADI_SOL_KM, RADI_LLUNA_KM
 
 # mides aparents de referencia (radi angular des del centre de la Terra, al maxim): per dibuixar a
@@ -29,15 +31,16 @@ from .efemerides import Efemerides, RADI_SOL_KM, RADI_LLUNA_KM
 RADI_ANGULAR_SOL = RADI_SOL_KM / 151.6e6
 RADI_ANGULAR_LLUNA = RADI_LLUNA_KM / 364200.0
 
-_EFEMERIDES = None
+_EFEMERIDES = {}
 
 
-def efemerides():
-    """Les efemerides es llegeixen un sol cop (fitxer petit) i es comparteixen."""
-    global _EFEMERIDES
-    if _EFEMERIDES is None:
-        _EFEMERIDES = Efemerides()
-    return _EFEMERIDES
+def efemerides(clau=None):
+    """Les efemerides de l'eclipsi (per defecte, l'actiu: dades/eclipsis.py). Cada fitxer es llegeix un sol cop
+    (es petit) i es comparteix."""
+    clau = clau or eclipsis.actiu()
+    if clau not in _EFEMERIDES:
+        _EFEMERIDES[clau] = Efemerides(eclipsis.fitxer(clau), eclipsis.jd_0h(clau))
+    return _EFEMERIDES[clau]
 
 
 def area_tapada(d, r1, r2):
@@ -102,6 +105,9 @@ class ModelEclipsi:
         self.valid = self.hores['c1'] is not None
         self.durada = ((self.hores['c3'] - self.hores['c2']) * 3600.0
                        if self.hores['c2'] is not None else None)
+        # fase central: totalitat si la Lluna es mes gran que el Sol al maxim; si no, anularitat
+        self.anular = self.valid and self.hores['maxim'] is not None and \
+            self.discs(self.hores['maxim'])[2] < self.discs(self.hores['maxim'])[1]
 
     # ------------------------------------------------------------ geometria a cada instant
 
@@ -156,11 +162,11 @@ class ModelEclipsi:
         hores = np.arange(ef.inici, ef.final, 1 / 60)
         mostres = [self.discs(h) for h in hores]
         exterior = [d - (rs + rl) for d, rs, rl in mostres]          # < 0: els discs se solapen
-        interior = [d - (rl - rs) for d, rs, rl in mostres]          # < 0: la Lluna cobreix el Sol
+        interior = [d - abs(rl - rs) for d, rs, rl in mostres]       # < 0: un disc sencer dins de l'altre
         h = dict(c1=None, c2=None, maxim=None, c3=None, c4=None, posta=None)
         for i in range(len(hores) - 1):
             for f, inici, final, valors in ((lambda t: self.discs(t)[0] - sum(self.discs(t)[1:]), 'c1', 'c4', exterior),
-                                            (lambda t: (lambda d, rs, rl: d - (rl - rs))(*self.discs(t)), 'c2', 'c3', interior)):
+                                            (lambda t: (lambda d, rs, rl: d - abs(rl - rs))(*self.discs(t)), 'c2', 'c3', interior)):
                 if valors[i] > 0 >= valors[i + 1]:
                     h[inici] = self._arrel(f, hores[i], hores[i + 1])
                 elif valors[i] <= 0 < valors[i + 1]:
@@ -192,7 +198,7 @@ class ModelEclipsi:
         if hora_tu < h['c1']:
             return "Abans de l'eclipsi"
         if h['c2'] is not None and h['c2'] <= hora_tu <= h['c3']:
-            return 'TOTALITAT'
+            return 'ANULARITAT' if self.anular else 'TOTALITAT'
         if h['c4'] is None or hora_tu <= h['c4']:
             return 'Eclipsi parcial'
         return "Despres de l'eclipsi"

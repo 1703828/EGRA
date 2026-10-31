@@ -1,6 +1,6 @@
 """
-Posicions del Sol i la Lluna en coordenades terrestres (ECEF, km) per a qualsevol instant del
-12/08/2026 entre les 14:00 i les 21:30 TU.
+Posicions del Sol i la Lluna en coordenades terrestres (ECEF, km) per a qualsevol instant de l'interval
+d'un eclipsi (dades/eclipsis.py; el del 12/08/2026, de les 14:00 a les 21:30 TU).
 
 Les posicions surten de JPL Horizons (scripts/descarregar_efemerides.py): geocentriques, en el
 sistema ICRF (fix respecte de les estrelles) i corregides pel temps de la llum. Per posar-les en un
@@ -20,7 +20,7 @@ import numpy as np
 
 FITXER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                       'data', 'efemerides', 'horizons_sol_lluna_20260812.csv')
-JD_0H = 2461264.5          # dia julia del 12/08/2026 a les 0 h TU
+JD_0H = 2461264.5          # dia julia del 12/08/2026 a les 0 h TU (per defecte; cada eclipsi te el seu)
 TT_MENYS_UTC = 69.184      # s (TAI - UTC = 37 s, TT - TAI = 32,184 s)
 RADI_SOL_KM = 696000.0     # radi del Sol
 RADI_LLUNA_KM = 1737.4     # radi mitja de la Lluna
@@ -42,9 +42,10 @@ def _r3(a):
     return np.array([[c, s, 0], [-s, c, 0], [0, 0, 1]])
 
 
-def matriu_icrf_a_terrestre(hora_tu):
-    """Matriu 3x3 que passa un vector ICRF a ECEF a l'hora TU donada (hores decimals)."""
-    jd_ut = JD_0H + hora_tu / 24.0
+def matriu_icrf_a_terrestre(hora_tu, jd_0h=JD_0H):
+    """Matriu 3x3 que passa un vector ICRF a ECEF a l'hora TU donada (hores decimals des de les 0 h TU del dia
+    jd_0h)."""
+    jd_ut = jd_0h + hora_tu / 24.0
     t = (jd_ut + TT_MENYS_UTC / 86400.0 - 2451545.0) / 36525.0     # segles julians TT des de J2000
     # 1. precessio IAU 1976 (Lieske)
     zeta = (2306.2181 * t + 0.30188 * t ** 2 + 0.017998 * t ** 3) * ARCSEG
@@ -72,7 +73,8 @@ def matriu_icrf_a_terrestre(hora_tu):
 class Efemerides:
     """Posicions del Sol i la Lluna (km, ECEF) a qualsevol hora TU de l'interval del fitxer."""
 
-    def __init__(self, fitxer=FITXER):
+    def __init__(self, fitxer=FITXER, jd_0h=JD_0H):
+        self.jd_0h = jd_0h
         files = []
         with open(fitxer) as f:
             for fila in csv.reader(l for l in f if not l.startswith('#')):
@@ -80,7 +82,7 @@ class Efemerides:
                     continue
                 files.append([float(v) for v in fila])
         d = np.array(files)
-        self.hores = (d[:, 0] - JD_0H) * 24.0
+        self.hores = (d[:, 0] - jd_0h) * 24.0
         self.sol_icrf, self.lluna_icrf = d[:, 1:4], d[:, 4:7]
         self.inici, self.final = float(self.hores[0]), float(self.hores[-1])
 
@@ -92,5 +94,5 @@ class Efemerides:
 
     def posicions(self, hora_tu):
         """(sol, lluna): posicions ECEF en km (arrays de numpy float64) a l'hora TU."""
-        m = matriu_icrf_a_terrestre(hora_tu)
+        m = matriu_icrf_a_terrestre(hora_tu, self.jd_0h)
         return m @ self._interpola(self.sol_icrf, hora_tu), m @ self._interpola(self.lluna_icrf, hora_tu)

@@ -42,7 +42,6 @@ CLASSES_OMBRES = {
     2: "es veu la meitat superior i part de la inferior",
     3: "el relleu no tapa el Sol",
 }
-HORES_CEST = 2  # hora local d'estiu = TU + 2
 MAX_OVERLAY = 2048  # pixels maxims per costat de la graella dels overlays
 
 
@@ -98,9 +97,10 @@ def reprojectar_a_graella(transform, crs, forma):
 # ------------------------------------------------------------ valors en un punt
 
 def hora_local(hores_tu):
-    """Hora TU decimal (p. ex. 18.4667) -> 'hh:mm:ss' en hora local (CEST = TU + 2)."""
-    s = round((hores_tu + HORES_CEST) * 3600) % 86400
-    return f"{s // 3600:02d}:{s % 3600 // 60:02d}:{s % 60:02d}"
+    """Hora TU decimal (p. ex. 18.4667) -> 'hh:mm:ss' en l'hora local de l'eclipsi actiu (dades/eclipsis.py;
+    el 2026, CEST = TU + 2)."""
+    from .eclipsis import hora_local as h
+    return h(hores_tu)
 
 
 def punt(lat, lon):

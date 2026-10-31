@@ -4,6 +4,7 @@ data/cache/
 # --- MDT de les zones de detall (es tornen a baixar amb scripts/descarregar_mdt.py) ---
 data/mdt/zones/
 data/mdt/llocs/
+data/lidar/
 
 # --- dades que no fa servir el programa ---
 data/mdt05/altres/

@@ -13,3 +13,5 @@ requests
 fiona
 geopandas
 Pillow
+laspy          # LiDAR de l'ICGC (scripts/descarregar_lidar.py), autoritzat el 30/10/2026
+lazrs          # descompressor LAZ per a laspy

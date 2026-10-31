@@ -46,6 +46,7 @@ On es cada cosa:
 
 Executa:  python main.py
 """
+import glob
 import math
 import os
 import sys
@@ -85,7 +86,7 @@ from basecode.paret_cub import ParetCub
 from basecode.edificis import Edificis
 from basecode.control_ratoli import ControlRatoli
 from basecode import window as winmod
-from dades.data_io import TERRENYS, ZONES_DETALL, ortofotos
+from dades.data_io import TERRENYS, ZONES_DETALL, DIR_DADES, ortofotos
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
@@ -94,7 +95,7 @@ from dades.obstacles import RADI_COS_M
 from dades import atmosfera
 from basecode.cel import Cel
 from basecode.mosaic import Mosaic
-from dades import eclipse_data, geodesia, llocs
+from dades import eclipse_data, eclipsis, geodesia, llocs, visibilitat
 from dades.edificis import ZONA_DE_LA_UBICACIO, RADI_ZONA_M
 import ui
 
@@ -129,6 +130,10 @@ class GraphicsEngine(GraphicsEngineBase):
         self.edificis_aeris = False
         self._clau_edificis = None
         self.usar_ortofoto = True     # color del terra de les zones de detall: fotografia aeria (si n'hi ha)
+        # mapa de visibilitat de l'eclipsi (objectiu O3; basecode/terrain.py MAPES): es calcula la primera vegada
+        # que es demana per a cada terreny i eclipsi (dades/visibilitat.py, en un fil) i es desa
+        self.mapa_visibilitat = 0
+        self.calcul_mapa, self.mapes_fallats = None, set()
 
         # --- territori: la peninsula sencera posada sobre la Terra; la zona de detall de 5 m es
         # carrega quan es tria un punt d'observacio que hi es (triar_punt)
@@ -359,7 +364,8 @@ class GraphicsEngine(GraphicsEngineBase):
                                      lat_ref if desplacament else None, lon_ref if desplacament else None,
                                      desplacament)
         self.model = ModelEclipsi(lat, lon, alt_km)
-        self.cnig = eclipse_data.punt(lat, lon) if eclipse_data.disponible() else None
+        # dades del CNIG: nomes les del 2026
+        self.cnig = eclipse_data.punt(lat, lon) if eclipse_data.disponible() and eclipsis.actiu() == '2026' else None
         self.marcador_fins = glfw.get_time() + 2.5   # avis discret al panell durant uns segons
         return True
 
@@ -408,6 +414,64 @@ class GraphicsEngine(GraphicsEngineBase):
         if llocs.cobreix(p.clau, *self.peninsula.de_latlon.transform(lon, lat)):
             self.triar_punt(lat, lon, o.nom)
         self.avisar_lloc(f'Relleu de 5 m i edificis carregats ({p.segons():.0f} s)')
+
+    def actualitzar_mapa(self):
+        """Mapa de visibilitat: si es mostra, cada terreny que es dibuixa ha de tenir el de l'eclipsi actiu. Es
+        llegeixen o es calculen d'un en un, en un fil (dades/visibilitat.Calcul); la textura es crea aqui (fil
+        principal). Si no es mostra, les textures s'alliberen (memoria de la GPU)."""
+        c = self.calcul_mapa
+        if c is not None and c.fet:
+            self.calcul_mapa = None
+            if c.error or c.resultat is None:
+                self.mapes_fallats.add((c.cami, c.clau))   # no es torna a provar a cada fotograma
+            if c.resultat is not None and c.clau == eclipsis.actiu():
+                for t in self.terrenys():
+                    if t.cami == c.cami:
+                        t.posar_visibilitat(c.resultat)
+                d = self.detall_lidar()
+                if d is not None and d[0] == c.cami:
+                    self.zona.posar_visibilitat_detall(c.resultat, d[1])
+        clau = eclipsis.actiu()
+        # primer el detall amb el LiDAR dins de la zona (nomes es llegeix: el calcula scripts/visibilitat_lidar.py;
+        # va primer perque el de la zona, el primer cop, es calcula i tarda)
+        d = self.detall_lidar()
+        z = self.zona
+        if z is not None and self.mapa_visibilitat == 0 and z.vis_detall is not None:
+            z.posar_visibilitat_detall(None, None)
+        elif d is not None and self.mapa_visibilitat and (z.vis_detall is None or z.vis_detall['clau'] != clau) \
+                and self.calcul_mapa is None and (d[0], clau) not in self.mapes_fallats:
+            self.calcul_mapa = visibilitat.Calcul(d[0], clau, nomes_llegir=True)
+        for t in self.terrenys():
+            if self.mapa_visibilitat == 0:
+                if t.visibilitat is not None:
+                    t.posar_visibilitat(None)
+            elif (t.visibilitat is None or t.visibilitat['clau'] != clau) and self.calcul_mapa is None \
+                    and (t.cami, clau) not in self.mapes_fallats:
+                self.calcul_mapa = visibilitat.Calcul(t.cami, clau, self.peninsula.cami)
+
+    def detall_lidar(self):
+        """(cami, limits UTM) del mapa de detall del LiDAR (data/lidar/*_superficie_1m_25830.tif) que cau dins de
+        la zona carregada, o None."""
+        z = self.zona
+        if z is None:
+            return None
+        if getattr(self, '_detalls_lidar', None) is None:
+            self._detalls_lidar = []
+            for cami in glob.glob(os.path.join(DIR_DADES, 'lidar', '*_superficie_1m_25830.tif')):
+                with rasterio.open(cami) as f:
+                    self._detalls_lidar.append((cami, tuple(f.bounds)))
+        for cami, (x0, y0, x1, y1) in self._detalls_lidar:
+            (u0, v1), (u1, v0) = z.uv_de_utm(x0, y0), z.uv_de_utm(x1, y1)
+            if 0 <= u0 and u1 <= 1 and 0 <= v0 and v1 <= 1:
+                return cami, (x0, y0, x1, y1)
+        return None
+
+    def text_mapa(self):
+        """Estat del calcul del mapa (panell), o ''."""
+        c = self.calcul_mapa
+        if c is None or c.fet:
+            return ''
+        return f'{os.path.splitext(os.path.basename(c.cami))[0]}: {c.estat}'
 
     def avisar_lloc(self, text, segons=5.0):
         self.avis_lloc, self.avis_lloc_fins = text, glfw.get_time() + segons
@@ -519,6 +583,28 @@ class GraphicsEngine(GraphicsEngineBase):
         """L'hora del maxim de l'eclipsi al punt d'observacio, amb el temps pausat. La camera no es mou."""
         if self.model.valid:
             self.hora, self.reproduint = self.model.hores['maxim'], False
+
+    def canviar_eclipsi(self, clau):
+        """Canvia l'eclipsi (dades/eclipsis.py): efemerides, model del punt, espai de navegacio i hora (C1 - 1 h,
+        com en arrencar). El punt d'observacio i la camera no canvien. Les capes del CNIG nomes son del 2026."""
+        if clau == eclipsis.actiu() or self.reproduint:
+            return
+        eclipsis.triar(clau)
+        self.ef = efemerides()
+        o = self.observador
+        self.triar_punt(o.lat_ref if o.lat_ref is not None else o.lat, o.lon_ref if o.lat_ref is not None else o.lon,
+                        o.nom)
+        self.hora = max(self.model.hores['c1'] - HORA_ABANS_C1, self.ef.inici) if self.model.valid else self.ef.inici
+        self.cub = cub_navegacio(self.ef, FOV_EXPLORACIO)
+        self.paret.destroy()
+        self.paret = ParetCub(self, self.cub)
+        if clau != '2026':
+            for t in self.terrenys():
+                t.overlay, t.limits_totalitat = 0, False
+        self.camera_exploracio.posicio = self.camera_exploracio.posicio   # dins del cub nou
+        self.actualitzar_astres()
+        if self.vista == 2:
+            self.camera_guiada.ancorar()
 
     def reproduir_pausar(self):
         """Tecla P: nomes posa en marxa o atura el temps. Si ja s'ha arribat al final, no fa res."""
@@ -685,6 +771,7 @@ class GraphicsEngine(GraphicsEngineBase):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
         self.revisar_preparacio()   # un lloc nou preparat en segon pla (doble clic)
+        self.actualitzar_mapa()     # mapa de visibilitat (es calcula o es llegeix en segon pla)
         self.actualitzar_edificis()
         self.avancar_temps(dt)
         self.actualitzar_astres()

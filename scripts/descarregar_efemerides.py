@@ -1,16 +1,18 @@
 """
-Descarrega les posicions del Sol i la Lluna per al 12/08/2026 del servei JPL Horizons (NASA/JPL).
+Descarrega les posicions del Sol i la Lluna d'un eclipsi (dades/eclipsis.py) del servei JPL Horizons (NASA/JPL).
 
 Posicions geocentriques (centre de la Terra, '500@399') en km, en el sistema de referencia ICRF
 (equador i equinocci de J2000), cada minut de 14:00 a 21:30 TU. Es demanen corregides pel temps
 que triga la llum (VEC_CORR='LT'): es la posicio d'on surt la llum que arriba a la Terra en aquell
 instant, que es la que compta per a l'ombra de la Lluna. El pas a coordenades terrestres
-(precessio, nutacio i rotacio de la Terra) el fa dades/efemerides.py.
+(precessio, nutacio i rotacio de la Terra) el fa dades/efemerides.py. L'interval de cada eclipsi (hores TU)
+es a dades/eclipsis.py.
 
-Sortida: data/efemerides/horizons_sol_lluna_20260812.csv (petit, es versiona al Git).
+Sortida: data/efemerides/horizons_sol_lluna_<aaaammdd>.csv (~45 KB, es versiona al Git).
 
 Executa (des de l'arrel del projecte):
-    python scripts/descarregar_efemerides.py
+    python scripts/descarregar_efemerides.py          # 2026
+    python scripts/descarregar_efemerides.py 2027     # o 2028
 
 Font: JPL Horizons, https://ssd.jpl.nasa.gov/horizons/ (efemerides DE440/441 de NASA/JPL).
 """
@@ -22,8 +24,13 @@ import requests
 
 URL = 'https://ssd.jpl.nasa.gov/api/horizons.api'
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SORTIDA = os.path.join(ARREL, 'data', 'efemerides', 'horizons_sol_lluna_20260812.csv')
-INICI, FINAL, PAS = '2026-08-12 14:00', '2026-08-12 21:30', '1 m'
+sys.path.insert(0, ARREL)
+from dades import eclipsis  # noqa: E402
+
+CLAU = sys.argv[1] if len(sys.argv) > 1 else '2026'
+_e = eclipsis.dades(CLAU)
+SORTIDA = eclipsis.fitxer(CLAU)
+INICI, FINAL, PAS = f"{_e['data']} {_e['inici']}", f"{_e['data']} {_e['final']}", '1 m'
 COSSOS = {'sol': '10', 'lluna': '301'}
 
 
