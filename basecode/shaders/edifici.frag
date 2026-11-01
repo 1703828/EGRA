@@ -15,6 +15,7 @@ in vec3 boira_v;
 in float visibilitat;
 flat in float llargada;
 flat in float plantes;
+flat in float mesurada;
 flat in vec3 base;
 in float logz;
 uniform float coef_log;
@@ -24,6 +25,7 @@ uniform float llum_cel;        // llum del cel (0..1)
 uniform vec3 color_sol;        // color de la llum del Sol (dades/atmosfera.color_llum_sol)
 uniform vec3 color_amb;        // color de la llum del cel
 uniform vec3 amunt;            // vertical local al centre dels edificis (unitari)
+uniform bool acolorir_origen;  // depuracio: facanes blaves si l'altura es mesurada, taronges si es estimada
 
 const float PLANTA = 3.0;      // m (com dades/edificis.ALCADA_PLANTA_M)
 const float K_CEL = 0.25;      // pes de la llum del cel i del Sol (els mateixos que terrain.frag)
@@ -76,6 +78,9 @@ void main() {
     }
     // el vidre: fosc, amb una mica del color del cel (la boira de l'horitzo) que s'hi reflecteix
     vec3 finestra = vec3(0.05, 0.06, 0.08) * llum + 0.08 * llum_cel * boira_v;
-    vec3 color = mix(base * llum, finestra, vidre);
+    vec3 b = base;
+    if (acolorir_origen && llargada >= 0.0)
+        b = mesurada > 0.5 ? vec3(0.35, 0.60, 0.95) : vec3(1.00, 0.55, 0.15);
+    vec3 color = mix(b * llum, finestra, vidre);
     fragColor = vec4(mix(boira_v, color, visibilitat), 1.0);
 }

@@ -6,9 +6,12 @@ GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. imgui es una
 "immediata": es torna a dibuixar sencera a cada fotograma a partir de les variables del programa.
 
 El panell nomes te controls (sense textos d'explicacio, peticio de l'equip del 30/10): eclipsi, temps, vista,
-punt d'observacio, mapa de visibilitat i capes. Les tecles i les opcions de depuracio son en desplegables tancats.
-Textos sense accents: la font de slimgui no els mostra be.
+punt d'observacio (amb el nom del lloc), mapa de visibilitat, capes i l'estat del detall del lloc (terreny, foto,
+edificis i mapa, una linia cadascun). Les tecles i les opcions de depuracio son en desplegables tancats.
+Textos sense accents: la font de slimgui no els mostra be (els noms dels serveis, p. ex. Valencia, es mostren sense).
 """
+import unicodedata
+
 import glfw
 import numpy as np
 from slimgui import imgui
@@ -45,6 +48,8 @@ def build_ui(app):
     panell_mapa(app)
     imgui.separator_text('Capes')
     panell_capes(app)
+    imgui.separator_text('Detall del lloc')
+    panell_detall(app)
     if imgui.collapsing_header('Tecles')[0]:
         panell_tecles(app)
     if imgui.collapsing_header('Avancat')[0]:
@@ -58,6 +63,22 @@ def build_ui(app):
 
 def amplada_completa():
     return (-1.0, 0.0)
+
+
+def sense_accents(text):
+    """La font del panell no te accents: 'Valencia' en lloc de 'València'."""
+    return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+
+
+def linia(etiqueta, text, color=None):
+    """Una etiqueta curta i un text que fa salts de linia dins del panell."""
+    imgui.text_disabled(etiqueta)
+    imgui.same_line()
+    if color:
+        imgui.push_style_color(imgui.Col.TEXT, color)
+    imgui.text_wrapped(sense_accents(text))
+    if color:
+        imgui.pop_style_color()
 
 
 def panell_eclipsi(app):
@@ -136,6 +157,24 @@ def panell_punt(app):
                 app.triar_ubicacio(lat, lon, nom)
         imgui.end_combo()
     imgui.pop_item_width()
+    lat_ref = o.lat_ref if o.lat_ref is not None else o.lat
+    lon_ref = o.lon_ref if o.lon_ref is not None else o.lon
+    linia('Coordenades', f"{lat_ref:.5f} N, {abs(lon_ref):.5f} {'E' if lon_ref >= 0 else 'O'}")
+    if app.consulta_nom is not None:
+        linia('Nom', app.consulta_nom.estat, COLOR_SUAU)
+    elif app.nom_punt is not None:
+        r = app.nom_punt[1]
+        n, m = r.get('nucli'), r.get('municipi')
+        if n is None:
+            linia('Nucli', 'cap a prop' if not r.get('errors') else 'no disponible (servei)')
+        elif n[1] == 'dins del nucli':
+            linia('Nucli', f'dins de {n[0]}')
+        else:
+            linia('Nucli', f'{n[0]} (el mes proper, a {n[2]:.1f} km)')
+        if m is not None:
+            linia('Municipi', f'{m[0]} ({m[1]})')
+        else:
+            linia('Municipi', 'no disponible' + (' (servei)' if any('municipi' in e for e in r.get('errors', [])) else ''))
     if imgui.button('Tornar al punt', (140, 0)):
         app.tornar_al_punt()
     imgui.same_line()
@@ -157,9 +196,6 @@ def panell_mapa(app):
             imgui.same_line()
         if imgui.radio_button(nom, app.mapa_visibilitat == i):
             app.mapa_visibilitat = i
-    estat = app.text_mapa()
-    if estat:
-        imgui.text_colored(COLOR_AVIS, estat)
     if app.mapa_visibilitat == 1:
         for classe, text in enumerate(['Tapat', 'Menys de mig Sol', 'Mes de mig Sol', 'Sencer']):
             llegenda(COLORS_OMBRES[classe], text)
@@ -178,10 +214,9 @@ def panell_mapa(app):
 
 def panell_capes(app):
     _, app.mosaic.actiu = imgui.checkbox('Fotografia aeria', app.mosaic.actiu)
-    if app.edificis is not None:
-        _, app.mostrar_edificis = imgui.checkbox('Edificis', app.mostrar_edificis)
-        imgui.same_line()
-        _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
+    _, app.mostrar_edificis = imgui.checkbox('Edificis', app.mostrar_edificis)
+    imgui.same_line()
+    _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
     _, app.ombres.actiu = imgui.checkbox('Ombres del relleu', app.ombres.actiu)
     _, app.ressaltar_ombra = imgui.checkbox("Linies de l'ombra de la Lluna", app.ressaltar_ombra)
     if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026
@@ -195,6 +230,16 @@ def panell_capes(app):
             imgui.end_combo()
         imgui.pop_item_width()
         llegenda_cnig(app)
+
+
+def panell_detall(app):
+    """Quin detall hi ha al punt de detall (el que es mira explorant, o el punt d'observacio), per separat."""
+    e = app.detall.estat
+    for etiqueta, clau in (('Terreny', 'terreny'), ('Foto', 'foto'), ('Edificis', 'edificis'), ('Mapa', 'mapa')):
+        text = e.get(clau, '')
+        actiu = any(p in text for p in ('preparant', 'Baixant', 'Llegint', 'calculant', 'mesurant', 'Horitzo',
+                                        'Circumst', 'baixant'))
+        linia(etiqueta, text or '-', COLOR_AVIS if actiu else None)
 
 
 def llegenda_cnig(app):
@@ -231,6 +276,7 @@ def panell_avancat(app):
     imgui.text(f'FPS: {app.fps:.0f}')
     if app.zona is not None and app.zona.orto is not None:
         _, app.usar_ortofoto = imgui.checkbox('Ortofoto de la zona', app.usar_ortofoto)
+    _, app.acolorir_alcades = imgui.checkbox('Edificis: blau mesurat, taronja estimat', app.acolorir_alcades)
     t = app.peninsula
     canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)
     if canviat:
@@ -329,9 +375,6 @@ def barra_temps(app):
         if hh['posta'] is not None:
             parts.append(f"posta {hl(hh['posta'])[:5]}")
         imgui.text_disabled('   |   '.join(parts))
-    text_lloc = app.text_lloc()    # preparacio d'un lloc nou (doble clic), si n'hi ha
-    if text_lloc:
-        imgui.text_colored(COLOR_AVIS, text_lloc)
     imgui.pop_item_flag()
     imgui.end()
 

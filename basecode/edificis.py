@@ -39,11 +39,33 @@ def suau(a, b, x):
 
 
 class Edificis:
-    def __init__(self, app, zona, cami_mdt):
-        """Carrega (o prepara, el primer cop) la malla de la zona. self.n_triangles = 0 si no n'hi ha."""
+    @classmethod
+    def preparar(cls, zona, cami_mdt, mesurades=False, nomes_llegir=False):
+        """Part de CPU (llegir o preparar la malla, contorns i obstacles), sense OpenGL: es pot fer en un fil.
+        Edificis(app, zona, cami_mdt, preparat=...) hi afegeix els objectes OpenGL al fil principal.
+        nomes_llegir: None si la malla no es a la memoria cau (fer-la es llarg i s'ha de fer en un proces)."""
+        if nomes_llegir and preparar_malla(zona, cami_mdt, nomes_llegir=True) is None:
+            return None
+        e = cls.__new__(cls)
+        e._preparar_cpu(zona, cami_mdt, mesurades)
+        return e
+
+    def __init__(self, app, zona, cami_mdt, mesurades=False, preparat=None):
+        """Carrega (o prepara, el primer cop) la malla de la zona. self.n_triangles = 0 si no n'hi ha.
+        mesurades: amb les altures mesurades (dades/alcaries.py) si s'han preparat; si no, les estimades."""
+        if preparat is not None:
+            self.__dict__.update(preparat.__dict__)
+        else:
+            self._preparar_cpu(zona, cami_mdt, mesurades)
         self.app, self.ctx = app, app.ctx
+        self._crear_gpu()
+
+    def _preparar_cpu(self, zona, cami_mdt, mesurades):
         t0 = time.time()
-        m = preparar_malla(zona, cami_mdt)
+        m = preparar_malla(zona, cami_mdt, mesurades=True, nomes_llegir=True) if mesurades else None
+        self.mesurades = m is not None       # (si la malla mesurada no hi es encara, la de les estimades)
+        if m is None:
+            m = preparar_malla(zona, cami_mdt)
         self.temps_carrega = time.time() - t0
         self.n_parts = int(m['n_parts']) if m is not None else 0
         tri = m['triangles'] if m is not None else np.zeros((0, 3, 3), 'f4')
@@ -52,7 +74,13 @@ class Edificis:
         self.zona = zona
         self.contorns = contorns_de_bytes(m) if self.n_parts else None
         alcada = (m['cota_coberta'] - m['cota_sol']) if self.n_parts else np.zeros(0)
-        self.plantes = np.clip(np.round(alcada / ALCADA_PLANTA_M), 1, 127).astype('u1')
+        # plantes de cada part (files de finestres): les del Catastro (abans de la versio 6 de la malla, de l'altura)
+        plantes = m['plantes'] if self.n_parts and 'plantes' in m else np.round(alcada / ALCADA_PLANTA_M)
+        self.plantes = np.clip(plantes, 1, 63).astype('u1')
+        # origen de l'altura de cada part: 1 mesurada (LiDAR), 0 estimada per plantes
+        self.origen_alcada = m['origen_alcada'] if self.n_parts and 'origen_alcada' in m else np.zeros(self.n_parts, 'u1')
+        self.font_alcada = str(m['font_alcada']) if self.n_parts and 'font_alcada' in m else ''
+        self.n_mesurades = int(self.origen_alcada.sum())
         self.colors_coberta, self.camins_orto = None, None
         self.origen_ecef = m['origen'] if m is not None else np.zeros(3)
         self.memoria_gpu = tri.nbytes + atr.nbytes
@@ -61,16 +89,32 @@ class Edificis:
         # els mateixos contorns com a obstacles (caminar, volar a prop del terra, punts d'observacio)
         self.obstacles = Obstacles(self.contorns, m['cota_coberta']) if self.n_parts else None
         self.visible = True
-        self.shader_program = carregar_programa(self.ctx, 'edifici')
+        self.acolorir_origen = False
         # VBO entrellacat: posicio (3 floats) i atributs de la textura (u, v, llargada, part)
-        vertexs = np.concatenate([tri.reshape(-1, 3), atr.reshape(-1, 4)], axis=1).astype('f4')
+        self._vertexs = np.concatenate([tri.reshape(-1, 3), atr.reshape(-1, 4)], axis=1).astype('f4')
+        lat, lon, _ = geodesia.geodesiques(self.origen_ecef) if self.n_triangles else (0.0, 0.0, 0.0)
+        self.amunt = geodesia.base_local(float(lat), float(lon))[2]
+
+    def _crear_gpu(self):
+        self.shader_program = carregar_programa(self.ctx, 'edifici')
+        vertexs, self._vertexs = self._vertexs, None
         self.vbo = self.ctx.buffer(vertexs.tobytes()) if self.n_triangles else None
         self.vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '3f 4f', 'in_position', 'in_atr')]) \
             if self.vbo else None
         self.tex_parts = None
         self.actualitzar_textura_parts()
-        lat, lon, _ = geodesia.geodesiques(self.origen_ecef) if self.n_triangles else (0.0, 0.0, 0.0)
-        self.amunt = geodesia.base_local(float(lat), float(lon))[2]
+
+    def resum_alcades(self):
+        """Text curt de l'origen de les altures (panell)."""
+        if not self.n_parts:
+            return 'sense edificis'
+        if not self.mesurades:
+            return f'estimades (plantes x 3 m), {self.n_parts} parts'
+        from dades.alcaries import FONTS
+        font = FONTS.get(self.font_alcada, {}).get('curt', 'sense font')
+        n_est = self.n_parts - self.n_mesurades
+        return (f'mesurades ({font}) {self.n_mesurades}' + (f', estimades {n_est}' if n_est else '')
+                if self.n_mesurades else f'no disponibles: estimades (plantes x 3 m), {self.n_parts} parts')
 
     def posar_cobertes(self, general, detall):
         """Color de les cobertes a partir de l'ortofoto de la zona (o sense, si no n'hi ha)."""
@@ -81,14 +125,14 @@ class Edificis:
         self.actualitzar_textura_parts()
 
     def actualitzar_textura_parts(self):
-        """Textura RGBA8 amb una texel per part: RGB = color de la coberta; A = plantes, + 128 si el color ve de
-        l'ortofoto (si no, el shader en tria un de teula o de terrat)."""
+        """Textura RGBA8 amb una texel per part: RGB = color de la coberta; A = plantes (0-63), + 64 si l'altura es
+        mesurada, + 128 si el color ve de l'ortofoto (si no, el shader en tria un de teula o de terrat)."""
         if not self.n_parts:
             return
         n, w = self.n_parts, AMPLADA_TEXTURA_PARTS
         h = (n + w - 1) // w
         d = np.zeros((h * w, 4), 'u1')
-        d[:n, 3] = self.plantes
+        d[:n, 3] = self.plantes + 64 * (self.origen_alcada > 0).astype('u1')
         if self.colors_coberta is not None:
             ok = ~np.isnan(self.colors_coberta[:, 0])
             d[:n][ok, :3] = np.round(self.colors_coberta[ok] * 255).astype('u1')
@@ -136,6 +180,7 @@ class Edificis:
         sp['color_sol'].value = tuple(float(v) for v in atmosfera.color_llum_sol(elev))
         sp['color_amb'].value = tuple(float(v) for v in atmosfera.color_llum_cel(elev))
         sp['amunt'].write(glm.vec3(*self.amunt))
+        sp['acolorir_origen'].value = bool(getattr(app, 'acolorir_alcades', False))
         sp['densitat_boira'].value = app.densitat_boira
         sp['boira_sol'].value, sp['boira_contra'].value = app.boira_sol, app.boira_contra
         sp['sol_horitzontal'].write(app.sol_horitzontal)

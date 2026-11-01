@@ -5,6 +5,8 @@ data/cache/
 data/mdt/zones/
 data/mdt/llocs/
 data/lidar/
+# --- alçàries LiDAR per cel·les i superfícies dels mapes de detall (es tornen a baixar soles: dades/alcaries.py) ---
+data/alcaries/
 
 # --- dades que no fa servir el programa ---
 data/mdt05/altres/

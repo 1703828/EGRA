@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-30 (F23: llum de les façanes i llocs nous; proposta de l'objectiu O3, mapa de visibilitat, F24–F30).
+Darrera actualització: 2026-10-31 (F31: detall segons la vista a tot Espanya, altures mesurades dels edificis, mapa de detall i nom del lloc).
 
 ---
 
@@ -132,6 +132,12 @@ Darrera actualització: 2026-10-30 (F23: llum de les façanes i llocs nous; prop
 | D81 | (equip) Als mapes de visibilitat, els edificis només hi entraran amb **altures mesurades**, no estimades (plantes × 3 m). Candidates: MDS normalitzat d'edificació del CNIG (LiDAR PNOA, 2,5 m, primera cobertura) i el LiDAR territorial de l'ICGC (3a cobertura, CC BY 4.0, fulls d'1 × 1 km). Pendent d'autorització de la descàrrega (F27). | 30/10 |
 | D82 | (equip) Menú d'imgui net: només controls (eclipsi, temps, vista, punt, mapa de visibilitat, capes); sense textos d'explicació; les tecles i la depuració en desplegables tancats. Substitueix la part de CLAUDE.md sobre l'"ajuda curta" visible. | 30/10 |
 | D83 | (equip, P18) LiDAR territorial de l'ICGC (3a cobertura, CC BY 4.0) a la UAB: 3 × 3 km (9 fulls) centrats a la plaça Cívica. Instal·lades `laspy` i `lazrs` (lectura de LAZ). Cada full es converteix en rasters d'1 m i el LAZ s'esborra. | 30/10 |
+| D84 | (F31, equip) El detall es prepara segons el que es mira, a qualsevol lloc d'Espanya amb dades, sense doble clic ni punt d'observació: relleu de 5 m, edificis (si es veuen), altures mesurades i mapa de detall (si es mostra), en segon pla i reutilitzats. Llocs en una quadrícula fixa de 3 km (relleu 6 × 6 km, edificis 3 × 3 km); com a molt 6 llocs al disc i 3 zones carregades (la del punt d'observació, fixada). Una preparació antiga no canvia el que es veu. Substitueix el doble clic de D77 com a única manera de preparar llocs. | 31/10 |
+| D85 | (F31, equip) Altures dels edificis: provisionalment estimades (plantes × 3 m) mentre arriben les mesurades. Fonts mesurades: a Catalunya el model d'alçàries de l'ICGC (LiDAR 2021–2023, 1 m, llegit per finestres del COG de tot Catalunya, sense descarregar-lo); a la resta d'Espanya el MDS normalitzat de l'IGN (PNOA-LiDAR 2008–2015, 2,5 m, WCS, edificació i vegetació). Es mesuren per cel·les de 3 × 3 km on es mira. El panell distingeix mesurades, estimades i no disponibles. | 31/10 |
+| D86 | (F31) Fotografia: la de teselles (PNOA fins a z = 19, ~0,22 m/px) ja dona la resolució del vol (0,25 m a tots els llocs consultats) a tot Espanya; l'ortofoto de Vic (0,5 m) no s'estén. z = 20 existeix al WMTS però seria la mateixa imatge ampliada. | 31/10 |
+| D87 | (F31, equip) Mapa de visibilitat amb detall local a qualsevol lloc: superfície = terra + alçària mesurada (edificis i, si la font la té, vegetació), a 2 m (ICGC) o 2,5 m (IGN), per cel·les; mentrestant, el mapa del relleu. Les altures estimades no hi entren (D81). | 31/10 |
+| D88 | (F31, equip) Nom del punt triat: el nucli de població més proper (NGBE de l'IGN) i, separat, el municipi administratiu (CartoCiudad). | 31/10 |
+| D89 | (F31) Les feines que passen molta estona dins de GDAL o en bucles de Python (Catastro, malla, altures, superfície) es fan en un **procés** separat: en un fil, el bloqueig global de Python (GIL) aturava el dibuix (5 min sense fotogrames llegint el Catastro de València). | 31/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
 ### 1.2 Pendents
@@ -175,6 +181,7 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Façanes amb finestres per planta i cobertes de l'ortofoto | `dades/edificis.py`, `basecode/edificis.py`, `shaders/edifici.*` | F20 (`FET`) |
 | Fotografia aèria a tot arreu (PNOA + Sentinel-2), carregada en segon pla; controls aeris; doble clic a primera persona; edificis segons la vista | `dades/teselles.py`, `basecode/mosaic.py`, `shaders/mosaic.glsl`, `terrain.*`, `terra.*`, `camera_exploracio.py`, `main.py`, `ui.py` | F21 (`FET`) |
 | Llocs nous amb detall amb doble clic (relleu de 5 m i edificis a qualsevol lloc d'Espanya, en segon pla) | `dades/llocs.py`, `dades/catastro.py`, `dades/mdt_wcs.py`, `main.py`, `ui.py` | F23 (`FET`) |
+| Detall segons la vista a tot Espanya (relleu, edificis amb altures mesurades, mapa de detall); nom del lloc | `basecode/detall.py`, `dades/alcaries.py`, `dades/llocs.py`, `dades/noms.py`, `dades/feines.py`, `basecode/terrain.py`, `basecode/edificis.py`, `main.py`, `ui.py` | F31 (`FET`) |
 | Mode pla del terreny i càmera orbital, per als scripts | `basecode/terrain.py`, `basecode/camera_orbital.py` | Funciona |
 | Scripts: descàrregues, caches, captura, exercici 1.0, validacions | `scripts/` | Funcionen |
 
@@ -221,6 +228,7 @@ ui.py                           build_ui(app): panell i barra de temps
 basecode/                       ORIGINALS sense canvis, més els nostres objectes:
   terra.py                        Terra (el·lipsoide amb textura)
   mosaic.py                       Mosaic (fotografia aèria per teselles, carregada a mesura que cal)
+  detall.py                       Detall (detall segons la vista: quina zona, edificis i mapa, i la seva càrrega)
   terrain.py                      Terrain (mode globus i mode pla)
   astres.py                       Esfera (Sol, halo) i Lluna
   ombres_relleu.py                OmbresRelleu (shadow mapping de la zona de 5 m)
@@ -238,7 +246,7 @@ basecode/                       ORIGINALS sense canvis, més els nostres objecte
 dades/                          sense OpenGL: efemerides.py, geodesia.py, model_eclipsi.py,
                                 observador.py, navegacio.py, trajectoria.py, edificis.py, data_io.py,
                                 eclipse_data.py, obstacles.py, atmosfera.py, teselles.py, mdt_wcs.py,
-                                catastro.py, llocs.py
+                                catastro.py, llocs.py, eclipsis.py, visibilitat.py, alcaries.py, noms.py, feines.py
 scripts/                        descarregar_mdt/efemerides/textures, preparar_dades, captura,
                                 exercici_fotograma, validar_model, validar_ombra, prova_vistes,
                                 comparar_nasa, validar_horitzo, validar_ombres_relleu, prova_controls,
@@ -1965,6 +1973,54 @@ de punts cadascun, EPSG:25831 a la capçalera), baixats i convertits d'un en un 
 "Tecles" i "Avançat" tancats; marques a la barra del temps (inici, final, fase central, màxim, posta).
 `prova_controls` (69 OK) i `prova_caminar` (26 OK) amb el menú nou.
 
+### F31 — Detall segons la vista a tot Espanya (31/10/2026, petició de l'equip)
+
+**Què es vol.** Obrir la vista aèria, anar fins a València i acostar-se a un carrer, i obtenir progressivament el
+mateix detall que hi ha a Vic i la UAB: relleu, fotografia, edificis (amb altures mesurades) i mapa de visibilitat
+amb detall local, sense doble clic ni punt d'observació previ. Nom del lloc en triar un punt. D84–D89.
+
+**Com funciona** (`basecode/detall.py`). El *punt de detall* és el que es mira (explorant: el raig del centre de
+la pantalla, o el punt de sota la càmera a prop del terra; a les altres vistes, el punt d'observació). Per sota de
+15 km d'altura i després d'1 s a la mateixa cel·la, es prepara el que falta del lloc de la quadrícula de 3 km. La
+lectura de dades es fa en fils i la preparació pesada (GDAL, malla), en processos; el fil principal només crea els
+objectes OpenGL. Les zones fetes a mà (Picos, Vic, l'Escala, el Vallès) es continuen fent servir.
+
+| Tasca | Tipus | Què | Comprovació | Estat |
+|---|---|---|---|---|
+| 31.0 | R | `Terrain` i `Edificis` separen la part de CPU (fil) de la d'OpenGL; pegats calculats en un fil | Resultat idèntic al camí síncron (altures del pegat i de la graella, `np.array_equal`); fil principal: lloc 57 ms, Vic 0,22 s, Vallès 0,50 s, pegat 3–5 ms (abans 0,3–0,8 s i 0,2 s) | `FET` (comprovat automàticament) |
+| 31.1 | N | Relleu de 5 m segons la vista (llocs a la quadrícula de 3 km) | `prova_detall.py`: a València, el relleu del lloc arriba navegant (2–56 s), el punt d'observació no canvia | `FET` (comprovat automàticament) |
+| 31.2 | N | Fotografia: comparació amb l'ortofoto de Vic | GetFeatureInfo: vol a 0,25 m a Vic, UAB, València, Tona i Picos; teselles z = 19 (~0,22–0,23 m/px). No cal estendre l'ortofoto de 0,5 m (D86) | `FET` |
+| 31.3 | N | Edificis amb altures mesurades (ICGC / IGN) per cel·les; estimades mentre arriben | `validar_alcaries.py` (UAB, 1.078 parts): ICGC COG − núvol de punts +0,10 m (mediana), IGN − ICGC −0,48 m, estimades 2–3 m per sota. Vic: 12.742 parts mesurades a la cel·la de la plaça Major; València: 28.302 de 48.858 (IGN) en 28 s | `FET` (comprovat automàticament) |
+| 31.4 | N | Mapa de visibilitat de detall amb edificis i vegetació a qualsevol cel·la | València: mapa del relleu de 5 m (113 s) i de detall (IGN 2,5 m); UAB: el del núvol de punts (1 m) continua; captures | `FET` (comprovat automàticament i inspeccionat visualment) |
+| 31.5 | N | Nom del lloc: nucli més proper (NGBE) i municipi (CartoCiudad) | Vic → dins de Vic; Malla (41,896, 2,247) → nucli Malla, municipi Malla; (41,87, 2,24) → nucli el Gurri, municipi Tona; Benimaclet → dins de València; Picos → la Molina a 5,9 km, municipi no disponible; mar → cap | `FET` (comprovat automàticament) |
+| 31.6 | N | Panell: estat del terreny, la foto, els edificis i el mapa per separat; casella dels edificis sempre visible; color segons l'origen de l'altura (Avançat) | Captures de Vic i València | `FET` (inspeccionat visualment) |
+| 31.7 | C | Navegació fluida mentre es prepara; preparació antiga sense efecte; reutilització | València (primera vegada, amb Catastro, altures i mapes en curs): mediana 16 ms, p99 26 ms, màxim 606 ms per fotograma (4.064 fotogrames); el Cabanyal acaba després de moure's i no canvia la zona; tornar-hi: relleu, edificis mesurats i els dos mapes en 0,7 s, sense cap feina de xarxa ni tesella nova | `FET` (comprovat automàticament) |
+| 31.8 | C | El punt d'observació es torna a situar quan el seu relleu de 5 m (o els seus edificis) arriba després de triar-lo | `prova_llocs.py`: Manresa preparat en segon pla (172 s, 3.229 fotogrames dibuixats mentrestant); l'observador queda sobre el relleu de 5 m | `FET` (comprovat automàticament) |
+
+**Errors trobats i corregits en provar-ho:** (1) llegir el Catastro de València en un fil aturava el dibuix 5 min
+(GIL): ara en un procés (D89); (2) mesurar tota la zona del Vallès (49.797 parts) llegia una finestra massa gran:
+ara per cel·les; (3) la malla dels edificis i el dibuix demanaven el relleu amb un nombre de vèrtexs diferent i la
+memòria cau es refeia cada vegada: ara `data_io.vertexs_maxims`; (4) en acabar el Catastro, els edificis no
+apareixien a la zona que ja es veia; (5) marcar l'últim ús d'un lloc canviant la data del fitxer del relleu
+invalidava totes les memòries cau que en depenen: ara un marcador a part (`<clau>.us`); (6) un mapa desat però antic
+es tractava com a "només llegir" i quedava marcat com a fallat: ara es comprova si és vigent; (7) un sol càlcul de mapa
+alhora: el del Vallès (36 M de píxels), que ja no es veia, impedia el de València: ara es cancel·la i llegir mapes
+desats no espera mai; (8) carregar una zona sense la malla a la memòria cau la feia en un fil: ara en un procés.
+
+**Regressions (comprovat automàticament, 31/10):** `prova_controls`, `prova_caminar` (26 OK), `prova_obstacles` (25),
+`prova_vistes` (102), `prova_cel` (7), `prova_mosaic`, `prova_ortofoto`, `validar_ombres_relleu` (GPU contra CPU
+100 %), `validar_edificis` (22: ara compara amb la malla que es dibuixa, mesurada a la UAB, i busca el moment parcial
+fins a 90 min abans del màxim, perquè els edificis mesurats són més alts), `validar_model` (≤ 1,2 s, igual que abans).
+
+**Proves de l'equip pendents:** navegar amb el ratolí i el teclat reals fins a un lloc nou (p. ex. València) i
+comprovar que el moviment no s'encalla; activar els edificis i el mapa; triar punts entre Vic i Tona i llegir el
+nom; tornar-hi i veure que tot és immediat.
+
+**Limitacions:** les altures de l'IGN són de 2008–2015; a 2,5 m els carrers estrets queden barrejats; l'ICGC no
+distingeix arbres d'edificis; als llocs nous les cobertes no tenen el color de l'ortofoto; el mapa del relleu de
+les zones grans fetes a mà (Vallès, 36 M de píxels) tarda molt la primera vegada (es calcula després del detall
+del punt); Navarra i el País Basc sense edificis (cadastres propis); sense ortofoto vertadera.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -2014,3 +2070,4 @@ de punts cadascun, EPSG:25831 a la capçalera), baixats i convertits d'un en un 
 | 30/10/2026 | Proposta de l'objectiu O3 (mapa de visibilitat, F24–F30), D78 (vistes aparcades) i D79; preguntes P14–P17. Mesurat: horitzó d'un azimut a 5 m al Vallès en ~20 s. Res implementat. |
 | 30/10/2026 | O3: F24 (tres eclipsis, anularitat, comparats amb la NASA), F25, F26 i F28 (mapa de visibilitat del relleu, validat contra un raig exacte), menú net (D82). D80–D82, P18. Sense commit. |
 | 30/10/2026 | LiDAR de l'ICGC a la UAB (D83): 9 fulls convertits a rasters d'1 m; comparació amb el Catastro (l'estimació plantes × 3 m s'equivoca 2,8 m de mitjana) i amb el MDT de l'IGN (+0,13 m). Península 2026 validada (contra el CNIG, 88,7 %). Sense commit. |
+| 31/10/2026 | Commits de l'estat de l'O3 (`6aa3e38`, `864a3df`). F31 (petició de l'equip): detall segons la vista a tot Espanya, altures mesurades (ICGC, IGN), mapa de detall per cel·les, nom del lloc, feines en processos. D84–D89. Sense commit. |

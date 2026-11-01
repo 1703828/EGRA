@@ -176,8 +176,10 @@ def main():
     # (b) la coberta dibuixada: triar el punt de prova a la UAB carrega la zona i els edificis
     app.triar_punt(*PROVA_UAB, 'prova UAB')
     e = app.edificis
-    m = np.load(os.path.join(ARREL, 'data', 'cache', 'edificis_valles.npz'))
-    tots = edificis.llegir_zona('valles')
+    # la malla que es dibuixa: amb les altures mesurades (dades/alcaries.py) si n'hi ha, o les estimades
+    m = np.load(edificis.cami_malla('valles', e.mesurades))
+    tots = edificis.llegir_zona('valles', mesurades=e.mesurades)
+    print(f'      (malla {"amb altures mesurades" if e.mesurades else "amb altures estimades"}: {e.resum_alcades()})')
     errs = []
     for pid in mostra['id'][:5]:
         i = int(np.flatnonzero(tots['id'].values == pid)[0])
@@ -274,7 +276,7 @@ def main():
     maxim = app.model.hores['maxim']
     # el moment parcial: el primer minut amb una part tapada (calcul geometric)
     t_parcial = None
-    for t in np.arange(maxim - 20 / 60, maxim, 10 / 3600):
+    for t in np.arange(maxim - 90 / 60, maxim, 10 / 3600):   # (amb altures mesurades, mes altes, el Sol s'hi amaga abans)
         app.hora = t
         app.actualitzar_astres()
         f = app.edificis.fraccions(app.ulls())

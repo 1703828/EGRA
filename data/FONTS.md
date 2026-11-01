@@ -14,7 +14,7 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 | `zones/vic_5m.tif` | 20 × 20 km centrats a 41,9302, 2,2546 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py vic` |
 | `zones/escala_5m.tif` | 20 × 20 km centrats a 42,1250, 3,1330 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py escala` |
 | `zones/valles_5m.tif` | lat 41,39–41,63, lon 2,00–2,36 (31,7 × 28,5 km) | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py valles` |
-| `llocs/lloc_<x>_<y>_5m.tif` | 6 × 6 km centrats al punt (x, y) en EPSG:25830, arrodonit a 100 m | 5 m | EPSG:25830 | No | el programa, amb un doble clic al lloc (`dades/llocs.py`) |
+| `llocs/lloc_<x>_<y>_5m.tif` | 6 × 6 km centrats al punt (x, y) en EPSG:25830: x i y múltiples de 3 km (quadrícula; els antics, del doble clic, arrodonits a 100 m) | 5 m | EPSG:25830 | No | el programa, en navegar o triar un punt (`dades/llocs.py`, `basecode/detall.py`) |
 
 - **Font:** servei WCS de models digitals del terreny de l'IGN, `https://servicios.idee.es/wcs-inspire/mdt`
   (cobertures `Elevacion25830_200`, `_25` i `_5`), demanat en format ArcGrid per conservar els decimals.
@@ -27,9 +27,11 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - Els MDT nous són a `data/mdt/zones/`, ignorada pel Git (tasca 4.1 del pla). Les zones catalanes es
   van descarregar el 22/10/2026 en EPSG:25830, el mateix CRS que la península: el servei les reprojecta
   des del fus 31, i així totes les zones encaixen amb la península per coordenades UTM.
-- Els **llocs nous** (`data/mdt/llocs/`, ignorada pel Git) els baixa el programa en segon pla quan es fa doble clic
-  on no hi ha edificis preparats: una sola petició al mateix WCS (`dades/mdt_wcs.py`). Com a molt 3 llocs; els més
-  antics s'esborren sols (es tornen a baixar si cal).
+- Els **llocs** (`data/mdt/llocs/`, ignorada pel Git) els baixa el programa en segon pla quan la càmera s'acosta
+  a menys de 15 km d'un lloc d'Espanya sense relleu de 5 m (o quan s'hi volen edificis i no n'hi ha): una sola
+  petició al mateix WCS (`dades/mdt_wcs.py`). Els centres són a una quadrícula de 3 km: tornar al mateix lloc fa
+  servir el mateix fitxer. `lloc_<x>_<y>.json` hi desa la font, la data i les etapes fetes. Com a molt 6 llocs; els
+  que fa més temps que no es fan servir s'esborren sols (es tornen a baixar si cal).
 
 ## Eclipsi (CNIG) — `data/eclipsi2026/`
 
@@ -71,22 +73,56 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - **Com es reprodueix:** `python scripts/descarregar_edificis.py` (o amb el nom d'una zona: `valles`, `vic`,
   `escala`, `picos`). Baixa els ZIP a `data/edificis/catastro/` (~45 MB), desa `data/edificis/<zona>.gpkg` i la
   malla a `data/cache/edificis_<zona>.npz`.
-- **Llocs nous (doble clic al programa, `dades/llocs.py` i `dades/catastro.py`):** les parts d'edifici dins d'un
-  quadrat de 2 × 2 km al voltant del punt. Els municipis que el toquen es busquen als canals ATOM (el general, una
+- **Llocs (en navegar o triar un punt, `dades/llocs.py` i `dades/catastro.py`):** les parts d'edifici de la cel·la
+  de 3 × 3 km del lloc (els antics, del doble clic: 2 × 2 km al voltant del punt). Els municipis que el toquen es busquen als canals ATOM (el general, una
   entrada per gerència amb el seu rectangle, i el de cada gerència, una entrada per municipi), que es desen a
   `data/edificis/catastro/`. Els ZIP dels municipis s'esborren després de llegir-los (si no hi eren abans); es
   desa `data/edificis/lloc_<x>_<y>.gpkg`. Navarra i el País Basc no hi són (cadastres propis). El servei WFS per
   rectangle (`https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx`) s'ha descartat: com a molt ~1 km² per petició i
   2,5 min per 1 km² del centre de Manresa (24 MB), contra 20 s per al ZIP de tot el municipi (6,6 MB); comprovat
   el 30/10/2026.
-- **No accessibles en aquesta fase:** el *Modelo Digital de Superficies normalizado de Edificación* del
-  CNIG (altures LiDAR, 2,5 m): el Centre de Descàrregues no responia; els models de l'ICGC es lliuren per
-  enllaç per correu. Per això les altures són estimades i no mesurades.
+- **Altures:** primer s'estimen (plantes × 3 m) i, quan es veuen, es mesuren amb les alçàries LiDAR (secció
+  següent). El 26/10 es va escriure aquí que el MDS normalitzat de l'IGN no era accessible (el Centre de
+  Descàrregues no responia); el 31/10/2026 s'ha trobat el seu servei WCS, que sí que funciona.
 - **Referència independent per a la validació:** OpenStreetMap (contorns i `building:levels`, © col·laboradors
   d'OpenStreetMap, ODbL), consultat amb l'API Overpass el 26/10/2026 (400 m al voltant de la UAB;
   `data/edificis/osm_uab.json`).
 
-## LiDAR de l'ICGC (altures mesurades) — `data/lidar/` (no al Git)
+## Alçàries mesurades (models LiDAR normalitzats) — `data/alcaries/` (no al Git)
+
+Altura sobre el terra dels edificis i de la vegetació, per a les altures dels edificis i el mapa de visibilitat de
+detall (`dades/alcaries.py`). Es demanen per cel·les de 3 × 3 km (la quadrícula dels llocs), a mesura que la càmera
+s'hi acosta, i es desen a `data/alcaries/cel_<x>_<y>_alcaria.npz` (float16, comprimit; 1–15 MB per cel·la).
+
+| Font | Servei i cobertura | Resolució i data | Llicència | Ús |
+|---|---|---|---|---|
+| ICGC, *Model d'alçàries* (LiDAR territorial) | Un sol GeoTIFF de Catalunya (98 GB) en format COG: <https://datacloud.icgc.cat/datacloud/model-alcaries/tif_unzip/model-alcaries-lidar-catalunya-1m-2021-2023.tif>, llegit **per finestres** amb peticions HTTP de rang (GDAL `/vsicurl/`): 2 × 2 km en ~15 s, sense baixar el fitxer. EPSG:25831, sense dades −9999. Fora de Catalunya, tot sense dades | 1 m, vols 2021–2023. Alçada màxima de qualsevol objecte a cada metre (no separa edificis i arbres) | CC BY 4.0 (ICGC) | Catalunya |
+| IGN/CNIG, *MDS normalizado* (PNOA-LiDAR, 1a cobertura) | WCS <https://wcs-mds.idee.es/mds>, cobertures `mdsn_e025` (edificació) i `mdsn_v025` (vegetació), EPSG:3042 (els números de 25830). Format ArcGrid (amb decimals; `image/tiff` dona enters). 3 × 3 km en ~25 s per cobertura | 2,5 m, vols 2008–2015 (segons la zona) | CC BY 4.0 scne.es (`AccessConstraints`; `Fees`: no s'hi apliquen condicions) | Resta d'Espanya |
+
+- **Consultat** el 31/10/2026 (GetCapabilities i DescribeCoverage de l'IGN; llistat del *datacloud* de l'ICGC).
+- **Altura d'una part:** percentil 90 de l'alçària dins del contorn del Catastro (reduït 0,5–1 m), si més de la
+  meitat de les cel·les tenen objecte (> 1,5 m); si no, l'estimació, marcada com a tal.
+- **Comprovació** (`python scripts/validar_alcaries.py`, 1.078 parts a 2 × 2 km de la UAB, 31/10/2026): el model de
+  l'ICGC contra el núvol de punts del mateix vol (secció següent), diferència mediana +0,10 m (error absolut mitjà
+  0,9 m); l'IGN contra l'ICGC (dues fonts), −0,48 m (1,6 m); l'estimació per plantes queda 2–3 m per sota.
+- **Limitacions:** l'IGN pot tenir 10–15 anys (edificis nous o enderrocats); a 2,5 m els patis i els carrers
+  estrets es barregen; l'ICGC no distingeix un arbre d'un edifici. Ceuta i Melilla no tenen LiDAR. Navarra i el
+  País Basc tenen MDSn, però no edificis al Catastro estatal.
+- **Superfície per al mapa** (`data/alcaries/cel_<x>_<y>_{superficie,ulls}_25830.tif` i `.json`): terra (MDT de
+  5 m del lloc, bilineal) + alçària, a 2 m (ICGC, cada cel·la pren l'objecte més alt) o 2,5 m (IGN).
+
+## Noms de lloc — `data/cache/noms/` (no al Git)
+
+- **Nucli de població més proper:** Nomenclàtor Geogràfic Bàsic d'Espanya (NGBE) de l'IGN, WFS INSPIRE
+  <https://www.ign.es/wfs-inspire/ngbe>, capa `GN:NamedPlace`, filtrada als tipus de població (capital de
+  municipi, entitat singular, nucli de població, capital d'EATIM, entitat col·lectiva). CC BY 4.0 (ign.es). Es
+  desa per cel·les de 0,1° (`ngbe_<i>_<j>.json`).
+- **Municipi (i població de l'adreça):** geocodificador invers de CartoCiudad (IGN),
+  <https://www.cartociudad.es/geocoder/api/geocoder/reverseGeocode?lat=..&lon=..>. CC BY 4.0 (scne.es). Si
+  l'adreça més propera (a menys de 300 m) pertany a un nucli, aquell és el nucli del punt ("dins de València").
+  En camp obert pot no tornar res (Picos). Consultats el 31/10/2026.
+
+## LiDAR de l'ICGC, núvol de punts (altures mesurades) — `data/lidar/` (no al Git)
 
 - **Font:** Institut Cartogràfic i Geològic de Catalunya (ICGC), *LiDAR territorial* v3r1, 3a cobertura
   (vols 2021–2023): núvol de punts LAS 1.4 classificat segons l'ASPRS, ≥ 8 punts/m², fulls d'1 × 1 km en LAZ,
@@ -156,10 +192,13 @@ teselles JPEG de 256 × 256 px de la quadrícula Web Mercator (EPSG:3857, `Googl
 
 | Font | Servei | Llicència i atribució | Ús |
 |---|---|---|---|
-| PNOA màxima actualitat (IGN) | WMTS `https://www.ign.es/wmts/pnoa-ma`, capa `OI.OrthoimageCoverage`, zooms 12–19 | CC BY 4.0. "PNOA cedido por © Instituto Geográfico Nacional" | Espanya. On no té imatge, el servei dona un lila uniforme (32, 26, 38): aquests píxels es prenen de Sentinel-2 |
+| PNOA màxima actualitat (IGN) | WMTS `https://www.ign.es/wmts/pnoa-ma`, capa `OI.OrthoimageCoverage`, zooms 12–19 (el servei arriba a z = 20, però el vol és de 0,25 m: z = 19 ja dona ~0,22 m/px i z = 20 seria la mateixa imatge ampliada) | CC BY 4.0. "PNOA cedido por © Instituto Geográfico Nacional" | Espanya. On no té imatge, el servei dona un lila uniforme (32, 26, 38): aquests píxels es prenen de Sentinel-2 |
 | Sentinel-2 cloudless 2020 (EOX IT Services) | WMTS `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/...`, fins a z = 15 (per sobre s'amplia) | CC BY-NC-SA 4.0 (ús no comercial). "Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020)" | Tot el món, 10 m per píxel; zooms 0–11 a tot arreu i forats del PNOA |
 
 Consultat el 28/10/2026. Les atribucions es mostren al peu del panell mentre la fotografia aèria és activa.
+Resolució del vol (GetFeatureInfo de `OI.MosaicElement`, 31/10/2026): 0,25 m a Vic i la UAB (juliol 2024), València
+(maig 2024), Tona (juliol 2024) i Picos (setembre 2023). L'ortofoto de Vic (`data/ortofoto/`, 0,5 m) és la mateixa
+font a la meitat de resolució: allà on hi ha teselles, el mosaic (fins a z = 19) es dibuixa a sobre i n'hi dona més.
 Les imatges de Google Earth no es poden fer servir: les condicions d'ús no permeten descarregar-ne les teselles.
 
 ## Fitxers generats — `data/cache/` (no al Git)

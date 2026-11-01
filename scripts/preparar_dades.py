@@ -17,7 +17,6 @@ import moderngl as mgl
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dades import data_io  # noqa: E402
-from basecode.terrain import MAX_VERTEXS  # noqa: E402
 
 
 def main():
@@ -33,7 +32,7 @@ def main():
             continue
         t0 = time.time()
         print(f"== {nom}")
-        data_io.carregar_terreny(cami, max_textura, MAX_VERTEXS)
+        data_io.carregar_terreny(cami, max_textura, data_io.vertexs_maxims(cami))
         print(f"   {time.time() - t0:.1f} s")
 
 

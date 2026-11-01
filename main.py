@@ -9,9 +9,12 @@ voltant del punt d'observacio (Picos, Vic, l'Escala o el Valles) i el Sol i la L
 posicions reals (efemerides de JPL Horizons). L'ombra de la Lluna es calcula per a cada punt.
 
 Nivells de detall del relleu, de lluny a prop: la graella general de la peninsula (~1 km entre
-vertexs), un pegat de la peninsula al voltant de l'observador (200 m, ~100 km), la zona de 5 m
-(~20 m entre vertexs) i un pegat de la zona al voltant de l'observador (5 m, ~2,5 km). Cada nivell
+vertexs), un pegat de la peninsula al voltant del punt de detall (200 m, ~100 km), la zona de 5 m
+(~10-20 m entre vertexs) i un pegat de la zona al voltant del punt de detall (5 m, ~2,5 km). Cada nivell
 fa un forat al de sota i, a la vora, la seva altura passa suaument a la del de sota.
+Detall segons la vista (basecode/detall.py): el punt de detall es el que es mira a l'exploracio (o el punt
+d'observacio a les altres vistes); el relleu de 5 m, els edificis (amb altures mesurades) i el mapa de visibilitat de
+detall d'aquell lloc es preparen i es carreguen en segon pla, sense aturar el dibuix.
 
 Espai de navegacio: un cub fix que conte la Terra, la Lluna i el Sol (dades/navegacio.py); la camera
 d'exploracio no en pot sortir i, a prop, se'n veuen les parets (basecode/paret_cub.py).
@@ -46,7 +49,6 @@ On es cada cosa:
 
 Executa:  python main.py
 """
-import glob
 import math
 import os
 import sys
@@ -70,7 +72,6 @@ import glfw
 import glm
 import numpy as np
 import moderngl as mgl
-import rasterio
 from slimgui import imgui
 
 from basecode.engine import GraphicsEngineBase
@@ -83,10 +84,9 @@ from basecode.terra import Terra
 from basecode.terrain import Terrain, COLOR_CEL
 from basecode.ombres_relleu import OmbresRelleu
 from basecode.paret_cub import ParetCub
-from basecode.edificis import Edificis
 from basecode.control_ratoli import ControlRatoli
 from basecode import window as winmod
-from dades.data_io import TERRENYS, ZONES_DETALL, DIR_DADES, ortofotos
+from dades.data_io import TERRENYS
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
@@ -95,8 +95,8 @@ from dades.obstacles import RADI_COS_M
 from dades import atmosfera
 from basecode.cel import Cel
 from basecode.mosaic import Mosaic
-from dades import eclipse_data, eclipsis, geodesia, llocs, visibilitat
-from dades.edificis import ZONA_DE_LA_UBICACIO, RADI_ZONA_M
+from basecode.detall import Detall
+from dades import eclipse_data, eclipsis, geodesia, noms, visibilitat
 import ui
 
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
@@ -133,35 +133,22 @@ class GraphicsEngine(GraphicsEngineBase):
         # mapa de visibilitat de l'eclipsi (objectiu O3; basecode/terrain.py MAPES): es calcula la primera vegada
         # que es demana per a cada terreny i eclipsi (dades/visibilitat.py, en un fil) i es desa
         self.mapa_visibilitat = 0
-        self.calcul_mapa, self.mapes_fallats = None, set()
+        self.calculs_mapa, self.mapes_fallats = {}, set()   # cami del MDT -> visibilitat.Calcul del relleu
+        self.calcul_detall = None     # mapa de detall (edificis i vegetacio mesurats) de la cel·la del punt de detall
+        self.acolorir_alcades = False  # depuracio: facanes segons l'origen de l'altura (mesurada o estimada)
+        self.consulta_nom, self.nom_punt = None, None   # nom del lloc del punt d'observacio (dades/noms.py)
 
-        # --- territori: la peninsula sencera posada sobre la Terra; la zona de detall de 5 m es
-        # carrega quan es tria un punt d'observacio que hi es (triar_punt)
+        # --- territori: la peninsula sencera posada sobre la Terra; el detall (zones de 5 m, edificis) el
+        # carrega basecode/detall.py segons el que es mira i el punt d'observacio
         t0 = time.time()
         cami = {n: c for n, c, _ in TERRENYS}
         self.peninsula = Terrain(self, cami['Peninsula'], globus=True)
         self.peninsula.exaggeration = 1.0
         self.peninsula.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
-        # zones de detall disponibles (fitxers descarregats) i el rectangle que ocupen (UTM, m)
-        self.zones = []
-        self.clau_zona = {nom: ordre for nom, _, ordre in ZONES_DETALL}
-        for nom, cami_zona, ordre in ZONES_DETALL:
-            if os.path.exists(cami_zona):
-                with rasterio.open(cami_zona) as f:
-                    self.zones.append((nom, cami_zona, f.bounds))
-            else:
-                print(f"AVIS: falta la zona de detall '{nom}': python scripts/descarregar_mdt.py {ordre}")
-        # on hi ha edificis a cada zona: al voltant dels seus punts d'observacio (UTM, m; dades/edificis.py)
-        self.punts_edificis = {}
-        for nom, lat, lon in UBICACIONS:
-            if nom in ZONA_DE_LA_UBICACIO:
-                xy = self.peninsula.de_latlon.transform(lon, lat)
-                self.punts_edificis.setdefault(ZONA_DE_LA_UBICACIO[nom], []).append(xy)
-        # llocs nous preparats amb doble clic (dades/llocs.py): zones de detall petites, en segon pla
-        self.preparacio = None
-        self.avis_lloc, self.avis_lloc_fins = '', -1.0
-        self.registrar_llocs()
-        self.nom_zona = None
+        self.zona, self.nom_zona = None, None
+        self.vista = 1                     # index a ui.VISTES: 0 exploracio, 1 observador, 2 guiada
+        self.camera_exploracio = None
+        self.detall = Detall(self)
         self.terra = Terra(self)
         self.mosaic = Mosaic(self)         # fotografia aeria per al terreny i el globus (es baixa en segon pla)
         self.ombres = OmbresRelleu(self)   # ombres del relleu (shadow mapping) a la zona de 5 m
@@ -199,7 +186,6 @@ class GraphicsEngine(GraphicsEngineBase):
         self.posar_exploracio_sobre_el_punt()
         self.camera_guiada = CameraGuiada(self)
         self.camera = self.camera_observador
-        self.vista = 1   # index a ui.VISTES: 0 exploracio, 1 observador, 2 guiada
 
         self.lluna = Lluna(self)
         self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=SOL)
@@ -245,7 +231,7 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def primera_persona(self):
         """Observacio des del terra o caminant: la vista on els edificis fan l'horitzo."""
-        return self.vista == 1 or (self.vista == 0 and self.camera_exploracio.caminar)
+        return self.vista == 1 or (self.vista == 0 and self.camera_exploracio is not None and self.camera_exploracio.caminar)
 
     def actualitzar_edificis(self):
         """Edificis visibles segons la vista (primera persona o aeria) i les opcions del panell. Nomes actua quan
@@ -276,69 +262,6 @@ class GraphicsEngine(GraphicsEngineBase):
                 return t.altitud_latlon(lat, lon) / 1000.0 * t.exaggeration
         return None
 
-    def registrar_llocs(self):
-        """Afegeix a la llista de zones de detall els llocs preparats que hi ha al disc (i en treu els esborrats)."""
-        self.zones = [z for z in self.zones if not self.clau_zona[z[0]].startswith('lloc_')]
-        for clau in llocs.existents():
-            nom = llocs.nom(clau)
-            with rasterio.open(llocs.cami_mdt(clau)) as f:
-                self.zones.append((nom, llocs.cami_mdt(clau), f.bounds))
-            self.clau_zona[nom] = clau
-
-    def te_edificis(self, clau, x, y):
-        """Si la zona (clau) te edificis preparats a menys de llocs.MARGE_M al voltant del punt (x, y, UTM)."""
-        if clau.startswith('lloc_'):
-            return llocs.cobreix(clau, x, y)
-        return any(math.hypot(x - px, y - py) < RADI_ZONA_M - llocs.MARGE_M
-                   for px, py in self.punts_edificis.get(clau, []))
-
-    def posar_detall(self, lat, lon):
-        """Carrega la zona de 5 m que conte el punt (si n'hi ha) i posa els pegats densos al voltant del
-        punt. Nomes es mante carregada una zona: la de l'observador (cada una ocupa uns 200 MB). Si n'hi ha
-        mes d'una (un lloc dins d'una zona gran), la que te edificis en aquell punt."""
-        x, y = self.peninsula.de_latlon.transform(lon, lat)
-        dins = [n for n, c, b in self.zones if b.left < x < b.right and b.bottom < y < b.top and os.path.exists(c)]
-        nom = next((n for n in dins if self.te_edificis(self.clau_zona[n], x, y)), dins[0] if dins else None)
-        if nom != self.nom_zona:
-            if self.zona is not None:
-                self.zona.destroy()
-                self.zona, self.peninsula.fills = None, []
-            if self.edificis is not None:
-                self.edificis.destroy()
-                self.edificis = None
-            if nom is not None:
-                t0 = time.time()
-                cami = next(c for n, c, _ in self.zones if n == nom)
-                self.zona = Terrain(self, cami, globus=True)
-                self.zona.pare, self.zona.dibuixar_mar = self.peninsula, True
-                for atribut in ('exaggeration', 'overlay', 'opacitat', 'limits_totalitat', 'wireframe'):
-                    setattr(self.zona, atribut, getattr(self.peninsula, atribut))
-                self.peninsula.fills = [self.zona]
-                print(f"Zona de detall '{nom}' carregada en {time.time() - t0:.1f} s")
-                e = Edificis(self, self.clau_zona[nom], cami)
-                if e.n_triangles:
-                    self.edificis, self._clau_edificis = e, None    # visibilitat segons la vista
-                    self.actualitzar_edificis()
-                    print(f"Edificis: {e.n_parts} parts, {e.n_triangles} triangles, {e.memoria_gpu / 1e6:.0f} MB, "
-                          f"carregats en {e.temps_carrega:.1f} s")
-                else:
-                    e.destroy()
-            self.nom_zona = nom
-        if self.zona is not None:
-            # ortofoto: la de tota la zona i la de detall que conte el punt (si se n'han descarregat)
-            general, detalls = ortofotos(self.clau_zona[nom])
-            detall = next((c for c, b in detalls if b.left < x < b.right and b.bottom < y < b.top), None)
-            self.zona.posar_ortofoto(general, detall)
-            if self.edificis is not None:
-                self.edificis.posar_cobertes(general, detall)   # color de les cobertes de l'ortofoto
-        # de lluny a prop: cada nivell depen de la superficie del de sota
-        self.peninsula.posar_pegat(lat, lon)
-        if self.zona is not None:
-            self.zona.actualitzar_transicio()
-            self.zona.posar_pegat(lat, lon)
-        if self.camera is not None:
-            self.camera.update()   # la zona nova tambe ha de rebre les matrius de la camera
-
     def triar_punt(self, lat, lon, nom=''):
         """Posa l'observador al punt (lat, lon) i hi calcula, tot alhora, el model del Sol i la Lluna
         i les dades del CNIG: aixi sempre corresponen al mateix punt.
@@ -348,7 +271,7 @@ class GraphicsEngine(GraphicsEngineBase):
         Durant la reproduccio la ubicacio esta bloquejada: no canvia res i retorna False."""
         if self.reproduint:
             return False
-        self.posar_detall(lat, lon)
+        self.detall.situar(lat, lon, observador=True)
         lat_ref, lon_ref, desplacament = lat, lon, 0.0
         obs = self.edificis.obstacles if self.edificis is not None else None
         if obs is not None:
@@ -358,7 +281,7 @@ class GraphicsEngine(GraphicsEngineBase):
                 if exterior is not None:
                     lat, lon = obs.latlon(exterior[0], exterior[1])
                     desplacament = exterior[2]
-                    self.posar_detall(lat, lon)    # el pegat dens, centrat als ulls
+                    self.detall.situar(lat, lon, observador=True)    # el pegat dens, centrat als ulls
         alt_km = self.altitud_terra_km(lat, lon)
         self.observador = Observador(lat, lon, alt_km * 1000.0, nom,
                                      lat_ref if desplacament else None, lon_ref if desplacament else None,
@@ -367,7 +290,29 @@ class GraphicsEngine(GraphicsEngineBase):
         # dades del CNIG: nomes les del 2026
         self.cnig = eclipse_data.punt(lat, lon) if eclipse_data.disponible() and eclipsis.actiu() == '2026' else None
         self.marcador_fins = glfw.get_time() + 2.5   # avis discret al panell durant uns segons
+        # nom del lloc triat (nucli mes proper i municipi): en un fil, perque la xarxa no aturi res
+        if self.nom_punt is None or self.nom_punt[0] != (round(lat_ref, 5), round(lon_ref, 5)):
+            self.consulta_nom, self.nom_punt = noms.Consulta(lat_ref, lon_ref), None
         return True
+
+    def reubicar_observador(self):
+        """Quan arriben edificis nous (o les altures mesurades) a la zona de l'observador, el punt es torna a triar:
+        si ara queda dins d'un edifici, els ulls van a l'exterior. En reproduir, la ubicacio no canvia."""
+        o = self.observador
+        if self.reproduint or o is None:
+            return
+        lat, lon = (o.lat_ref, o.lon_ref) if o.lat_ref is not None else (o.lat, o.lon)
+        nom_punt = self.nom_punt
+        self.triar_punt(lat, lon, o.nom)
+        self.nom_punt = nom_punt
+
+    def actualitzar_nom(self):
+        """Recull el nom del lloc quan la consulta acaba."""
+        c = self.consulta_nom
+        if c is not None and c.fet:
+            self.consulta_nom = None
+            self.nom_punt = (c.clau, c.resultat if c.resultat is not None else dict(nucli=None, municipi=None,
+                                                                                     errors=[c.error]))
 
     def anar_al_punt(self, lat, lon):
         """Doble clic a l'exploracio: l'observador va al punt i la vista passa directament a primera persona
@@ -380,110 +325,73 @@ class GraphicsEngine(GraphicsEngineBase):
         if self.vista == 0 and not ce.caminar:
             self.camera_observador.mirar(ce.rumb, INCLINACIO_EN_ARRIBAR)
             self.canviar_vista(1)
-        self.preparar_lloc(lat, lon)
         return True
 
-    def preparar_lloc(self, lat, lon):
-        """Si al voltant del punt no hi ha edificis preparats, es prepara un lloc nou en segon pla (dades/llocs.py):
-        relleu de 5 m i edificis del Catastro. Nomes a terra dins de la peninsula, i d'un en un."""
-        x, y = self.peninsula.de_latlon.transform(lon, lat)
-        self.registrar_llocs()      # la llista del disc: la preparacio d'un altre lloc pot haver-ne esborrat
-        if any(self.te_edificis(self.clau_zona[n], x, y) for n, _, _ in self.zones):
-            return
-        if not (self.peninsula.conte(lat, lon) and self.peninsula.es_terra(lat, lon)):
-            return
-        if self.preparacio is not None:
-            self.avisar_lloc("Encara se n'esta preparant un altre: espera que acabi")
-            return
-        protegits = {self.clau_zona[self.nom_zona]} if self.nom_zona else set()
-        self.preparacio = llocs.Preparacio(lat, lon, protegits)
-
-    def revisar_preparacio(self):
-        """Quan el lloc que es preparava es a punt, el carrega (els objectes OpenGL es creen aqui, al fil principal)
-        si l'observador encara hi es. Durant la reproduccio s'espera: canviaria el relleu sota l'observador."""
-        p = self.preparacio
-        if p is None or not p.fet or self.reproduint:
-            return
-        self.preparacio = None
-        if p.error:
-            self.avisar_lloc(f"No s'ha pogut preparar el lloc: {p.error[:70]}", 10.0)
-            return
-        self.registrar_llocs()
-        o = self.observador
-        lat, lon = (o.lat_ref, o.lon_ref) if o.lat_ref is not None else (o.lat, o.lon)
-        if llocs.cobreix(p.clau, *self.peninsula.de_latlon.transform(lon, lat)):
-            self.triar_punt(lat, lon, o.nom)
-        self.avisar_lloc(f'Relleu de 5 m i edificis carregats ({p.segons():.0f} s)')
-
     def actualitzar_mapa(self):
-        """Mapa de visibilitat: si es mostra, cada terreny que es dibuixa ha de tenir el de l'eclipsi actiu. Es
-        llegeixen o es calculen d'un en un, en un fil (dades/visibilitat.Calcul); la textura es crea aqui (fil
-        principal). Si no es mostra, les textures s'alliberen (memoria de la GPU)."""
-        c = self.calcul_mapa
-        if c is not None and c.fet:
-            self.calcul_mapa = None
+        """Mapa de visibilitat: si es mostra, cada terreny que es dibuixa ha de tenir el de l'eclipsi actiu (relleu) i
+        la zona activa, el de detall de la cel·la del punt de detall si n'hi ha (edificis i vegetacio mesurats,
+        basecode/detall.py). Es llegeixen o es calculen en fils (dades/visibilitat.Calcul), un de relleu i un de
+        detall alhora; les textures es creen aqui (fil principal). Si no es mostra, s'alliberen (memoria de la GPU)."""
+        clau = eclipsis.actiu()
+        for cami, c in list(self.calculs_mapa.items()):
+            if not c.fet:
+                continue
+            del self.calculs_mapa[cami]
+            if c.cancelat:
+                continue                                   # el terreny ja no es veia: es tornara a demanar si cal
             if c.error or c.resultat is None:
                 self.mapes_fallats.add((c.cami, c.clau))   # no es torna a provar a cada fotograma
-            if c.resultat is not None and c.clau == eclipsis.actiu():
+            if c.resultat is not None and c.clau == clau:
                 for t in self.terrenys():
                     if t.cami == c.cami:
                         t.posar_visibilitat(c.resultat)
-                d = self.detall_lidar()
-                if d is not None and d[0] == c.cami:
-                    self.zona.posar_visibilitat_detall(c.resultat, d[1])
-        clau = eclipsis.actiu()
-        # primer el detall amb el LiDAR dins de la zona (nomes es llegeix: el calcula scripts/visibilitat_lidar.py;
-        # va primer perque el de la zona, el primer cop, es calcula i tarda)
-        d = self.detall_lidar()
-        z = self.zona
-        if z is not None and self.mapa_visibilitat == 0 and z.vis_detall is not None:
-            z.posar_visibilitat_detall(None, None)
-        elif d is not None and self.mapa_visibilitat and (z.vis_detall is None or z.vis_detall['clau'] != clau) \
-                and self.calcul_mapa is None and (d[0], clau) not in self.mapes_fallats:
-            self.calcul_mapa = visibilitat.Calcul(d[0], clau, nomes_llegir=True)
+        # llegir un mapa ja calculat es pot fer sempre; calcular-ne un, d'un en un (cada calcul fa servir tota la CPU) i
+        # despres del detall del punt (mes petit i mes util). Un calcul d'un terreny que ja no es veu acaba igualment
+        # (queda desat) pero no impedeix llegir els altres
+        visibles = {t.cami for t in self.terrenys()} if self.mapa_visibilitat else set()
+        for c in self.calculs_mapa.values():
+            if not c.fet and not c.nomes_llegir and c.cami not in visibles and not c.cancelat:
+                c.cancel()                                 # deixa lloc al del terreny que es veu ara
+        calculant = any(not c.fet and not c.nomes_llegir and not c.cancelat for c in self.calculs_mapa.values())
         for t in self.terrenys():
             if self.mapa_visibilitat == 0:
                 if t.visibilitat is not None:
                     t.posar_visibilitat(None)
-            elif (t.visibilitat is None or t.visibilitat['clau'] != clau) and self.calcul_mapa is None \
-                    and (t.cami, clau) not in self.mapes_fallats:
-                self.calcul_mapa = visibilitat.Calcul(t.cami, clau, self.peninsula.cami)
-
-    def detall_lidar(self):
-        """(cami, limits UTM) del mapa de detall del LiDAR (data/lidar/*_superficie_1m_25830.tif) que cau dins de
-        la zona carregada, o None."""
+                continue
+            if (t.visibilitat is not None and t.visibilitat['clau'] == clau) or t.cami in self.calculs_mapa \
+                    or (t.cami, clau) in self.mapes_fallats:
+                continue
+            if visibilitat.vigent(t.cami, clau):
+                self.calculs_mapa[t.cami] = visibilitat.Calcul(t.cami, clau, nomes_llegir=True)
+            elif not calculant and not self.detall.detall_en_curs():
+                self.calculs_mapa[t.cami] = visibilitat.Calcul(t.cami, clau, self.peninsula.cami)
+                calculant = True
+        # detall: nomes es fa servir si encara es el de la cel·la del punt i cap dins de la zona activa
         z = self.zona
+        d = self.detall.detall_mapa if self.mapa_visibilitat else None
+        cd = self.calcul_detall
+        if cd is not None and cd.fet:
+            self.calcul_detall = None
+            if cd.error or cd.resultat is None:
+                self.mapes_fallats.add((cd.cami, cd.clau))
+            elif cd.clau == clau and z is not None and d is not None and d[0] == cd.cami:
+                z.posar_visibilitat_detall(cd.resultat, d[1])
+                z.vis_detall.update(cami=d[0], descripcio=d[3])
         if z is None:
-            return None
-        if getattr(self, '_detalls_lidar', None) is None:
-            self._detalls_lidar = []
-            for cami in glob.glob(os.path.join(DIR_DADES, 'lidar', '*_superficie_1m_25830.tif')):
-                with rasterio.open(cami) as f:
-                    self._detalls_lidar.append((cami, tuple(f.bounds)))
-        for cami, (x0, y0, x1, y1) in self._detalls_lidar:
-            (u0, v1), (u1, v0) = z.uv_de_utm(x0, y0), z.uv_de_utm(x1, y1)
-            if 0 <= u0 and u1 <= 1 and 0 <= v0 and v1 <= 1:
-                return cami, (x0, y0, x1, y1)
-        return None
+            return
+        if d is None:
+            if z.vis_detall is not None:
+                z.posar_visibilitat_detall(None, None)
+            return
+        if z.vis_detall is not None and z.vis_detall.get('cami') == d[0] and z.vis_detall['clau'] == clau:
+            return
+        if self.calcul_detall is None and (d[0], clau) not in self.mapes_fallats:
+            self.calcul_detall = visibilitat.Calcul(d[0], clau, lluny=[d[4] or z.cami, self.peninsula.cami],
+                                                    cami_ulls=d[2])
 
     def text_mapa(self):
         """Estat del calcul del mapa (panell), o ''."""
-        c = self.calcul_mapa
-        if c is None or c.fet:
-            return ''
-        return f'{os.path.splitext(os.path.basename(c.cami))[0]}: {c.estat}'
-
-    def avisar_lloc(self, text, segons=5.0):
-        self.avis_lloc, self.avis_lloc_fins = text, glfw.get_time() + segons
-
-    def text_lloc(self):
-        """Linia d'estat de la preparacio d'un lloc (barra del temps), o '' si no n'hi ha."""
-        p = self.preparacio
-        if p is not None and p.fet and not p.error and self.reproduint:
-            return 'Detall del lloc a punt: es carregara en pausar (P)'
-        if p is not None and not p.fet:
-            return f'Preparant el detall del lloc: {p.estat} ({p.segons():.0f} s)'
-        return self.avis_lloc if glfw.get_time() < self.avis_lloc_fins else ''
+        return self.detall.estat['mapa'] if self.mapa_visibilitat else ''
 
     def triar_ubicacio(self, lat, lon, nom):
         """Desplegable del panell: l'observador va a la ubicacio i la camera d'exploracio se situa a sobre,
@@ -513,6 +421,13 @@ class GraphicsEngine(GraphicsEngineBase):
         if vista == 2 and self.vista != 2:
             self.camera_guiada.recentrar()
         self.camera_exploracio.aturar_moviment()   # el zoom o la inercia pendents no continuen en tornar-hi
+        if vista != 0 and self.vista == 0:
+            # el relleu i els edificis del punt d'observacio (son carregats: la zona de l'observador no es descarrega)
+            o = self.observador
+            abans = self.detall.cami_obs
+            self.detall.situar(o.lat, o.lon, observador=True)
+            if self.detall.cami_obs != abans:
+                self.reubicar_observador()     # el relleu de 5 m hi ha arribat mentre s'explorava
         self.vista = vista
         self.camera = (self.camera_exploracio, self.camera_observador, self.camera_guiada)[vista]
         self.actualitzar_edificis()
@@ -770,8 +685,9 @@ class GraphicsEngine(GraphicsEngineBase):
     def render(self):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
-        self.revisar_preparacio()   # un lloc nou preparat en segon pla (doble clic)
+        self.detall.actualitzar()   # detall segons la vista: es prepara i es carrega en segon pla
         self.actualitzar_mapa()     # mapa de visibilitat (es calcula o es llegeix en segon pla)
+        self.actualitzar_nom()
         self.actualitzar_edificis()
         self.avancar_temps(dt)
         self.actualitzar_astres()
@@ -825,6 +741,7 @@ class GraphicsEngine(GraphicsEngineBase):
             self.frames, self.temps_fps = 0, 0.0
 
     def on_destroy(self):
+        self.detall.destroy()
         self.mosaic.destroy()
         self.ombres.destroy()
         self.cel.destroy()

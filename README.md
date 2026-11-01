@@ -163,11 +163,36 @@ Botons:
 
 ### Relleu: nivells de detall
 
-Al voltant del punt d'observació el relleu té més detall que lluny: la península sencera (un vèrtex
-cada ~1 km), la península a 200 m en ~100 km al voltant del punt, la zona de 5 m que conté el punt (un
-vèrtex cada ~20 m) i, en ~2,5 km al voltant del punt, un vèrtex per cada píxel de 5 m. A la vora de cada
-nivell, l'altura passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels
-triangles que es dibuixen (l'altura de cada vèrtex la calcula la CPU).
+Al voltant del **punt de detall** el relleu té més detall que lluny: la península sencera (un vèrtex cada
+~1 km), la península a 200 m en ~100 km al voltant del punt, la zona de 5 m que conté el punt (un vèrtex cada
+10–20 m) i, en ~2,5 km al voltant del punt, un vèrtex per cada píxel de 5 m. A la vora de cada nivell, l'altura
+passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels triangles que es dibuixen
+(l'altura de cada vèrtex la calcula la CPU).
+
+El punt de detall és **el que es mira**: explorant, el punt del terra al centre de la pantalla (o el de sota la
+càmera, a prop del terra o caminant); a les altres vistes, el punt d'observació. No cal cap doble clic.
+
+### Detall segons la vista (qualsevol lloc d'Espanya)
+
+Quan la càmera baixa a menys de 15 km d'un lloc d'Espanya, el programa hi prepara **en segon pla** el detall que
+falta (`basecode/detall.py`), sense aturar la navegació:
+1. **Relleu de 5 m** (IGN, 6 × 6 km): si no hi ha cap zona de detall, el del lloc de la quadrícula de 3 km.
+   Uns 10–20 s la primera vegada. Les zones fetes a mà (Picos, Vic, l'Escala, el Vallès) es continuen fent servir.
+2. **Edificis** (Catastro, la cel·la de 3 × 3 km), si es veuen a la vista actual: primer amb altures
+   **estimades** (plantes × 3 m) i, quan arriben les dades, amb altures **mesurades** amb LiDAR (secció
+   *Edificis*).
+3. **Mapa de visibilitat de detall**, si el mapa es mostra (secció *Mapa de visibilitat*).
+La fotografia aèria ja arribava a tot arreu i no canvia (secció *Fotografia aèria*).
+
+Les dades es desen al disc i es reutilitzen (tornar a un lloc és immediat). Llegir-les i preparar-les es fa en
+fils; el fil principal només crea els objectes OpenGL (un lloc: ~60 ms; Vic, ~0,2 s; el Vallès, ~0,5 s). Es
+mantenen carregades fins a 3 zones (la del punt d'observació sempre). Una preparació que acaba quan la càmera ja és
+en un altre lloc queda al disc però no canvia el que es veu. El punt d'observació no es mou en navegar.
+
+El panell, a **Detall del lloc**, diu per separat què hi ha al punt: *Terreny* (5 m o 200 m, i què es prepara),
+*Foto* (font, nivell i metres per píxel), *Edificis* (estimades, mesurades —amb la font— o no disponibles) i
+*Mapa* (relleu i detall). Comprovació: `python scripts/prova_detall.py` (Vic, la UAB i València, on s'arriba
+navegant).
 
 ### Edificis
 
@@ -194,13 +219,21 @@ Geometria: `dades/obstacles.py`; comprovació: `python scripts/prova_obstacles.p
 **Llum de les façanes.** Una paret vertical veu mig cel i mig terra, i el terra en reflecteix part de la llum:
 les façanes a l'ombra no queden negres (la meitat de la il·luminada, aproximadament). Aproximació il·lustrativa.
 
-**Edificis a qualsevol lloc (llocs nous).** Un doble clic on no hi ha edificis a menys de 500 m (per exemple, a
-Manresa) prepara **en segon pla** el relleu de 5 m (6 × 6 km, IGN) i els edificis del Catastro (2 × 2 km). El
-programa no s'atura: l'observador ja és al punt i la barra del temps diu què s'està baixant. En acabar (de 40 s a
-1 min) apareixen el relleu i els edificis. Tornar-hi més tard és immediat. Només a Espanya (sense Navarra ni el País
-Basc) i d'un lloc en un. Cada lloc ocupa entre 40 i 110 MB; se'n guarden com a molt 3 (`MAX_LLOCS` a
-`dades/llocs.py`) i els més antics s'esborren sols. Als llocs nous les cobertes no tenen el color de l'ortofoto.
-Comprovació: `python scripts/prova_llocs.py` (amb `--xarxa`, en prepara un de nou).
+**Edificis a qualsevol lloc.** On es miren (o on es tria un punt) i no n'hi ha de preparats, el programa baixa
+en segon pla els del Catastro de la cel·la de 3 × 3 km (secció *Detall segons la vista*). Només a Espanya: Navarra
+i el País Basc tenen cadastres propis i no hi són (el panell ho diu). Cada lloc ocupa entre 20 i 110 MB; se'n
+guarden com a molt 6 (`MAX_LLOCS` a `dades/llocs.py`) i els que fa més temps que no es fan servir s'esborren sols.
+Als llocs nous les cobertes no tenen el color de l'ortofoto. Comprovació: `python scripts/prova_llocs.py`.
+
+**Altures mesurades.** Quan els edificis es veuen, les seves altures es mesuren amb un model d'alçàries LiDAR
+(altura sobre el terra, `dades/alcaries.py`), per cel·les de 3 × 3 km al voltant del punt que es mira: a Catalunya
+el de l'ICGC (1 m, vols 2021–2023, llegit per finestres del fitxer de tot Catalunya) i a la resta d'Espanya el MDS
+normalitzat de l'IGN (2,5 m, vols 2008–2015). L'altura d'una part és el percentil 90 de l'alçària dins del seu
+contorn; les parts que no s'hi poden mesurar (pati, edifici fet després del vol) conserven l'estimació. Els
+edificis canvien sols quan arriben les mesures (~40–60 s per cel·la). El panell diu quantes parts són mesurades i
+quantes estimades, i a **Avançat**, *Edificis: blau mesurat, taronja estimat* acoloreix les façanes segons l'origen
+de l'altura. A la UAB, l'estimació per plantes queda 2–3 m per sota de les dues mesures
+(`python scripts/validar_alcaries.py`).
 
 ### Fotografia aèria (a tot arreu, com Google Earth)
 
@@ -219,7 +252,10 @@ més forta on la mirada travessa més aire. És il·lustrativa: molt més gruixu
 lluny.
 
 A Vic hi ha, a més, l'ortofoto descarregada de la F18 (`python scripts/descarregar_ortofoto.py vic`), que es veu
-sota la fotografia aèria si no hi ha connexió i dona el color de les cobertes dels edificis.
+sota la fotografia aèria si no hi ha connexió i dona el color de les cobertes dels edificis. **Comparació:** és la
+mateixa font (PNOA) a 0,5 m; la fotografia per teselles arriba a z = 19 (~0,22 m per píxel a Catalunya i València),
+que ja és la resolució del vol (0,25 m a tots els llocs consultats). Per tant, la fotografia per teselles ja dona el
+detall màxim de la font a tot Espanya; el WMTS té z = 20, però seria la mateixa imatge ampliada.
 
 ### El Sol i la Lluna de prop
 
@@ -244,9 +280,14 @@ Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m
 - **Panell "Opcions"** (només controls): l'eclipsi (12/08/2026 total, 02/08/2027 total, 26/01/2028 anular); el
   temps (reproduir o pausar, hora, fase, part del Sol tapada i velocitat: *Auto* o x1 a x1000); la vista
   (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra des de l'espai); el punt
-  d'observació (llista, tornar-hi, anar al màxim); el mapa de visibilitat; les capes (fotografia aèria,
-  edificis, ombres del relleu, línies de l'ombra de la Lluna i, el 2026, les capes del CNIG). *Tecles* i
-  *Avançat* (FPS, exageració, filferros, dades del CNIG) són desplegables tancats.
+  d'observació (llista, coordenades, **nucli i municipi**, tornar-hi, anar al màxim); el mapa de visibilitat;
+  les capes (fotografia aèria, edificis, ombres del relleu, línies de l'ombra de la Lluna i, el 2026, les capes
+  del CNIG); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
+  filferros, origen de les altures, dades del CNIG) són desplegables tancats.
+- **Nom del lloc** (`dades/noms.py`): en triar un punt, el **nucli de població més proper** (Nomenclàtor Geogràfic
+  Bàsic de l'IGN; si l'adreça més propera pertany a un nucli, "dins de" aquell) i el **municipi** administratiu
+  (CartoCiudad). Són dades diferents: entre Vic i Tona, un punt pot ser del municipi de Malla o de Tona i tenir com a
+  nucli més proper el Gurri. Els noms es mostren sense accents (limitació de la font del panell).
 - **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar. Marques al punt triat:
   inici i final (groc), fase central (lila), màxim (blanc) i posta (taronja); a sota, les hores.
 
@@ -261,9 +302,16 @@ fins a 200 km). No depèn de la llum. Tres opcions al panell:
   fase central.
 
 Es calcula la primera vegada que es demana per a cada terreny i eclipsi (en segon pla; la península, ~20 min; una
-zona de 5 m, 15–30 min) i es desa a `data/cache/visibilitat_*.npz`. Per tenir-los preparats:
-`python scripts/preparar_visibilitat.py [2026 2027 2028]`. Comprovació: `python scripts/validar_visibilitat.py
-<MDT> [--cnig]`. Limitacions: només el relleu del MDT (sense arbres ni edificis); fora d'Espanya el MDT val 0.
+zona de 5 m feta a mà, 15–30 min; un lloc de 6 × 6 km, ~1 min) i es desa a `data/cache/visibilitat_*.npz`. Per
+tenir-los preparats: `python scripts/preparar_visibilitat.py [2026 2027 2028]`. Comprovació:
+`python scripts/validar_visibilitat.py <MDT> [--cnig]`. Aquest mapa només té el relleu del MDT.
+
+**Mapa de detall (edificis i vegetació).** Mentre el mapa es mostra, a la cel·la de 3 × 3 km del punt de detall es
+calcula el mateix amb els obstacles mesurats: terra + alçària LiDAR (ICGC a 2 m a Catalunya, IGN a 2,5 m a la resta;
+els arbres compten si la font els té) i els ulls sobre els terrats a les cel·les d'edifici. Mentrestant es veu el
+mapa del relleu, i el panell diu què s'està calculant. A la UAB es fa servir el del núvol de punts (1 m,
+`scripts/visibilitat_lidar.py`). Les altures estimades per plantes **no** hi entren. Limitacions: fora d'Espanya el
+MDT val 0; les dates de les fonts (IGN, fins a 15 anys); sense refracció terrestre.
 
 ### Com es calcula l'eclipsi (`dades/`)
 

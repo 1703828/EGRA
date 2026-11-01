@@ -40,6 +40,14 @@ ZONES_DETALL = [
     ('Valles (Cerdanyola, UAB, Montmelo)', os.path.join(DIR_ZONES, 'valles_5m.tif'), 'valles'),
 ]
 DIR_ORTOFOTO = os.path.join(DIR_DADES, 'ortofoto')   # ortofotos del PNOA (scripts/descarregar_ortofoto.py)
+MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella general d'un terreny
+MAX_VERTEXS_LLOC = 512          # als llocs de 6 x 6 km (dades/llocs.py): 10 m entre vertexs; el pegat dens es de 5 m
+
+
+def vertexs_maxims(cami):
+    """Vertexs maxims per costat de la graella del terreny d'un MDT. Ho fan servir el dibuix (basecode/terrain.py) i la
+    malla dels edificis (dades/edificis.py): han de coincidir, perque la memoria cau dels derivats en depen."""
+    return MAX_VERTEXS_LLOC if os.path.basename(os.path.dirname(os.path.abspath(cami))) == 'llocs' else MAX_VERTEXS
 
 
 def ortofotos(zona):

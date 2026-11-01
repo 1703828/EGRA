@@ -259,12 +259,17 @@ def calcular(cami_mdt, clau=None, cami_peninsula=None, avis=print, lluny=None, c
     blocs = [(r, min(r + MIDA_BLOC, files), cc, min(cc + MIDA_BLOC, cols))
              for r in range(0, files, MIDA_BLOC) for cc in range(0, cols, MIDA_BLOC)]
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    with ThreadPoolExecutor(FILS) as fils:
+    fils = ThreadPoolExecutor(FILS)
+    try:
         feines = [fils.submit(_bloc, dem, res, transform, b, fc, hores, k0, k1, el_g, az_g, camps, durada, pen,
                               t_ini, t_fi, marge, central, ef.inici, ulls) for b in blocs]
         for nb, f in enumerate(as_completed(feines)):
             f.result()
-            avis(f'Horitzo: {nb + 1} de {len(blocs)} blocs ({time.time() - t0:.0f} s)')
+            avis(f'Horitzo: {nb + 1} de {len(blocs)} blocs ({time.time() - t0:.0f} s)')   # pot aturar el calcul
+    except BaseException:
+        fils.shutdown(wait=False, cancel_futures=True)   # els blocs que no han comencat ja no es fan
+        raise
+    fils.shutdown()
     r = dict(versio=np.array(VERSIO), clau=np.array(clau), mdt=np.array(os.path.abspath(cami_mdt)),
              mtime=np.array(os.path.getmtime(cami_mdt)), t_ini=t_ini, t_fi=t_fi, marge=marge, central=central,
              radi_sol=np.array(c['radi_sol']), durada_max=np.array(float(durada.max())),
@@ -275,6 +280,15 @@ def calcular(cami_mdt, clau=None, cami_peninsula=None, avis=print, lluny=None, c
     os.replace(cami + '.tmp.npz', cami)
     avis(f'Visibilitat calculada en {time.time() - t0:.0f} s')
     return r
+
+
+def vigent(cami_mdt, clau=None):
+    """Si la visibilitat desada correspon al MDT actual i a aquesta versio (sense llegir-ne les dades)."""
+    cami = cami_cache(clau or eclipsis.actiu(), cami_mdt)
+    if not os.path.exists(cami) or not os.path.exists(cami_mdt):
+        return False
+    with np.load(cami) as z:
+        return int(z['versio']) == VERSIO and abs(float(z['mtime']) - os.path.getmtime(cami_mdt)) <= 1e-3
 
 
 def llegir(cami_mdt, clau=None):
@@ -411,26 +425,48 @@ def _bloc(dem, res, transform, finestra, fc, hores, k0, k1, el_g, az_g, camps, d
     central[r0:r1, c0:c1] = np.where(dur_p > 0, np.clip(np.round(sec * 10), 0, SENSE - 1), SENSE)
 
 
+class Cancelat(Exception):
+    """El calcul s'ha aturat perque ja no cal (Calcul.cancel)."""
+
+
 class Calcul:
     """llegir() o, si no hi es, calcular() en un fil. El fil principal llegeix estat i, quan fet es True,
-    resultat (dict) o error. Els objectes OpenGL els crea el fil principal (Terrain.posar_visibilitat)."""
+    resultat (dict) o error. Els objectes OpenGL els crea el fil principal (Terrain.posar_visibilitat).
+    preparar: funcio (avis) que es crida abans, al mateix fil, si la visibilitat no es al disc (p. ex. fer la
+    superficie dels obstacles d'un mapa de detall, dades/alcaries.preparar_superficie); lluny i cami_ulls, com a
+    calcular()."""
 
-    def __init__(self, cami_mdt, clau, cami_peninsula=None, nomes_llegir=False):
+    def __init__(self, cami_mdt, clau, cami_peninsula=None, nomes_llegir=False, lluny=None, cami_ulls=None,
+                 preparar=None):
         import threading
         self.cami, self.clau, self.nomes_llegir = cami_mdt, clau, nomes_llegir
+        self.lluny, self.cami_ulls, self.preparar = lluny, cami_ulls, preparar
         self.estat, self.fet, self.resultat, self.error = 'Llegint...', False, None, None
+        self.cancelat = False
         self.fil = threading.Thread(target=self._executar, args=(cami_peninsula,), daemon=True)
         self.fil.start()
 
     def _executar(self, cami_peninsula):
         try:
-            self.resultat = llegir(self.cami, self.clau)
+            if self.preparar is not None:
+                self.preparar(self._avis)
+            self.resultat = llegir(self.cami, self.clau) if os.path.exists(self.cami) else None
             if self.resultat is None and not self.nomes_llegir:
-                self.resultat = calcular(self.cami, self.clau, cami_peninsula, self._avis)
+                self.resultat = calcular(self.cami, self.clau, cami_peninsula, self._avis, lluny=self.lluny,
+                                         cami_ulls=self.cami_ulls)
+        except Cancelat:
+            self.error = 'cancel·lat'
         except Exception as e:   # noqa: BLE001 (es mostra al panell)
             self.error = f'{e.__class__.__name__}: {e}'
-            print(f'AVIS: no s\'ha pogut calcular la visibilitat: {self.error}')
+            if not self.cancelat:   # (un calcul cancel·lat pot acabar amb un error en tancar el programa)
+                print(f'AVIS: no s\'ha pogut calcular la visibilitat: {self.error}')
         self.fet = True
 
     def _avis(self, text):
+        if self.cancelat:
+            raise Cancelat()
         self.estat = text
+
+    def cancel(self):
+        """Atura el calcul despres del bloc en curs (el terreny ja no es veu): no queda res desat."""
+        self.cancelat = True

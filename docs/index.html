@@ -96,8 +96,17 @@
     superfícies) inclou edificis <em>i</em> arbres, i no serveix per saber què és un edifici. Per això fem
     servir una geometria d'edificis a part: les <dfn>parts d'edifici</dfn> del Catastro (servei INSPIRE, un
     fitxer per municipi), cadascuna amb el seu contorn i el nombre de plantes sobre rasant. El Catastro no dona
-    l'altura en metres, i el model d'altures LiDAR del CNIG (edificis sobre el terra, 2,5 m) no ha estat
-    accessible: l'altura és una <em>estimació</em>, plantes × 3 m (±20–30 %).</p>
+    l'altura en metres: primer l'<em>estimem</em> (plantes × 3 m) i, des de la F31, la <em>mesurem</em> amb un
+    <dfn>model d'alçàries</dfn> (l'altura dels objectes sobre el terra, feta amb LiDAR): el de l'ICGC a Catalunya
+    (1 m, 2021–2023) i el de l'IGN a la resta (2,5 m, 2008–2015).</p>
+  <p><span class="rotul">Detall segons la vista (F31).</span> El programa ja no necessita zones preparades a mà:
+    quan la càmera baixa a menys de 15 km d'un lloc d'Espanya, en segon pla hi baixa el MDT de 5 m d'un quadrat de
+    6 × 6 km (d'una <dfn>quadrícula</dfn> fixa de 3 km, perquè tornar-hi reutilitzi el mateix fitxer), els edificis
+    i, si cal, les alçàries. Llegir les dades es fa en un <dfn>fil</dfn> (un altre camí d'execució dins del
+    programa) i preparar-les, en un <dfn>procés</dfn> (un programa a part): algunes biblioteques no deixen
+    treballar els altres fils mentre llegeixen (el <dfn>GIL</dfn> de Python), i en un fil el dibuix s'aturava.
+    Només la creació de les textures i els buffers es fa al fil principal, que és el que té el context OpenGL
+    (<code>basecode/detall.py</code>).</p>
   <figure class="costat"><img src="img/picos_relleu.jpg" alt="Relleu de Picos de Europa" loading="lazy">
     <figcaption>Picos de Europa a partir del MDT de 5 m, il·luminat amb el Sol en el moment del màxim
       (azimut 281,4°, elevació 9,6°, segons el CNIG). L'altura està exagerada 1,41 vegades, el valor per
@@ -1008,12 +1017,17 @@
   <span class="frase">Millor el terrat o el turó?</span></summary>
 <div class="cos">
   <p>Una superfície amb el terreny i els edificis, amb els ulls a 1,7 m sobre el carrer o sobre cada coberta.
-    Només amb altures <strong>mesurades</strong> (LiDAR), no estimades amb les plantes (D81). Fonts candidates:
-    el MDS normalitzat d'edificació del CNIG (2,5 m) i el LiDAR territorial de l'ICGC (CC BY 4.0).</p>
+    Només amb altures <strong>mesurades</strong> (LiDAR), no estimades amb les plantes (D81). Fonts (F31): a
+    Catalunya, el model d'alçàries de l'ICGC (1 m, llegit per finestres del fitxer de tot Catalunya); a la resta
+    d'Espanya, el MDS normalitzat de l'IGN (2,5 m, edificació i vegetació). Es calcula per cel·les de 3 × 3 km on
+    es mira, des del programa: superfície = terra + alçària (a 2 m o 2,5 m), i els arbres compten si la font els
+    té.</p>
   <div class="fitxa">
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">LiDAR de l'ICGC a la UAB (3 × 3 km, rasters d'1 m): el terra coincideix amb el MDT de l'IGN (mediana +0,13 m); l'altura estimada amb les plantes s'equivoca 2,8 m de mitjana (només el 36 % dins de ±1,5 m) (<code>scripts/comparar_altures.py</code>).</li>
+      <li data-estat="fet">Altures per part: el model d'alçàries de l'ICGC contra el núvol de punts del mateix vol, diferència mediana +0,10 m; l'IGN contra l'ICGC, −0,48 m (1.078 parts a la UAB, <code>scripts/validar_alcaries.py</code>).</li>
+      <li data-estat="fet">El mapa de detall es prepara des del programa en una cel·la nova (València, IGN 2,5 m) i a la UAB continua el del núvol de punts (1 m) (<code>scripts/prova_detall.py</code>).</li>
       <li data-estat="pendent">Punts de prova contra el perfil exacte dels edificis (<code>perfil_edificis</code>).</li>
     </ul>
   </div>

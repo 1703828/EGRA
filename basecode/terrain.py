@@ -1,7 +1,7 @@
 """
 Terreny: MDT dibuixat amb un heightmap com a textura (T2-T6).
 
-- La geometria es una graella plana fixa (com a maxim MAX_VERTEXS x MAX_VERTEXS vertexs) amb
+- La geometria es una graella plana fixa (com a maxim data_io.MAX_VERTEXS per costat; als llocs, MAX_VERTEXS_LLOC) amb
   nomes coordenades UV; el vertex shader hi llegeix l'altura (basecode/shaders/terrain.vert).
 - Les normals es fan al fragment shader amb el pendent a la resolucio del fitxer (5 m), i alla
   tambe hi ha la rampa de colors, el mar, les faldilles, la boira, les zones de detall i els
@@ -17,7 +17,7 @@ Terreny: MDT dibuixat amb un heightmap com a textura (T2-T6).
 - Al mode globus, l'altura de cada vertex la calcula la CPU (atribut in_h) en lloc de llegir-la el
   vertex shader de la textura: aixi la CPU sap exactament quins triangles es dibuixen, i els ulls de
   l'observador es poden posar a 1,7 m de la superficie dibuixada (alcada_dibuixada).
-- Nivells de detall (mode globus): la graella general del fitxer (com a maxim MAX_VERTEXS per costat)
+- Nivells de detall (mode globus): la graella general del fitxer (com a maxim data_io.vertexs_maxims per costat)
   i un pegat dens al voltant de l'observador, amb un vertex per pixel del fitxer (MIDA_PEGAT pixels
   per costat). La graella general no es dibuixa dins del pegat ni dins dels terrenys mes detallats
   que hi ha a sobre (forats). A la vora de cada nivell, l'altura passa suaument a la del nivell de
@@ -39,7 +39,6 @@ from pyproj import Transformer
 from .programes import carregar_programa
 from dades import data_io, eclipse_data, geodesia, teselles
 
-MAX_VERTEXS = 1024              # vertexs maxims per costat de la graella
 MAX_ZONES = 4                   # rectangles de zones de detall que pot dibuixar el shader
 MAX_FORATS = 4                  # rectangles on el terreny no es dibuixa (mode globus)
 MIDA_PEGAT = 512                # pixels del fitxer per costat del pegat dens al voltant de l'observador
@@ -139,12 +138,29 @@ def pes_transicio(us, vs, finestra, amplada):
 
 
 class Terrain:
-    def __init__(self, app, path, globus=False):
+    @classmethod
+    def preparar(cls, path, max_textura, globus=True, max_vertexs=None):
+        """Part de CPU de la construccio (llegir el MDT o la memoria cau, atributs dels vertexs), sense OpenGL: es
+        pot fer en un fil. Terrain(app, path, globus, preparat=...) hi afegeix els objectes OpenGL al fil principal
+        (crear-los costa poc; llegir les dades, de 0,3 a 0,8 s per zona, i aixi el dibuix no s'atura)."""
+        t = cls.__new__(cls)
+        t._preparar_cpu(path, max_textura, globus, max_vertexs)
+        return t
+
+    def __init__(self, app, path, globus=False, preparat=None, max_vertexs=None):
+        if preparat is not None:
+            self.__dict__.update(preparat.__dict__)
+        else:
+            self._preparar_cpu(path, app.ctx.info['GL_MAX_TEXTURE_SIZE'], globus, max_vertexs)
         self.app = app
         self.ctx = app.ctx
+        self._crear_gpu()
+
+    def _preparar_cpu(self, path, max_textura, globus, max_vertexs):
         self.globus = globus
         self.cami = path
-        d = data_io.carregar_terreny(path, self.ctx.info['GL_MAX_TEXTURE_SIZE'], MAX_VERTEXS)
+        d = data_io.carregar_terreny(path, max_textura, max_vertexs or data_io.vertexs_maxims(path))
+        self._d = d
         h, res_m, transform = d['alt'], d['res_m'], d['transform']
         files, cols = h.shape
         self.mida = glm.vec2(cols * res_m / 1000, files * res_m / 1000)  # (est, sud) en km
@@ -161,41 +177,20 @@ class Terrain:
         self.a_latlon = Transformer.from_crs(self.crs, 'EPSG:4326', always_xy=True)
         self.de_latlon = Transformer.from_crs('EPSG:4326', self.crs, always_xy=True)
 
-        # --- textures (fila 0 = nord = v 0). Totes amb mipmaps: de lluny es fa servir la mitjana.
-        self.tex_altitud = self.make_texture(h, 1, 'f4')             # R32F, metres
-        self.tex_gradient = self.make_texture(d['grad'], 2, 'f2')    # RG16F, dh/dx dh/dz
-        self.tex_costa = self.make_texture(d['costa'], 1, 'f2')      # R16F, km (mar > 0)
-        # overlays de l'eclipsi (mateixa extensio que el terreny, menys resolucio): si no hi ha
-        # dades, textures d'1 pixel buides (el shader no hi dibuixa res)
-        efem, ombres = d['ecl_efem'], d['ecl_ombres']
-        if ombres.size == 0:
-            efem, ombres = np.zeros((1, 1, 4), 'f2'), np.full((1, 1), eclipse_data.SENSE_DADES, 'u1')
-        self.tex_eclipsi = self.make_texture(efem, 4, 'f2')          # RGBA16F: enfosq, durada, franja, valid
-        # classes d'ombres: NEAREST i sense mipmaps (barrejar classes no te sentit)
-        self.tex_ombres = self.ctx.texture((ombres.shape[1], ombres.shape[0]), 1, ombres.tobytes(),
-                                           dtype='f1', alignment=1)
-        self.tex_ombres.repeat_x = self.tex_ombres.repeat_y = False
-        self.tex_ombres.filter = (mgl.NEAREST, mgl.NEAREST)
-
         # rang de la rampa de durada: el de la franja dins d'aquest terreny, arrodonit a 10 s
         dur = d['ecl_efem'][..., 1][d['ecl_efem'][..., 2] > 0.5].astype('f4') if d['ecl_ombres'].size else []
         self.durada_min = 10 * math.floor(dur.min() / 10) if len(dur) else 0.0
         self.durada_max = max(10 * math.ceil(dur.max() / 10), self.durada_min + 10) if len(dur) else 120.0
 
-        # --- objecte OpenGL, com els del repte 4: VBO/IBO + shader program + VAO + m_model
-        self.n_cols, self.n_files = d['n_cols'], d['n_files']  # graella fixa, independent de la mida del fitxer
+        # --- geometria (CPU): graella fixa, independent de la mida del fitxer
+        self.n_cols, self.n_files = d['n_cols'], d['n_files']
         self.lod_vertexs = d['lod_vertexs']
         if globus:
             # origen del terreny: el seu centre sobre l'el·lipsoide (km, ECEF, float64)
             lon_c, lat_c = self.a_latlon.transform(*self.utm_de_uv(0.5, 0.5))
             self.origen_ecef = geodesia.ecef(lat_c, lon_c, 0.0)
             self.origen_merc = np.array(teselles.mercator(lat_c, lon_c))   # Web Mercator de l'origen (float64)
-        self.vbo, self.ibo, self.vbo_faldilla, self.ibo_faldilla = self.get_vbo()
-        self.shader_program = self.get_shader_program()
-        self.vao, self.vao_faldilla = self.get_vao()
-        self.m_model = self.get_model_matrix()
-        print(f"Textures {cols}x{files} px, graella {self.n_cols}x{self.n_files} vertexs, "
-              f"{self.n_triangles} triangles (amb faldilles), altitud max {self.max_height:.0f} m")
+        self._vertexs = self.get_vertex_data_cpu()
 
         self.visible = True
         self.wireframe = False
@@ -212,19 +207,49 @@ class Terrain:
         # mode globus: nivells de detall (els posa el GraphicsEngine)
         self.pare = None             # terreny menys detallat que hi ha a sota (la peninsula), o None
         self.fills = []              # terrenys mes detallats a sobre: aqui no es dibuixa (forats)
-        self.pegat = None            # pegat dens al voltant de l'observador (posar_pegat)
+        self.pegat = None            # pegat dens al voltant del punt de detall (posar_pegat)
         self.dibuixar_mar = False    # True: el mar del fitxer es dibuixa a 0 m (si no, es veu el globus)
         # llum de l'eclipsi (la posa el GraphicsEngine): 1, 1 i COLOR_CEL = dia normal
         self.llum_sol = 1.0
         self.llum_cel = 1.0
         self.color_cel = COLOR_CEL
-        # ortofoto (mode globus): textures i camins carregats; sense ortofoto, una textura d'1 pixel lligada a
-        # les unitats perque el controlador no avisi de samplers sense textura
+        # ortofoto (mode globus): textures i camins carregats
         self.orto, self.orto_detall, self.rect_detall = None, None, (0.0, 0.0, 0.0, 0.0)
         self.camins_orto = (None, None)
-        self.tex_buida = self.ctx.texture((1, 1), 3, bytes((128, 128, 128)))
         self.tex_visibilitat, self.visibilitat = None, None   # mapa de visibilitat (posar_visibilitat)
         self.tex_vis_detall, self.vis_detall = None, None      # i el de detall (posar_visibilitat_detall)
+
+    def _crear_gpu(self):
+        """Objectes OpenGL (fil principal): textures, VBO/IBO, programa i VAO, com els objectes del repte 4."""
+        d, h = self._d, self.alt
+        files, cols = h.shape
+        # --- textures (fila 0 = nord = v 0). Totes amb mipmaps: de lluny es fa servir la mitjana.
+        self.tex_altitud = self.make_texture(h, 1, 'f4')             # R32F, metres
+        self.tex_gradient = self.make_texture(d['grad'], 2, 'f2')    # RG16F, dh/dx dh/dz
+        self.tex_costa = self.make_texture(d['costa'], 1, 'f2')      # R16F, km (mar > 0)
+        # overlays de l'eclipsi (mateixa extensio que el terreny, menys resolucio): si no hi ha
+        # dades, textures d'1 pixel buides (el shader no hi dibuixa res)
+        efem, ombres = d['ecl_efem'], d['ecl_ombres']
+        if ombres.size == 0:
+            efem, ombres = np.zeros((1, 1, 4), 'f2'), np.full((1, 1), eclipse_data.SENSE_DADES, 'u1')
+        self.tex_eclipsi = self.make_texture(efem, 4, 'f2')          # RGBA16F: enfosq, durada, franja, valid
+        # classes d'ombres: NEAREST i sense mipmaps (barrejar classes no te sentit)
+        self.tex_ombres = self.ctx.texture((ombres.shape[1], ombres.shape[0]), 1, ombres.tobytes(),
+                                           dtype='f1', alignment=1)
+        self.tex_ombres.repeat_x = self.tex_ombres.repeat_y = False
+        self.tex_ombres.filter = (mgl.NEAREST, mgl.NEAREST)
+        # les dades de les textures ja son a la GPU: la CPU nomes guarda les que consulta (alt, costa...)
+        self._d = None
+
+        # --- objecte OpenGL, com els del repte 4: VBO/IBO + shader program + VAO + m_model
+        self.vbo, self.ibo, self.vbo_faldilla, self.ibo_faldilla = self.get_vbo()
+        self.shader_program = self.get_shader_program()
+        self.vao, self.vao_faldilla = self.get_vao()
+        self.m_model = self.get_model_matrix()
+        print(f"Textures {cols}x{files} px, graella {self.n_cols}x{self.n_files} vertexs, "
+              f"{self.n_triangles} triangles (amb faldilles), altitud max {self.max_height:.0f} m")
+        # sense ortofoto ni mapa, textures d'1 pixel lligades a les unitats (el controlador no avisa de samplers buits)
+        self.tex_buida = self.ctx.texture((1, 1), 3, bytes((128, 128, 128)))
         self.tex_visibilitat_buida = self.ctx.texture((1, 1), 4, np.zeros(4, 'u2').tobytes(), dtype='nu2')
         self.on_init()
 
@@ -234,15 +259,16 @@ class Terrain:
         """Graella i faldilles: (vertexs, indexs) de cadascuna."""
         return build_grid(self.n_cols, self.n_files), build_skirt(self.n_cols, self.n_files)
 
-    def get_vbo(self):
+    def get_vertex_data_cpu(self):
+        """Vertexs de la graella i de les faldilles amb els atributs del globus i les altures (CPU, sense OpenGL)."""
         (vertices, indices), (vertices_f, indices_f) = self.get_vertex_data()
         self.n_triangles = (len(indices) + len(indices_f)) // 3
         if self.globus:
             # cada vertex porta, a mes de la UV, la seva posicio sobre l'el·lipsoide, la vertical i la
             # direccio de les columnes (9 floats mes)
             g, g_f = self.atributs_globus(vertices[:, 0], vertices[:, 1]), self.atributs_globus(vertices_f[:, 0], vertices_f[:, 1])
-            vertices = np.hstack([vertices, g]).astype('f4')
-            vertices_f = np.hstack([vertices_f, g_f]).astype('f4')
+            vertices_g = np.hstack([vertices, g]).astype('f4')
+            vertices_fg = np.hstack([vertices_f, g_f]).astype('f4')
             # altura de cada vertex (m), calculada a la CPU: la mitjana per blocs del fitxer (com el nivell
             # de mipmap que llegeix el mode pla) als vertexs. Va en un buffer a part perque la transicio
             # amb el pare pot canviar quan canvia el pegat del pare.
@@ -250,9 +276,16 @@ class Terrain:
             self.h_graella_original = np.maximum(mostrejar_bilineal(
                 self.alt_vertexs, vertices[:, 0], vertices[:, 1]), 0.0).reshape(self.n_files, self.n_cols)
             self.h_graella = self.h_graella_original.copy()
+            self.uv_faldilla = vertices_f[:, :2]
+            return vertices_g, indices, vertices_fg, indices_f
+        return vertices, indices, vertices_f, indices_f
+
+    def get_vbo(self):
+        vertices, indices, vertices_f, indices_f = self._vertexs
+        self._vertexs = None
+        if self.globus:
             self.vbo_h = self.ctx.buffer(self.h_graella.astype('f4'))
             self.vbo_h_faldilla = self.ctx.buffer(reserve=len(vertices_f) * 4)
-            self.uv_faldilla = vertices_f[:, :2]
             self.vbo_h_faldilla.write(self.alcades_faldilla(self.h_graella, self.finestra, self.uv_faldilla))
         return (self.ctx.buffer(vertices), self.ctx.buffer(indices),
                 self.ctx.buffer(vertices_f), self.ctx.buffer(indices_f))
@@ -279,7 +312,7 @@ class Terrain:
         """UV del terreny (0..1) -> coordenades UTM (m), amb el mateix conveni que info_punt."""
         return (self.origen_utm[0] + u * self.mida.x * 1000, self.origen_utm[1] - v * self.mida.y * 1000)
 
-    def atributs_globus(self, us, vs, desar=True):
+    def atributs_globus(self, us, vs, desar=True, a_latlon=None):
         """Per a cada UV: posicio sobre l'el·lipsoide relativa a l'origen (km), vertical del lloc i
         direccio de les columnes (cap on creix u), en ECEF; i la coordenada Web Mercator (dades/teselles.py) per
         al mosaic d'imatges, relativa a la de l'origen del terreny: es un nombre petit, que el float32 guarda amb
@@ -290,8 +323,10 @@ class Terrain:
         if desar and os.path.exists(cache) and os.path.getmtime(cache) > os.path.getmtime(self.cami):
             with np.load(cache) as z:
                 return z['g']
+        a_latlon = a_latlon or self.a_latlon     # des d'un altre fil, un Transformer propi (pyproj no es segur entre fils)
+
         def ecef_de_uv(u, v):
-            lon, lat = self.a_latlon.transform(*self.utm_de_uv(u, v))
+            lon, lat = a_latlon.transform(*self.utm_de_uv(u, v))
             return geodesia.ecef(lat, lon, 0.0), lat, lon
         p, lat, lon = ecef_de_uv(us, vs)
         du = 0.5 / self.n_cols
@@ -444,10 +479,16 @@ class Terrain:
         """Pegat dens al voltant del punt (lat, lon): MIDA_PEGAT x MIDA_PEGAT vertexs, un al centre de
         cada pixel del fitxer (el detall complet del MDT). A la vora, l'altura passa a la de la graella
         general. Si el punt es fora del terreny, el treu."""
-        self.treure_pegat()
-        u, v = self.latlon_a_uv(lat, lon)
+        self.aplicar_pegat(self.calcular_pegat(lat, lon))
+
+    def calcular_pegat(self, lat, lon, fil=False):
+        """La part de CPU del pegat (vertexs, atributs i altures), sense OpenGL; None si el punt es fora del terreny.
+        fil=True: des d'un fil (fa servir Transformers propis). aplicar_pegat el puja a la GPU."""
+        de_latlon = Transformer.from_crs('EPSG:4326', self.crs, always_xy=True) if fil else self.de_latlon
+        a_latlon = Transformer.from_crs(self.crs, 'EPSG:4326', always_xy=True) if fil else self.a_latlon
+        u, v = self.uv_de_utm(*de_latlon.transform(lon, lat))
         if not (0 <= u <= 1 and 0 <= v <= 1):
-            return
+            return None
         files, cols = self.alt.shape
         n_c, n_f = min(MIDA_PEGAT, cols), min(MIDA_PEGAT, files)
         c0 = int(min(max(round(u * cols - n_c / 2), 0), cols - n_c))
@@ -463,53 +504,100 @@ class Terrain:
         base = interpolar_triangles(self.h_graella, self.finestra, us, vs)
         w = pes_transicio(us, vs, finestra, TRANSICIO)
         h = (base + w * (fi - base)).reshape(n_f, n_c)
-        g, g_f = self.atributs_globus(us, vs, desar=False), self.atributs_globus(vertexs_f[:, 0], vertexs_f[:, 1], desar=False)
-        vbo = self.ctx.buffer(np.hstack([vertexs, g]).astype('f4'))
-        vbo_f = self.ctx.buffer(np.hstack([vertexs_f, g_f]).astype('f4'))
-        vbo_h = self.ctx.buffer(h.astype('f4'))
-        vbo_h_f = self.ctx.buffer(self.alcades_faldilla(h, finestra, vertexs_f[:, :2]))
-        ibo, ibo_f = self.ctx.buffer(index), self.ctx.buffer(index_f)
+        g = self.atributs_globus(us, vs, desar=False, a_latlon=a_latlon)
+        g_f = self.atributs_globus(vertexs_f[:, 0], vertexs_f[:, 1], desar=False, a_latlon=a_latlon)
+        return dict(finestra=finestra, h=h, centre=(lat, lon), h_graella=self.h_graella,
+                    vbo=np.hstack([vertexs, g]).astype('f4'), vbo_f=np.hstack([vertexs_f, g_f]).astype('f4'),
+                    h_f=self.alcades_faldilla(h, finestra, vertexs_f[:, :2]), index=index, index_f=index_f)
+
+    def aplicar_pegat(self, p):
+        """Puja a la GPU un pegat de calcular_pegat (o el treu si es None). Si mentrestant la graella general ha
+        canviat (transicio amb el pare), les altures de la vora es tornen a calcular."""
+        self.treure_pegat()
+        if p is None:
+            return
+        if p['h_graella'] is not self.h_graella:
+            # la graella ha canviat mentre es calculava el pegat: la vora ha de passar a l'altura nova
+            u0, v0, u1, v1 = p['finestra']
+            n_f, n_c = p['h'].shape
+            us, vs = (c.ravel() for c in np.meshgrid(np.linspace(u0, u1, n_c), np.linspace(v0, v1, n_f)))
+            files, cols = self.alt.shape
+            c0, f0 = int(round(u0 * cols - 0.5)), int(round(v0 * files - 0.5))
+            fi = np.maximum(self.alt[f0:f0 + n_f, c0:c0 + n_c], 0.0).reshape(-1)
+            base = interpolar_triangles(self.h_graella, self.finestra, us, vs)
+            w = pes_transicio(us, vs, p['finestra'], TRANSICIO)
+            p['h'] = (base + w * (fi - base)).reshape(n_f, n_c)
+            p['h_f'] = self.alcades_faldilla(p['h'], p['finestra'], p['vbo_f'][:, :2])
+        vbo, vbo_f = self.ctx.buffer(p['vbo']), self.ctx.buffer(p['vbo_f'])
+        vbo_h, vbo_h_f = self.ctx.buffer(p['h'].astype('f4')), self.ctx.buffer(p['h_f'])
+        ibo, ibo_f = self.ctx.buffer(p['index']), self.ctx.buffer(p['index_f'])
         sp, g3 = self.shader_program, '2f 3f 3f 3f 2f'
         vao = self.ctx.vertex_array(sp, [(vbo, g3, 'in_uv', 'in_offset', 'in_amunt', 'in_tx', 'in_merc'),
                                          (vbo_h, '1f', 'in_h')], index_buffer=ibo)
         vao_f = self.ctx.vertex_array(sp, [(vbo_f, '2f 1f 3f 3f 3f 2f', 'in_uv', 'in_base', 'in_offset', 'in_amunt',
                                             'in_tx', 'in_merc'),
                                            (vbo_h_f, '1f', 'in_h')], index_buffer=ibo_f)
-        self.pegat = dict(finestra=finestra, h=h, vao=vao, vao_faldilla=vao_f,
-                          recursos=(vao, vao_f, vbo, vbo_f, vbo_h, vbo_h_f, ibo, ibo_f))
+        self.pegat = dict(finestra=p['finestra'], h=p['h'], centre=p['centre'], vao=vao, vao_faldilla=vao_f,
+                          uv_faldilla=p['vbo_f'][:, :2], recursos=(vao, vao_f, vbo, vbo_f, vbo_h, vbo_h_f, ibo, ibo_f))
 
-    def posar_ortofoto(self, general, detall):
+    def reajustar_pegat(self):
+        """Despres de canviar la graella general (actualitzar_transicio), les altures de la vora del pegat passen a
+        la graella nova (nomes les altures: la posicio del pegat no canvia)."""
+        if self.pegat is None:
+            return
+        u0, v0, u1, v1 = self.pegat['finestra']
+        n_f, n_c = self.pegat['h'].shape
+        us, vs = (c.ravel() for c in np.meshgrid(np.linspace(u0, u1, n_c), np.linspace(v0, v1, n_f)))
+        files, cols = self.alt.shape
+        c0, f0 = int(round(u0 * cols - 0.5)), int(round(v0 * files - 0.5))
+        fi = np.maximum(self.alt[f0:f0 + n_f, c0:c0 + n_c], 0.0).reshape(-1)
+        base = interpolar_triangles(self.h_graella, self.finestra, us, vs)
+        w = pes_transicio(us, vs, self.pegat['finestra'], TRANSICIO)
+        h = (base + w * (fi - base)).reshape(n_f, n_c)
+        self.pegat['h'] = h
+        vbo_h, vbo_h_f = self.pegat['recursos'][4], self.pegat['recursos'][5]
+        vbo_h.write(h.astype('f4').tobytes())
+        vbo_h_f.write(self.alcades_faldilla(h, self.pegat['finestra'], self.pegat['uv_faldilla']))
+
+    def posar_ortofoto(self, general, detall, llegides=None):
         """Carrega l'ortofoto de la zona (general: GeoTIFF amb la graella del MDT) i la de detall (o None). Nomes
         torna a llegir el que ha canviat. La general ha de tenir el CRS i els limits del MDT (mateixes UV); la de
-        detall, el mateix CRS: el seu rectangle en UV del terreny es calcula dels seus limits."""
+        detall, el mateix CRS: el seu rectangle en UV del terreny es calcula dels seus limits. llegides: {cami:
+        (rgb, limits)} ja llegides en un fil (llegir_ortofoto); les que no hi son es llegeixen aqui."""
         if (general, detall) == self.camins_orto:
             return
+        llegides = llegides or {}
         g_ant, d_ant = self.camins_orto
         if general != g_ant:
             if self.orto is not None:
                 self.orto.release()
-            self.orto = self.textura_ortofoto(general, comprovar_graella=True) if general else None
+            self.orto = self.textura_ortofoto(*(llegides.get(general) or self.llegir_ortofoto(general, True))) \
+                if general else None
         if detall != d_ant:
             if self.orto_detall is not None:
                 self.orto_detall.release()
-            self.orto_detall = self.textura_ortofoto(detall) if detall else None
+            self.orto_detall = None
             if detall:
-                with rasterio.open(detall) as f:
-                    b = f.bounds
+                rgb, b = llegides.get(detall) or self.llegir_ortofoto(detall)
+                self.orto_detall = self.textura_ortofoto(rgb, b)
                 u0, v0 = self.uv_de_utm(b.left, b.top)
                 u1, v1 = self.uv_de_utm(b.right, b.bottom)
                 self.rect_detall = (u0, v0, u1, v1)
         self.camins_orto = (general, detall)
 
-    def textura_ortofoto(self, cami, comprovar_graella=False):
-        """Textura RGB8 amb mipmaps i filtre anisotropic (el terra es veu molt inclinat des del carrer)."""
+    def llegir_ortofoto(self, cami, comprovar_graella=False):
+        """(RGB uint8, limits) d'una ortofoto, comprovant que te el CRS del terreny (i, la general, la seva graella).
+        Sense OpenGL: es pot fer en un fil."""
         with rasterio.open(cami) as f:
             assert f.crs.to_string() == self.crs.to_string(), f'{cami}: CRS {f.crs} (el terreny es {self.crs})'
             if comprovar_graella:
                 x0, y0 = self.origen_utm
                 assert abs(f.bounds.left - x0) < 1e-3 and abs(f.bounds.top - y0) < 1e-3 and \
                     abs(f.bounds.right - x0 - self.mida.x * 1000) < 1e-3, f'{cami}: no te la graella del MDT'
-            rgb = np.ascontiguousarray(np.moveaxis(f.read(), 0, 2))
+            return np.ascontiguousarray(np.moveaxis(f.read(), 0, 2)), f.bounds
+
+    def textura_ortofoto(self, rgb, limits=None):
+        """Textura RGB8 amb mipmaps i filtre anisotropic (el terra es veu molt inclinat des del carrer)."""
         tex = self.ctx.texture((rgb.shape[1], rgb.shape[0]), 3, rgb.tobytes(), alignment=1)
         tex.build_mipmaps()
         tex.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)

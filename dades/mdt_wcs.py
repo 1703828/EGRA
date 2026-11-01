@@ -1,8 +1,8 @@
 """
 Servei WCS 2.0.1 del MDT de l'IGN (sense OpenGL): peticions, lectura de la resposta i GeoTIFF de sortida.
 
-El fan servir scripts/descarregar_mdt.py (zones grans, per rajoles) i dades/llocs.py (el relleu de 5 m d'un lloc
-nou, triat amb doble clic al programa).
+El fan servir scripts/descarregar_mdt.py (zones grans, per rajoles), dades/llocs.py (el relleu de 5 m d'un lloc
+nou, preparat en navegar) i dades/alcaries.py (el mateix format de resposta al WCS de l'MDS normalitzat).
 
 Que hem comprovat del servei (GetCapabilities + DescribeCoverage, octubre 2026):
   - Cobertures Elevacion25830_<res> amb res = 1000, 500, 200, 25, 5. Eixos del SUBSET: "x" i "y".
@@ -26,11 +26,12 @@ EPSG = 25830
 NODATA = -32767.0  # nomes per a pixels que no ha cobert cap rajola (no n'hi hauria d'haver)
 
 
-def peticio(params, intents=5):
-    """GET al WCS amb reintents (espera 2, 4, 8... s entre intents)."""
+def peticio(params, intents=5, url=URL_WCS):
+    """GET al WCS (per defecte el del MDT; dades/alcaries.py hi demana el de l'MDS) amb reintents (espera 2, 4,
+    8... s entre intents)."""
     for intent in range(1, intents + 1):
         try:
-            r = requests.get(URL_WCS, params=params, timeout=300)
+            r = requests.get(url, params=params, timeout=300)
             if r.status_code == 200:
                 return r
             # un 4xx vol dir que la peticio esta malament: no te sentit repetir-la

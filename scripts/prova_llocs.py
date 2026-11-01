@@ -1,19 +1,20 @@
 """
-Comprova els llocs nous amb detall (dades/llocs.py) i el doble clic que els prepara (main.py).
+Comprova els llocs amb detall (dades/llocs.py) i el doble clic (main.py, basecode/detall.py).
 
-1. Sense finestra: clau i centre arrodonits a 100 m, cobertura dels edificis (marge de 500 m), i l'esborrat dels
-   llocs mes antics (amb fitxers de prova en una carpeta temporal: no toca els llocs reals).
-2. Amb el programa (finestra oculta):
+1. Sense finestra: quadricula de 3 km (clau del centre mes proper), cobertura dels edificis (la cel·la, 3 x 3 km),
+   els llocs antics (centre arrodonit a 100 m, 2 x 2 km amb 500 m de marge) i l'esborrat dels mes antics (amb
+   fitxers de prova en una carpeta temporal: no toca els llocs reals).
+2. Amb el programa (finestra amagada):
    - doble clic a la UAB (edificis de la zona del Valles): no es prepara cap lloc;
    - doble clic al mar: no es prepara cap lloc;
-   - doble clic a Manresa: si el lloc ja hi es, es carrega al moment (zona i edificis); si no (o amb --xarxa en
-     un punt nou), es prepara en segon pla: el bucle de dibuix continua (fotogrames durant la preparacio) i, en
-     acabar, l'observador queda sobre el relleu de 5 m del lloc, amb els edificis.
-   - en reproduccio, el lloc preparat no es carrega fins a la pausa.
+   - doble clic a Manresa: el lloc antic del disc es carrega al moment (zona i edificis) i l'observador queda
+     sobre el seu relleu de 5 m;
+   - en reproduccio, a la vista des del terra, una zona que s'acaba de carregar no canvia el relleu de sota
+     l'observador fins a la pausa.
+El detall que es prepara en navegar (relleu, edificis i mapa nous) el prova scripts/prova_detall.py.
 Captures a captures/proves/llocs_*.png.
 
-Executa (des de l'arrel, amb l'entorn egra):  python scripts/prova_llocs.py [--xarxa]
-(--xarxa: prepara un lloc nou, a Igualada, encara que ja hi sigui: baixa ~6 MB i tarda ~40 s.)
+Executa (des de l'arrel, amb l'entorn egra):  python scripts/prova_llocs.py
 """
 import os
 import sys
@@ -47,15 +48,19 @@ def main():
             errors.append(text)
 
     # ------------------------------------------------------------ 1. sense finestra
-    print('== 1. Claus, cobertura i esborrat')
-    c = llocs.clau(901500.0, 4630500.0)
-    ok(llocs.centre(c) == (901500.0, 4630500.0), f'clau {c} -> centre')
-    ok(llocs.cobreix(c, 901500 + 499, 4630500 - 499) and not llocs.cobreix(c, 901500 + 501, 4630500),
-       'els edificis cobreixen el punt fins a 500 m del centre (1 km de quadrat menys 500 m de marge)')
+    print('== 1. Quadricula, cobertura i esborrat')
+    c = llocs.clau_per_punt(901400.0, 4629600.0)
+    ok(c == 'lloc_900000_4629000' and llocs.de_quadricula(c), f'el punt (901400, 4629600) es del lloc {c}')
+    ok(llocs.cobreix(c, 900000 + 1499, 4629000 - 1499) and not llocs.cobreix(c, 900000 + 1501, 4629000),
+       'els edificis del lloc cobreixen la seva cel·la (1,5 km al voltant del centre)')
+    antic = llocs.clau(901500.0, 4630500.0)
+    ok(not llocs.de_quadricula(antic) and llocs.cobreix(antic, 901500 + 499, 4630500 - 499)
+       and not llocs.cobreix(antic, 901500 + 501, 4630500),
+       'un lloc antic (doble clic) cobreix fins a 500 m del centre (1 km de quadrat menys 500 m de marge)')
     dir_real = llocs.DIR_LLOCS
     with tempfile.TemporaryDirectory() as tmp:
         llocs.DIR_LLOCS = tmp
-        claus = [llocs.clau(1000.0 * k, 0.0) for k in range(5)]
+        claus = [llocs.clau(3000.0 * k, 0.0) for k in range(llocs.MAX_LLOCS + 2)]
         for k, ck in enumerate(claus):
             open(llocs.cami_mdt(ck), 'w').close()
             os.utime(llocs.cami_mdt(ck), (1e9 + k, 1e9 + k))      # del mes antic al mes recent
@@ -92,39 +97,39 @@ def main():
         app.canviar_vista(0)
         return app.anar_al_punt(lat, lon)
 
-    def esperar(maxim_s=600):
-        t0, n = time.time(), 0
-        while app.preparacio is not None and time.time() - t0 < maxim_s:
-            fotograma()
-            n += 1
-            time.sleep(0.05)
-        return n, time.time() - t0
+    def preparacions():
+        return {t for t in app.detall.feines if t in ('relleu', 'edificis')}
 
     doble_clic(*UAB)
-    ok(app.preparacio is None and app.edificis is not None, f'UAB: sense lloc nou; zona {app.nom_zona}, '
+    for _ in range(10):
+        fotograma()
+    ok(not preparacions() and app.edificis is not None, f'UAB: sense lloc nou; zona {app.nom_zona}, '
        f'{app.edificis.n_parts if app.edificis else 0} parts')
     doble_clic(*MAR)
-    ok(app.preparacio is None, 'mar: sense lloc nou')
+    for _ in range(10):
+        fotograma()
+    ok(not preparacions(), 'mar: sense lloc nou')
 
-    lat, lon = IGUALADA if XARXA else MANRESA
-    if XARXA:
-        x, y = llocs._a_utm.transform(lon, lat)
-        ck = llocs.clau(round(x / 100) * 100, round(y / 100) * 100)
-        for f in llocs.fitxers(ck):
-            if os.path.exists(f):
-                os.remove(f)
     t0 = time.time()
-    doble_clic(lat, lon)
-    if app.preparacio is not None:
-        n, s = esperar()
-        ok(n > 10, f'preparacio en segon pla: {n} fotogrames dibuixats en {s:.0f} s')
-    else:
-        print(f'   (el lloc ja hi era: carregat en {time.time() - t0:.1f} s; --xarxa per preparar-ne un de nou)')
-    clau = app.clau_zona.get(app.nom_zona, '')
+    doble_clic(*MANRESA)
+    nou = bool(preparacions()) or app.zona is None or not app.zona.conte(*MANRESA)
+    # si el lloc no era al disc, es prepara en segon pla (xarxa, ~1 min): s'espera, dibuixant
+    n = 0
+    while time.time() - t0 < 600 and (app.zona is None or not app.zona.conte(*MANRESA) or app.edificis is None
+                                      or preparacions()):
+        fotograma()
+        n += 1
+        time.sleep(0.05)
+    for _ in range(5):
+        fotograma()
+    s_carrega = time.time() - t0
     o = app.observador
+    clau = app.detall.carregades[app.zona.cami]['clau'] if app.zona is not None else ''
     alt_zona = app.zona.altitud_latlon(o.lat, o.lon) if app.zona is not None else None
     ok(clau.startswith('lloc_') and app.edificis is not None and app.edificis.n_parts > 100,
-       f'lloc carregat: {app.nom_zona}, {app.edificis.n_parts if app.edificis else 0} parts d\'edifici')
+       f'Manresa: {"preparat en segon pla" if nou else "el lloc del disc es carrega al moment"} '
+       f'({s_carrega:.1f} s, {n} fotogrames dibuixats mentrestant): {app.nom_zona}, '
+       f'{app.edificis.n_parts if app.edificis else 0} parts d\'edifici')
     ok(alt_zona is not None and abs(o.altitud_m - alt_zona) < 0.01,
        f'observador sobre el relleu de 5 m del lloc ({o.altitud_m:.1f} m)')
     app.camera_observador.mirar(200.0, 5.0)
@@ -132,20 +137,21 @@ def main():
         fotograma()
     desa('llocs_ulls.png')
 
-    # reproduccio: el lloc preparat espera la pausa
-    class Fet:
-        fet, error = True, None
-
-        def segons(self):
-            return 0.0
-    fet = Fet()
-    fet.clau = clau
-    app.preparacio, app.reproduint = fet, True
+    # reproduccio des del terra: una zona carregada en segon pla no s'activa fins a la pausa
+    zona_obs = app.zona
+    app.reproduint = True
+    cami_uab = next(c for c, z in app.detall.carregades.items() if z['nom'].startswith('Valles'))
+    app.detall.recollir = lambda: None          # sense feines reals: es prova la condicio directament
+    o_lat, o_lon = o.lat, o.lon
+    app.observador = type(o)(UAB[0], UAB[1], o.altitud_m, o.nom)   # (no es fa servir triar_punt, que es bloqueja)
+    app.detall.ultima = -1e9
     fotograma()
-    ok(app.preparacio is not None and 'pausar' in app.text_lloc(), 'en reproduccio, el lloc espera la pausa')
+    ok(app.zona is zona_obs, 'en reproduccio, la vista des del terra no canvia la zona de sota l\'observador')
     app.reproduint = False
+    app.detall.ultima = -1e9
     fotograma()
-    ok(app.preparacio is None, 'en pausa, es carrega')
+    ok(app.zona is not None and app.zona.cami == cami_uab, 'en pausa, la zona del punt es la que es dibuixa')
+    app.observador = type(o)(o_lat, o_lon, o.altitud_m, o.nom)
 
     print(f"\n{'Tot correcte' if not errors else f'{len(errors)} condicions fallen'}")
     return 1 if errors else 0

@@ -290,7 +290,7 @@ def main():
         d = float(np.frombuffer(objectiu.read(viewport=(px, py, 1, 1), components=1, attachment=-1, dtype='f4'), 'f4')[0])
         return None if d >= 1.0 else app.camera.desprojectar(px + 0.5, py + 0.5, d, W, H)
     app.punt_sota_cursor = punt_sota_cursor
-    app.preparar_lloc = lambda lat, lon: None   # sense descarregues: els llocs nous els prova prova_llocs.py
+    app.detall.preparar = False   # sense descarregues: el detall en navegar el prova prova_detall.py
     app.posar_exploracio_sobre_el_punt()
     app.canviar_vista(0)
     ce.orientar(ce.rumb, -45.0)

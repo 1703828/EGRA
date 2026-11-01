@@ -11,12 +11,14 @@ out vec3 boira_v;     // color de la boira en aquesta direccio
 out float visibilitat; // 1 sense boira, 0 tot boira
 flat out float llargada;
 flat out float plantes;
+flat out float mesurada;      // 1 si l'altura ve d'un LiDAR (dades/alcaries.py), 0 si es estimada per plantes
 flat out vec3 base;   // color de la coberta o de la facana d'aquesta part
 uniform mat4 m_proj;
 uniform mat4 m_view;
 uniform mat4 m_model; // trasllada l'origen dels edificis a la seva posicio relativa a la camera
 out float logz;
-uniform sampler2D tex_parts;   // per part: RGB color de la coberta, A plantes (+128 si el color es de l'ortofoto)
+uniform sampler2D tex_parts;   // per part: RGB color de la coberta, A plantes (0-63) + 64 si l'altura es mesurada
+                               // + 128 si el color de la coberta es de l'ortofoto
 uniform float densitat_boira;  // 1/km
 uniform vec3 boira_sol;        // color del cel a l'horitzo cap al Sol i al contrari (com terrain.frag)
 uniform vec3 boira_contra;
@@ -41,7 +43,8 @@ void main() {
     int part = int(in_atr.w + 0.5);
     vec4 dades = texelFetch(tex_parts, ivec2(part % 1024, part / 1024), 0);
     int a = int(dades.a * 255.0 + 0.5);
-    plantes = float(a & 127);
+    plantes = float(a & 63);
+    mesurada = float((a & 64) != 0);
     uint h = hash(uint(part) + 1u);
     float variacio = float((h >> 8) & 255u) / 255.0;
     if (llargada < 0.0)

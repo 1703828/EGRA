@@ -4,10 +4,14 @@ Edificis de les zones de detall: lectura, altures, malla i ocultacio del Sol (se
 Dades: parts d'edifici del Catastro INSPIRE (scripts/descarregar_edificis.py), ja en EPSG:25830, a
 data/edificis/<zona>.gpkg. Cada part es un contorn amb un nombre de plantes sobre rasant.
 
-Altures (estimades, no mesurades):
-  - altura sobre el sol de cada part = plantes x ALCADA_PLANTA_M. El Catastro no dona l'altura en metres; el
-    valor de 3,0 m per planta es una aproximacio habitual (la planta baixa i les cobertes inclinades o amb
-    ampit la fan variar). Incertesa estimada: ~±1 m per planta mes la coberta (±20-30 %).
+Altures, dues versions de la mateixa zona:
+  - estimades (sempre, de seguida): altura sobre el sol de cada part = plantes x ALCADA_PLANTA_M. El Catastro no
+    dona l'altura en metres; el valor de 3,0 m per planta es una aproximacio habitual (la planta baixa i les
+    cobertes inclinades o amb ampit la fan variar). A la UAB queda ~2-3 m per sota de la mesurada
+    (scripts/validar_alcaries.py). Nomes per a la vista provisional: el mapa de visibilitat no les fa servir.
+  - mesurades (dades/alcaries.py, per cel·les de 3 x 3 km a mesura que es miren): l'altura de cada part surt
+    d'un model d'alcaries LiDAR (ICGC a Catalunya, IGN a la resta); les parts que no s'hi poden mesurar (o de
+    cel·les encara no mesurades) conserven l'estimacio, marcada com a tal (origen_alcada = 0).
   - cota del sol de referencia (absoluta, m sobre el nivell del mar) = mediana del MDT de 5 m als vertexs i
     al centre del contorn; cota de la coberta = referencia + altura. En un terreny inclinat, la diferencia
     entre el punt mes alt i el mes baix sota l'edifici es una incertesa mes de la coberta.
@@ -51,14 +55,26 @@ def fitxer_zona(zona):
     return os.path.join(DIR_EDIFICIS, f'{zona}.gpkg')
 
 
-def llegir_zona(zona):
-    """GeoDataFrame de les parts d'edifici d'una zona (EPSG:25830), o None si no se n'han preparat."""
+def llegir_zona(zona, mesurades=False):
+    """GeoDataFrame de les parts d'edifici d'una zona (EPSG:25830), o None si no se n'han preparat. alcada_m es
+    l'estimacio per plantes; amb mesurades=True (i les altures de dades/alcaries.py preparades), la mesurada a les
+    parts on n'hi ha. origen_alcada: 1 mesurada, 0 estimada."""
     cami = fitxer_zona(zona)
     if not os.path.exists(cami):
         return None
     import geopandas as gpd
     parts = gpd.read_file(cami, layer='parts')
     parts['alcada_m'] = parts['plantes'] * ALCADA_PLANTA_M
+    parts['origen_alcada'] = 0
+    if mesurades:
+        from .alcaries import llegir_alcades
+        m = llegir_alcades(zona)
+        if m is not None:
+            alcada = dict(zip(m['ids'].astype(str), m['alcada']))     # nomes les cel·les ja mesurades
+            h = parts['id'].astype(str).map(alcada).to_numpy(dtype=float)
+            ok = np.isfinite(h)
+            parts.loc[ok, 'alcada_m'] = h[ok]
+            parts.loc[ok, 'origen_alcada'] = 1
     return parts
 
 
@@ -231,7 +247,8 @@ def fraccions_disc(perfil, ull_ecef, sol_ecef, radi_sol_km, lluna_ecef, radi_llu
 
 # ------------------------------------------------------------ malla preparada (memoria cau)
 
-VERSIO_MALLA = 5            # 3: contorns (obstacles); 4: atributs de les textures; 5: triangles cap a fora
+VERSIO_MALLA = 6            # 3: contorns (obstacles); 4: atributs de les textures; 5: triangles cap a fora;
+                            # 6: plantes i origen de l'altura (estimada o mesurada) de cada part
 
 
 def mostrejador(alt, transform):
@@ -314,26 +331,38 @@ def colors_cobertes(zona, contorns, general, detall):
     return colors
 
 
-def preparar_malla(zona, cami_mdt):
-    """Malla dels edificis d'una zona, a data/cache/edificis_<zona>.npz: triangles (float32, km) relatius a
-    un origen (float64, ECEF, el centre dels edificis a l'el·lipsoide) i les cotes de cada part. Es torna a
-    calcular nomes si han canviat els edificis, el MDT o VERSIO_MALLA. Retorna el dict, o None sense dades."""
+def cami_malla(zona, mesurades=False):
     from . import data_io
-    cache = os.path.join(data_io.DIR_CACHE, f'edificis_{zona}.npz')
+    return os.path.join(data_io.DIR_CACHE, f'edificis_{zona}{"_mesurades" if mesurades else ""}.npz')
+
+
+def preparar_malla(zona, cami_mdt, mesurades=False, nomes_llegir=False):
+    """Malla dels edificis d'una zona, a data/cache/edificis_<zona>[_mesurades].npz: triangles (float32, km)
+    relatius a un origen (float64, ECEF, el centre dels edificis a l'el·lipsoide), les cotes de cada part, les
+    plantes i l'origen de l'altura. Es torna a calcular nomes si han canviat els edificis, el MDT, les altures
+    mesurades o VERSIO_MALLA. mesurades=True: amb les altures de dades/alcaries.py (None si no s'han preparat).
+    nomes_llegir: None si la memoria cau no hi es (no la calcula). Retorna el dict, o None sense dades."""
+    from .alcaries import cami_alcades
+    cache = cami_malla(zona, mesurades)
     gpkg = fitxer_zona(zona)
-    if not os.path.exists(gpkg):
+    if not os.path.exists(gpkg) or (mesurades and not os.path.exists(cami_alcades(zona))):
         return None
-    clau = np.array([VERSIO_MALLA, os.path.getmtime(gpkg), os.path.getmtime(cami_mdt)])
+    clau = np.array([VERSIO_MALLA, os.path.getmtime(gpkg), os.path.getmtime(cami_mdt),
+                     os.path.getmtime(cami_alcades(zona)) if mesurades else 0.0])
     if os.path.exists(cache):
         with np.load(cache, allow_pickle=False) as z:
-            if np.array_equal(z['clau'], clau):
+            if z['clau'].shape == clau.shape and np.array_equal(z['clau'], clau):
                 return {k: z[k] for k in z.files}
-    parts = llegir_zona(zona)
+    if nomes_llegir:
+        return None
+    from . import data_io
+    parts = llegir_zona(zona, mesurades)
     if parts is None or len(parts) == 0:
         return dict(triangles=np.zeros((0, 3, 3), 'f4'), origen=np.zeros(3), n_parts=np.array(0), clau=clau,
                     vores=np.zeros((0, 5)), contorns_wkb=np.zeros(0, 'u1'), contorns_inici=np.zeros(1, 'i8'),
-                    cota_coberta=np.zeros(0), cota_sol=np.zeros(0), atributs=np.zeros((0, 3, 4), 'f4'))
-    d = data_io.carregar_terreny(cami_mdt, 16384, 1024)
+                    cota_coberta=np.zeros(0), cota_sol=np.zeros(0), atributs=np.zeros((0, 3, 4), 'f4'),
+                    plantes=np.zeros(0, 'i2'), origen_alcada=np.zeros(0, 'u1'), font_alcada=np.array(''))
+    d = data_io.carregar_terreny(cami_mdt, 16384, data_io.vertexs_maxims(cami_mdt))
     terra = mostrejador(d['alt'], d['transform'])
     # la malla del terreny (fora del pegat dens) fa servir l'altitud mitjanada per blocs als vertexs
     files, cols = d['alt'].shape
@@ -344,9 +373,19 @@ def preparar_malla(zona, cami_mdt):
     lon, lat = Transformer.from_crs(CRS, 'EPSG:4326', always_xy=True).transform((x0 + x1) / 2, (y0 + y1) / 2)
     origen = geodesia.ecef(lat, lon, 0.0)
     tri, atributs = malla_zona(parts, origen)
+    font = ''
+    if mesurades:
+        from .alcaries import llegir_alcades
+        f = llegir_alcades(zona)['font_part']
+        f = f[f != '']
+        font = str(max(set(f.tolist()), key=f.tolist().count)) if len(f) else ''   # la font de la majoria
     r = dict(triangles=tri.astype('f4'), atributs=atributs, origen=origen, n_parts=np.array(len(parts)), clau=clau,
+             plantes=parts['plantes'].to_numpy().astype('i2'), origen_alcada=parts['origen_alcada'].to_numpy().astype('u1'),
+             font_alcada=np.array(font),
              cota_sol=parts['cota_sol'].to_numpy(), cota_coberta=parts['cota_coberta'].to_numpy(),
              desnivell=parts['desnivell'].to_numpy(), vores=arestes(parts), **contorns_a_bytes(parts.geometry.values))
     os.makedirs(data_io.DIR_CACHE, exist_ok=True)
-    np.savez_compressed(cache, **r)    # comprimida: ~5 vegades menys espai; llegir-la tarda ~0,1 s mes
+    # comprimida: ~5 vegades menys espai; llegir-la tarda ~0,1 s mes. Primer amb un altre nom (es pot preparar en un fil)
+    np.savez_compressed(cache + '.tmp.npz', **r)
+    os.replace(cache + '.tmp.npz', cache)
     return r

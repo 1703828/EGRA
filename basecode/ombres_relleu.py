@@ -33,7 +33,7 @@ from .programes import carregar_programa
 from dades import geodesia
 
 RESOLUCIO = 4096       # texels per costat del mapa d'ombres
-MIDA_KM = 16.0         # mig costat del quadrat de terreny cobert, al voltant de l'observador
+MIDA_KM = 16.0         # mig costat del quadrat de terreny cobert, al voltant de l'ancora (punt de detall)
 DIST_SOL_KM = 150.0    # on es posa la "camera" de la llum, cap al Sol (ha de ser mes enlla de les muntanyes)
 UNITAT_TEXTURA = 6     # unitat de textura del mapa (terrain.frag en fa servir de la 0 a la 5)
 DESPLACAMENT_TEXELS = 1.0   # el punt es mira 1 texel fora de la superficie (amb 0,5 apareix acne)
@@ -79,7 +79,9 @@ class OmbresRelleu:
     def matriu_llum(self, lat, lon, zona):
         """m_llum: de posicio relativa a l'ancora (km) a coordenades de clip de la llum."""
         app = self.app
-        az, el = app.model.sol(app.hora)                    # Sol aparent (amb refraccio)
+        # Sol aparent (amb refraccio) vist des de l'ancora: pot ser lluny del punt d'observacio (explorant)
+        az, el = geodesia.azimut_elevacio(app.sol_ecef - geodesia.ecef(lat, lon, 0.0), lat, lon)
+        el += geodesia.refraccio_graus(el)
         cap_al_sol = direccio_mirada(lat, lon, az, el)
         est, nord, amunt = geodesia.base_local(lat, lon)
         vista = glm.lookAt(glm.vec3(*(cap_al_sol * DIST_SOL_KM)), glm.vec3(0.0), glm.vec3(*amunt))
@@ -99,8 +101,10 @@ class OmbresRelleu:
     def actualitzar(self):
         """Passada des del Sol, si ha canviat alguna cosa. Es crida abans de dibuixar el fotograma."""
         app, zona = self.app, self.app.zona
-        o = app.observador
-        if not self.actiu or zona is None or not zona.conte(o.lat, o.lon):
+        # ancora: el centre del pegat dens de la zona (el punt de detall: el que es mira o el punt d'observacio)
+        lat, lon = zona.pegat['centre'] if zona is not None and zona.pegat is not None else \
+            (app.observador.lat, app.observador.lon)
+        if not self.actiu or zona is None or not zona.conte(lat, lon):
             # sense mapa: cal oblidar la clau perque, en tornar-les a encendre (en pausa, la mateixa
             # hora), el mapa es torni a calcular i valid torni a ser True
             self.valid, self.clau = False, None
@@ -110,12 +114,12 @@ class OmbresRelleu:
             self.oblidar_vaos()          # zona, pegat o edificis nous: els buffers han canviat
             self.zona, self.pegat, self.edificis, self.clau = zona, pegat, edificis, None
         amb_edificis = edificis is not None and edificis.visible
-        clau = (app.hora, o.lat, o.lon, zona.exaggeration, amb_edificis)
+        clau = (app.hora, lat, lon, zona.exaggeration, amb_edificis)
         if clau == self.clau:
             return
         self.clau = clau
-        self.ancora = geodesia.ecef(o.lat, o.lon, 0.0)
-        self.m_llum, el = self.matriu_llum(o.lat, o.lon, zona)
+        self.ancora = geodesia.ecef(lat, lon, 0.0)
+        self.m_llum, el = self.matriu_llum(lat, lon, zona)
         self.valid = el > -1.0            # amb el Sol sota l'horitzo no hi ha ombres del relleu
 
         anterior, viewport = self.ctx.fbo, self.ctx.viewport
