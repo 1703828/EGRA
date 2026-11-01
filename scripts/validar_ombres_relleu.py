@@ -132,7 +132,9 @@ def main():
             app.ombres.actiu = actiu
             estats.append(pixels_ombra())
         # apagades, alguns pixels foscos que no son terreny de la zona (cel, globus): en queden 0-3
-        ok_interruptor = max(estats[0], estats[2]) <= 10 and estats[1] == estats[3] > 1000
+        # encesa les dues vegades, el mateix mapa: un pixel de la vora d'una ombra pot canviar d'una execucio a
+        # l'altra (passava ja abans de la F36: ~1 de cada 3 execucions, 100.496 contra 100.497); se n'admeten 5
+        ok_interruptor = max(estats[0], estats[2]) <= 10 and abs(estats[1] - estats[3]) <= 5 and min(estats[1], estats[3]) > 1000
         print(f"Interruptor (apagar, encendre, apagar, encendre en pausa): pixels a l'ombra {estats}")
         if not ok_interruptor:
             errors.append(f'{nom}: interruptor de les ombres')

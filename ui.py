@@ -323,7 +323,7 @@ def panell_capes(app):
     _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
     if app.mostrar_edificis or app.edificis_aeris:
         llegenda(COLOR_ALCADA_ESTIMADA, 'Blau: altura estimada (sense LiDAR)')
-    _, app.ombres.actiu = imgui.checkbox('Ombres del relleu', app.ombres.actiu)
+    _, app.ombres.actiu = imgui.checkbox('Ombres (relleu i edificis)', app.ombres.actiu)
     _, app.mostrar_noms = imgui.checkbox('Noms de lloc (vista aeria)', app.mostrar_noms)
 
 

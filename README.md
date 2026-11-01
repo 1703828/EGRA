@@ -203,8 +203,8 @@ el Sol (i el halo). Per defecte es dibuixen **en primera persona** (observar des
 l'horitzó que deixen, i no a la vista aèria, on taparien la fotografia. Les opcions del panell **Edificis des
 del terra** i **Edificis també a la vista aèria** ho canvien sense moure la càmera ni l'hora, i el panell diu quina part del Sol tapen des dels ulls
 (càlcul geomètric amb el disc sencer, separat de la part que tapa la Lluna). Les **altures són estimades**:
-plantes del Catastro × 3 m (incertesa ~±20–30 %). Els edificis de més de ~12 m també fan ombra al terra
-(mapa d'ombres de la zona de 5 m).
+plantes del Catastro × 3 m (incertesa ~±20–30 %), o mesurades amb LiDAR (veure a sota). Els edificis fan ombra
+al terra i als altres edificis (veure *Ombres del relleu i dels edificis*).
 
 **Edificis com a obstacles.** Els punts d'observació no poden quedar dins d'un edifici: si el lloc triat (de la
 llista o amb un doble clic, també sobre un terrat) cau dins d'un contorn del Catastro, els ulls es posen al punt
@@ -275,14 +275,23 @@ De molt a prop (menys de ~0,5 km per píxel de pantalla) s'hi afegeixen cràters
 **il·lustratius** (no són dades). **El Sol**, des del terra, és un disc blanc que enlluerna; en pujar fins a l'espai pren
 un aspecte de foc (flames animades, vora fosca i vermella), il·lustratiu, com les fotos fetes amb filtre.
 
-### Ombres del relleu
+### Ombres del relleu i dels edificis
 
 Dins de la zona de 5 m de l'observador (16 km al voltant del punt), les muntanyes fan ombra amb la
 tècnica del *shadow mapping* (`basecode/ombres_relleu.py`): primer es dibuixa el relleu vist des del Sol
 en una textura de profunditat i, després, cada punt del terreny mira si és més lluny del Sol que el que hi
 ha guardat. L'ombra del relleu només treu la llum directa del Sol; la del cel continua. És diferent de
-l'ombra de la Lluna (la part del Sol que tapa la Lluna, a tota una regió). Es pot apagar a **Avançat**.
-Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m no en fan.
+l'ombra de la Lluna (la part del Sol que tapa la Lluna, a tota una regió). Es pot apagar al panell *Càmera*.
+Fora de la zona de 5 m no hi ha ombres del relleu.
+
+**Edificis (F36).** Hi ha un segon mapa, **fi**: 3 × 3 km al voltant del punt de detall, amb píxels de 0,7–0,9 m
+(el gran, de 32 km, en té de ~8 m). Amb aquest, tots els edificis fan ombra (al terra i als altres edificis) i les
+façanes i les cobertes **en reben**. La funció és compartida pel terreny i els edificis (`shaders/ombres.glsl`).
+Amb el Sol rasant (a la posta del 2026), el terra rep molt poca llum directa (un 5 % amb el Sol a 3°) i l'ombra hi
+es nota poc; es veu a les façanes de cara al Sol i, a hores amb el Sol més alt, als carrers i les places. Per evitar
+que una superfície es faci ombra a si mateixa, el marge creix amb la inclinació de la llum: amb el Sol rasant, els
+primers metres de l'ombra arran de l'edifici es perden. Els mapes es refan quan l'hora canvia en 1 s o més (temps de
+l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
 
 ### Panell i barra de temps
 

@@ -27,6 +27,9 @@ uniform vec3 color_sol;        // color de la llum del Sol (dades/atmosfera.colo
 uniform vec3 color_amb;        // color de la llum del cel
 uniform vec3 amunt;            // vertical local al centre dels edificis (unitari)
 
+// ombres del relleu i dels altres edificis (basecode/ombres_relleu.py): factor_ombra; nomes treu la llum directa del Sol
+#include "ombres.glsl"
+
 const float PLANTA = 3.0;      // m (com dades/edificis.ALCADA_PLANTA_M)
 const float K_CEL = 0.25;      // pes de la llum del cel i del Sol (els mateixos que terrain.frag)
 const float K_SOL = 0.75;
@@ -62,7 +65,7 @@ void main() {
             }
         }
     }
-    float lambert = max(dot(n, sol_dir), 0.0);
+    float lambert = max(dot(n, sol_dir), 0.0) * factor_ombra(pos_rel, n, sol_dir);
     vec3 cel = K_CEL * llum_cel * color_amb, sol = K_SOL * llum_sol * color_sol;
     vec3 llum = cel + lambert * sol;             // cobertes: com el terra (terrain.frag), que te el mateix color de foto
     if (llargada >= 0.0) {

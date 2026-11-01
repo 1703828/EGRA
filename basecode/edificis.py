@@ -185,6 +185,7 @@ class Edificis:
         sp['boira_sol'].value, sp['boira_contra'].value = app.boira_sol, app.boira_contra
         sp['sol_horitzontal'].write(app.sol_horitzontal)
         sp['amunt_camera'].write(app.amunt_camera)
+        app.ombres.aplicar_edificis(sp, self)   # ombres del relleu i dels altres edificis (ombres.glsl)
         self.tex_parts.use(UNITAT_PARTS)
         sp['tex_parts'].value = UNITAT_PARTS
         # les cares del darrere no es dibuixen (tots els triangles miren cap a fora, dades/edificis.malla_zona):
