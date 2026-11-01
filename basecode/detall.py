@@ -33,7 +33,7 @@ import rasterio
 from pyproj import Transformer
 
 from dades import alcaries, data_io, geodesia, llocs, teselles
-from dades.data_io import ZONES_DETALL, DIR_DADES
+from dades.data_io import ZONES_DETALL
 from dades.edificis import ZONA_DE_LA_UBICACIO, RADI_ZONA_M, fitxer_zona
 from dades.alcaries import centre_cel
 from dades.feines import Feina, FeinaProces
@@ -178,9 +178,6 @@ class Detall:
             avis(f'Llegint els edificis de {nom}...')
             # nomes llegir: si la malla no hi es, es fara en un proces (recollir) i els edificis arribaran despres
             e = Edificis.preparar(clau, cami, mesurades=mesurades, nomes_llegir=True)
-            if e is not None and general and e.n_parts:
-                from dades.edificis import colors_cobertes
-                e.colors_coberta, e.camins_orto = colors_cobertes(clau, e.contorns, general, detall), (general, detall)
         from dades.edificis import preparar_malla
         falta = os.path.exists(fitxer_zona(clau)) and (
             e is None or (mesurades and preparar_malla(clau, cami, mesurades=True, nomes_llegir=True) is None))
@@ -299,6 +296,7 @@ class Detall:
     def actualitzar(self):
         app = self.app
         self.recollir()
+        self.preparar_cobertes()
         ara = time.time()
         if ara - self.ultima < REVISIO_S:
             return
@@ -389,6 +387,17 @@ class Detall:
             self.feines['alcades'] = FeinaProces(clau, _mesurar_alcades, e.zona, cel, app.zona.cami,
                                                  descripcio='altures mesurades')
 
+    def preparar_cobertes(self):
+        """Si els edificis de la zona activa encara no tenen el color de les cobertes, es calcula en un proces (la
+        primera vegada que es veu la zona; despres es llegeix del disc en carregar-los)."""
+        e = self.app.edificis
+        if e is None or not e.n_parts or e.colors_coberta is not None or not self.lliure('cobertes', e.zona):
+            return
+        cami = next((c for c, z in self.carregades.items() if z['clau'] == e.zona), None)
+        if cami is not None:
+            self.feines['cobertes'] = FeinaProces(e.zona, _preparar_cobertes, e.zona, cami,
+                                                  descripcio='color de les cobertes')
+
     def carregar_edificis(self, zona):
         """Llegeix (en un fil) els edificis d'una zona carregada, amb les altures mesurades si n'hi ha: quan s'acaben
         de preparar o de mesurar. Es posen a la zona a recollir()."""
@@ -408,15 +417,13 @@ class Detall:
              and not self.app.calcul_detall.cancelat)
 
     def candidats_mapa(self):
-        """Superficies de detall al disc: [(cami, limits UTM, cami dels ulls, descripcio, MDT del relleu proper o
-        None)]. Primer les del nuvol de punts (scripts/visibilitat_lidar.py, 1 m), despres les de dades/alcaries.py."""
+        """Superficies de detall al disc (dades/alcaries.py, per cel·les): [(cami, limits UTM, cami dels ulls,
+        descripcio, MDT del relleu proper o None)]. Totes es fan de la mateixa manera a tot arreu (peticio de l'equip
+        de l'1/11): el nuvol de punts de la UAB (scripts/visibilitat_lidar.py) ja no s'hi fa servir; es conserva per
+        validar les altures (scripts/validar_alcaries.py: model d'alcaries - nuvol de punts, +0,10 m de mediana)."""
         import glob
         import json
         out = []
-        for cami in sorted(glob.glob(os.path.join(DIR_DADES, 'lidar', '*_superficie_1m_25830.tif'))):
-            ulls = cami.replace('_superficie_', '_ulls_')
-            out.append((cami, tuple(self.limits(cami)), ulls if os.path.exists(ulls) else None,
-                        'LiDAR ICGC, nuvol de punts, 1 m', None))
         for meta in sorted(glob.glob(os.path.join(alcaries.DIR_ALCARIES, 'cel_*.json'))):
             with open(meta) as f:
                 m = json.load(f)
@@ -513,6 +520,10 @@ class Detall:
                 self._canviar_edificis(f.clau, f.resultat)
             elif tipus == 'superficie':
                 pass        # el mapa es calcula a main.actualitzar_mapa, que ara ja troba la superficie
+            elif tipus == 'cobertes':
+                for z in self.carregades.values():
+                    if z['clau'] == f.clau and z['edificis'] is not None:
+                        z['edificis'].posar_cobertes(f.resultat)
 
     def _dades_zona(self, cami):
         z = next(z for z in self.zones() if z['cami'] == cami)
@@ -527,9 +538,9 @@ class Detall:
             ant = z['edificis']
             if not preparat.n_triangles:
                 return
-            if ant is not None:
-                # mateixos contorns: el color de les cobertes (de l'ortofoto) no canvia
-                preparat.colors_coberta, preparat.camins_orto = ant.colors_coberta, ant.camins_orto
+            if ant is not None and preparat.colors_coberta is None:
+                # mateixos contorns: el color de les cobertes no canvia
+                preparat.colors_coberta = ant.colors_coberta
             nou = Edificis(app, clau, cami, preparat=preparat)
             nou.visible = ant.visible if ant is not None else True
             if ant is not None:
@@ -591,6 +602,8 @@ class Detall:
                 et += '; mesurant: ' + en_curs('alcades')
             elif any(t == 'alcades' and k[0] == e.zona for t, k in self.fallades):
                 et += '; mesura fallada'
+            if en_curs('cobertes'):
+                et += '; ' + en_curs('cobertes')
         elif p is not None and z is not None and z.cami in self.carregades and \
                 self.te_edificis(self.carregades[z.cami]['clau'], *_A_UTM.transform(p[1], p[0])):
             et = 'llegint...'
@@ -673,6 +686,13 @@ def _preparar_malla(zona, cami, avis):
     if os.path.exists(alcaries.cami_alcades(zona)):
         preparar_malla(zona, cami, mesurades=True)
     return True
+
+
+def _preparar_cobertes(zona, cami, avis):
+    """Color de les cobertes d'una zona a partir de la fotografia aeria (FeinaProces): els contorns, de la malla."""
+    from dades.edificis import preparar_malla, contorns_de_bytes, colors_cobertes
+    m = preparar_malla(zona, cami, nomes_llegir=True)
+    return colors_cobertes(zona, contorns_de_bytes(m), avis) if m is not None else None
 
 
 def _llegir_edificis(zona, cami, mesurades, avis):

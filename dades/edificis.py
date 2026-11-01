@@ -277,57 +277,110 @@ def contorns_de_bytes(m):
     return shapely.from_wkb([dades[a:b] for a, b in zip(inici[:-1], inici[1:])])
 
 
-VERSIO_COBERTES = 1
+VERSIO_COBERTES = 2          # 2: de les teselles del PNOA, a tot arreu (abans, de l'ortofoto de les zones fetes a ma)
+ZOOM_COBERTES = 17           # teselles de ~0,9 m per pixel a Catalunya: una coberta de 10 x 10 m en te ~120
+ERODIR_COBERTES_M = 1.0      # es descarta la vora de cada contorn (barreja amb el carrer, les facanes i les ombres)
+FILS_COBERTES = 8            # baixades en paral·lel (les teselles que ja hi son es llegeixen del disc)
 
 
-def colors_cobertes(zona, contorns, general, detall):
-    """Color de cada coberta (RGB 0..1; NaN si l'ortofoto no la cobreix) a partir de l'ortofoto del PNOA: la
-    mediana de fins a 9 punts dins del contorn (un punt interior i punts a mig cami cap als vertexs). Es fa servir
-    la foto de detall (0,5 m) on n'hi ha i la de la zona (5 m) a la resta. Com que la foto no es ortofoto
-    vertadera, la teulada dels edificis alts hi es desplacada uns metres: els punts interiors en redueixen
-    l'efecte. Resultat a data/cache/cobertes_<zona>.npz (es refa si canvien els fitxers)."""
-    import rasterio
+def cami_cobertes(zona):
     from . import data_io
-    fitxers = [c for c in (detall, general) if c]
-    clau = np.array([VERSIO_COBERTES, len(contorns)] + [os.path.getmtime(c) for c in fitxers])
-    cache = os.path.join(data_io.DIR_CACHE, f'cobertes_{zona}.npz')
-    if os.path.exists(cache):
-        with np.load(cache) as z:
-            if z['clau'].shape == clau.shape and np.array_equal(z['clau'], clau):
+    return os.path.join(data_io.DIR_CACHE, f'cobertes_{zona}.npz')
+
+
+def cobertes_desades(zona, n_parts):
+    """Colors de les cobertes ja calculats (colors_cobertes) per a aquesta zona i aquest nombre de parts, o None."""
+    cami = cami_cobertes(zona)
+    if not os.path.exists(cami):
+        return None
+    try:
+        with np.load(cami) as z:
+            if np.array_equal(z['clau'], [VERSIO_COBERTES, n_parts, ZOOM_COBERTES]):
                 return z['colors']
-    punts, part = [], []
-    interiors = shapely.point_on_surface(contorns)
-    for k, (g, c) in enumerate(zip(contorns, interiors)):
-        p0 = np.array([c.x, c.y])
-        v = np.vstack([np.asarray(q.exterior.coords)[:-1] for q in poligons(g)])
-        v = v[np.linspace(0, len(v) - 1, min(8, len(v))).astype(int)]
-        q = p0 + 0.5 * (v - p0)
-        dins = shapely.contains_xy(g, q[:, 0], q[:, 1])
-        q = np.vstack([p0, q[dins]])
-        punts.append(q)
-        part.append(np.full(len(q), k))
-    punts, part = np.vstack(punts), np.concatenate(part)
-    mostres = np.full((len(punts), 3), np.nan)
-    for cami in fitxers:                          # primer el detall; la zona, on encara falta
-        with rasterio.open(cami) as f:
-            img = f.read()
-            fil, col = rasterio.transform.rowcol(f.transform, punts[:, 0], punts[:, 1])
-        fil, col = np.asarray(fil), np.asarray(col)
-        ok = np.isnan(mostres[:, 0]) & (fil >= 0) & (fil < img.shape[1]) & (col >= 0) & (col < img.shape[2])
-        mostres[ok] = img[:, fil[ok], col[ok]].T / 255.0
-        del img
-    colors = np.full((len(contorns), 3), np.nan)
-    ordre = np.argsort(part, kind='stable')
-    part, mostres = part[ordre], mostres[ordre]
-    inici = np.searchsorted(part, np.arange(len(contorns)))
-    final = np.searchsorted(part, np.arange(len(contorns)), side='right')
-    for k in range(len(contorns)):
-        m = mostres[inici[k]:final[k]]
-        m = m[~np.isnan(m[:, 0])]
-        if len(m):
-            colors[k] = np.median(m, axis=0)
-    os.makedirs(data_io.DIR_CACHE, exist_ok=True)
-    np.savez(cache, clau=clau, colors=colors)
+    except (OSError, ValueError, KeyError):
+        pass
+    return None
+
+
+def colors_cobertes(zona, contorns, avis=print):
+    """Color de cada coberta (RGB 0..1; NaN si no se'n pot treure) a partir de la fotografia aeria del PNOA, la
+    mateixa a tot Espanya: la mitjana dels pixels de les teselles de ZOOM_COBERTES que queden dins del contorn
+    (sense ERODIR_COBERTES_M de vora). Nomes es baixen les teselles que tenen edificis, i es desen a la memoria cau de
+    teselles (dades/teselles.py), com les del mosaic. Com que la foto no es ortofoto vertadera, la teulada dels
+    edificis alts hi es desplacada uns metres: la mitjana de tota la coberta en redueix l'efecte.
+    Resultat a data/cache/cobertes_<zona>.npz (cobertes_desades). Es llarg (minuts en una zona gran): en un proces."""
+    from concurrent.futures import ThreadPoolExecutor
+    import requests
+    from affine import Affine
+    from rasterio import features
+    from . import data_io, teselles
+    n = len(contorns)
+    interiors = shapely.buffer(contorns, -ERODIR_COBERTES_M)
+    petits = shapely.is_empty(interiors)
+    interiors[petits] = contorns[petits]                # els molt petits, sencers
+    a_geo = Transformer.from_crs('EPSG:25830', 'EPSG:4326', always_xy=True)
+    costat = teselles.MIDA << ZOOM_COBERTES             # pixels del mon a aquest zoom
+
+    def a_pixels(xy):
+        lon, lat = a_geo.transform(xy[:, 0], xy[:, 1])
+        mx, my = teselles.mercator(lat, lon)
+        return np.column_stack([np.asarray(mx) * costat, np.asarray(my) * costat])
+    px = shapely.transform(interiors, a_pixels)
+    b = shapely.bounds(px)
+    t0 = np.floor(b[:, :2] / teselles.MIDA).astype(int)
+    t1 = np.floor(b[:, 2:] / teselles.MIDA).astype(int)
+    per_tesella = {}
+    for k in range(n):
+        for tx in range(t0[k, 0], t1[k, 0] + 1):
+            for ty in range(t0[k, 1], t1[k, 1] + 1):
+                per_tesella.setdefault((tx, ty), []).append(k)
+    suma, compte = np.zeros((n, 3)), np.zeros(n)
+    fallades = 0
+    sessions = {}
+
+    def acumular(rgb, tx, ty, parts, geoms, tots):
+        etiquetes = features.rasterize(((geoms[k], k + 1) for k in parts), out_shape=(teselles.MIDA, teselles.MIDA),
+                                       transform=Affine.translation(tx * teselles.MIDA, ty * teselles.MIDA),
+                                       fill=0, dtype='int32', all_touched=tots)
+        dins = etiquetes > 0
+        k = etiquetes[dins] - 1
+        compte[:] += np.bincount(k, minlength=n)
+        for c in range(3):
+            suma[:, c] += np.bincount(k, weights=rgb[..., c][dins], minlength=n)
+
+    def baixar(t):
+        import threading
+        s = sessions.setdefault(threading.get_ident(), requests.Session())
+        try:
+            return t, teselles.tesella(ZOOM_COBERTES, t[0], t[1], s)
+        except Exception:    # noqa: BLE001 (xarxa: aquella tesella queda sense color)
+            return t, None
+    avis(f'Color de les cobertes: {len(per_tesella)} teselles...')
+    with ThreadPoolExecutor(FILS_COBERTES) as ex:
+        for i, ((tx, ty), rgb) in enumerate(ex.map(baixar, list(per_tesella))):
+            if rgb is None:
+                fallades += 1
+                continue
+            acumular(rgb, tx, ty, per_tesella[(tx, ty)], px, False)
+            if i % 100 == 99:
+                avis(f'Color de les cobertes: {i + 1} de {len(per_tesella)} teselles')
+    # contorns tan petits o prims que, sense la vora, no contenen el centre de cap pixel: tots els pixels que toquen
+    # el contorn sencer (ja son al disc)
+    buides = set(np.flatnonzero(compte == 0))
+    if buides:
+        sencers = shapely.transform(contorns, a_pixels)
+        for (tx, ty), parts in per_tesella.items():
+            parts = [k for k in parts if k in buides]
+            if parts:
+                rgb = baixar((tx, ty))[1]
+                if rgb is not None:
+                    acumular(rgb, tx, ty, parts, sencers, True)
+    colors = np.full((n, 3), np.nan)
+    ok = compte > 0
+    colors[ok] = suma[ok] / compte[ok, None] / 255.0
+    if not fallades:                                    # amb teselles fallades, es tornara a provar un altre dia
+        os.makedirs(data_io.DIR_CACHE, exist_ok=True)
+        np.savez(cami_cobertes(zona), clau=[VERSIO_COBERTES, n, ZOOM_COBERTES], colors=colors)
     return colors
 
 

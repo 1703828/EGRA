@@ -6,10 +6,13 @@ camera: el disc del Sol, el halo (que es dibuixa despres i no escriu profunditat
 
 Segueix l'estructura dels objectes del repte 4 (VBO + VAO + shader + m_model, render, destroy).
 
-Aspecte (shaders/edifici.frag): facanes amb finestres procedimentals, una fila per planta (plantes del Catastro,
-cada 3 m) i colors de facana variats per edifici (aproximacio estetica); cobertes amb el color de l'ortofoto al
-seu lloc (dada real, dades/edificis.colors_cobertes) o, si no n'hi ha, un color de teula o de terrat. Les dades
-de cada part (color de coberta i plantes) van en una textura que el shader llegeix amb l'index de la part.
+Aspecte (shaders/edifici.frag), segons l'origen de l'altura de cada part (peticio de l'equip de l'1/11):
+  - Altura mesurada (LiDAR, dades/alcaries.py): coberta amb el color de la fotografia aeria del PNOA al seu lloc
+    (dada real, dades/edificis.colors_cobertes; mentre no hi es, o si no se'n pot treure, un color de teula o de
+    terrat) i facanes amb colors variats (aproximacio estetica).
+  - Altura estimada (plantes x 3 m): tot l'edifici blau, un color que no es d'edifici: es veu que no es una mesura.
+  Facanes amb finestres procedimentals, una fila per planta (plantes del Catastro, cada 3 m). Les dades de cada
+  part (color de coberta, plantes i origen de l'altura) van en una textura que el shader llegeix amb l'index.
 La llum (directa del Sol i del cel) es calcula un cop per fotograma al centre dels edificis amb la mateixa
 formula que el terreny: elevacio del Sol i part del Sol que hi tapa la Lluna.
 """
@@ -27,7 +30,7 @@ from dades.obstacles import Obstacles
 from dades.model_eclipsi import area_tapada, angle_entre
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades import atmosfera
-from dades.edificis import colors_cobertes, ALCADA_PLANTA_M
+from dades.edificis import cobertes_desades, ALCADA_PLANTA_M
 
 AMPLADA_TEXTURA_PARTS = 1024
 UNITAT_PARTS = 0
@@ -81,7 +84,8 @@ class Edificis:
         self.origen_alcada = m['origen_alcada'] if self.n_parts and 'origen_alcada' in m else np.zeros(self.n_parts, 'u1')
         self.font_alcada = str(m['font_alcada']) if self.n_parts and 'font_alcada' in m else ''
         self.n_mesurades = int(self.origen_alcada.sum())
-        self.colors_coberta, self.camins_orto = None, None
+        # color de les cobertes, si ja s'ha calculat (si no, basecode/detall.py el calcula en un proces)
+        self.colors_coberta = cobertes_desades(zona, self.n_parts) if self.n_parts else None
         self.origen_ecef = m['origen'] if m is not None else np.zeros(3)
         self.memoria_gpu = tri.nbytes + atr.nbytes
         self.vores = m['vores'] if m is not None else np.zeros((0, 5))
@@ -89,7 +93,6 @@ class Edificis:
         # els mateixos contorns com a obstacles (caminar, volar a prop del terra, punts d'observacio)
         self.obstacles = Obstacles(self.contorns, m['cota_coberta']) if self.n_parts else None
         self.visible = True
-        self.acolorir_origen = False
         # VBO entrellacat: posicio (3 floats) i atributs de la textura (u, v, llargada, part)
         self._vertexs = np.concatenate([tri.reshape(-1, 3), atr.reshape(-1, 4)], axis=1).astype('f4')
         lat, lon, _ = geodesia.geodesiques(self.origen_ecef) if self.n_triangles else (0.0, 0.0, 0.0)
@@ -116,17 +119,15 @@ class Edificis:
         return (f'mesurades ({font}) {self.n_mesurades}' + (f', estimades {n_est}' if n_est else '')
                 if self.n_mesurades else f'no disponibles: estimades (plantes x 3 m), {self.n_parts} parts')
 
-    def posar_cobertes(self, general, detall):
-        """Color de les cobertes a partir de l'ortofoto de la zona (o sense, si no n'hi ha)."""
-        if not self.n_parts or (general, detall) == self.camins_orto:
-            return
-        self.camins_orto = (general, detall)
-        self.colors_coberta = colors_cobertes(self.zona, self.contorns, general, detall) if general else None
-        self.actualitzar_textura_parts()
+    def posar_cobertes(self, colors):
+        """Color de les cobertes (dades/edificis.colors_cobertes), quan s'acaba de calcular."""
+        if self.n_parts and colors is not None and len(colors) == self.n_parts:
+            self.colors_coberta = colors
+            self.actualitzar_textura_parts()
 
     def actualitzar_textura_parts(self):
         """Textura RGBA8 amb una texel per part: RGB = color de la coberta; A = plantes (0-63), + 64 si l'altura es
-        mesurada, + 128 si el color ve de l'ortofoto (si no, el shader en tria un de teula o de terrat)."""
+        mesurada, + 128 si hi ha el color de la foto (si no, el shader en tria un de teula o de terrat)."""
         if not self.n_parts:
             return
         n, w = self.n_parts, AMPLADA_TEXTURA_PARTS
@@ -180,7 +181,6 @@ class Edificis:
         sp['color_sol'].value = tuple(float(v) for v in atmosfera.color_llum_sol(elev))
         sp['color_amb'].value = tuple(float(v) for v in atmosfera.color_llum_cel(elev))
         sp['amunt'].write(glm.vec3(*self.amunt))
-        sp['acolorir_origen'].value = bool(getattr(app, 'acolorir_alcades', False))
         sp['densitat_boira'].value = app.densitat_boira
         sp['boira_sol'].value, sp['boira_contra'].value = app.boira_sol, app.boira_contra
         sp['sol_horitzontal'].write(app.sol_horitzontal)

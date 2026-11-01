@@ -142,7 +142,6 @@ class GraphicsEngine(GraphicsEngineBase):
         self.mapa_visibilitat = 0
         self.calculs_mapa, self.mapes_fallats = {}, set()   # cami del MDT -> visibilitat.Calcul del relleu
         self.calcul_detall = None     # mapa de detall (edificis i vegetacio mesurats) de la cel·la del punt de detall
-        self.acolorir_alcades = False  # depuracio: facanes segons l'origen de l'altura (mesurada o estimada)
         self.consulta_nom, self.nom_punt = None, None   # nom del lloc del punt d'observacio (dades/noms.py)
 
         # --- territori: la peninsula sencera posada sobre la Terra; el detall (zones de 5 m, edificis) el
@@ -824,6 +823,18 @@ class GraphicsEngine(GraphicsEngineBase):
         ui.build_ui(self)   # el panell i la barra de temps son a ui.py
 
 
+FITXER_ERROR = os.path.join(_CODE_DIR, 'data', 'cache', 'darrer_error.txt')   # carpeta ignorada pel Git
+
 if __name__ == '__main__':
     app = GraphicsEngine(win_size=(1280, 860), title="EGRA - Eclipsi 12/08/2026", use_ui_panel=True)
-    app.run()
+    try:
+        app.run()
+    except Exception:
+        # si el programa es tanca per un error, el detall queda desat (encara que s'hagi tancat el terminal)
+        import datetime
+        import traceback
+        os.makedirs(os.path.dirname(FITXER_ERROR), exist_ok=True)
+        with open(FITXER_ERROR, 'w') as f:
+            f.write(f'{datetime.datetime.now():%d/%m/%Y %H:%M:%S}\n{traceback.format_exc()}')
+        print(f'El programa s\'ha tancat per un error; detall desat a {FITXER_ERROR}')
+        raise

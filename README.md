@@ -223,7 +223,7 @@ les façanes a l'ombra no queden negres (la meitat de la il·luminada, aproximad
 en segon pla els del Catastro de la cel·la de 3 × 3 km (secció *Detall segons la vista*). Només a Espanya: Navarra
 i el País Basc tenen cadastres propis i no hi són (el panell ho diu). Cada lloc ocupa entre 20 i 110 MB; se'n
 guarden com a molt 6 (`MAX_LLOCS` a `dades/llocs.py`) i els que fa més temps que no es fan servir s'esborren sols.
-Als llocs nous les cobertes no tenen el color de l'ortofoto. Comprovació: `python scripts/prova_llocs.py`.
+Comprovació: `python scripts/prova_llocs.py`.
 
 **Altures mesurades.** Quan els edificis es veuen, les seves altures es mesuren amb un model d'alçàries LiDAR
 (altura sobre el terra, `dades/alcaries.py`), per cel·les de 3 × 3 km al voltant del punt que es mira: a Catalunya
@@ -231,8 +231,7 @@ el de l'ICGC (1 m, vols 2021–2023, llegit per finestres del fitxer de tot Cata
 normalitzat de l'IGN (2,5 m, vols 2008–2015). L'altura d'una part és el percentil 90 de l'alçària dins del seu
 contorn; les parts que no s'hi poden mesurar (pati, edifici fet després del vol) conserven l'estimació. Els
 edificis canvien sols quan arriben les mesures (~40–60 s per cel·la). El panell diu quantes parts són mesurades i
-quantes estimades, i a **Avançat**, *Edificis: blau mesurat, taronja estimat* acoloreix les façanes segons l'origen
-de l'altura. A la UAB, l'estimació per plantes queda 2–3 m per sota de les dues mesures
+quantes estimades. A la UAB, l'estimació per plantes queda 2–3 m per sota de les dues mesures
 (`python scripts/validar_alcaries.py`).
 
 ### Fotografia aèria (a tot arreu, com Google Earth)
@@ -251,8 +250,18 @@ Des de l'espai, la Terra té una resplendor blava a la vora (la closca d'atmosfe
 més forta on la mirada travessa més aire. És il·lustrativa: molt més gruixuda que l'aire real, perquè es vegi de
 lluny.
 
+**Colors dels edificis** (a tot arreu igual):
+- **Altura mesurada (LiDAR):** la coberta té el color real, el de la fotografia aèria del PNOA al seu lloc (la mitjana
+  dels píxels de les teselles de z = 17, ~0,9 m, dins del contorn sense 1 m de vora; `dades/edificis.colors_cobertes`).
+  Es calcula en un procés la primera vegada que es veu cada zona (Vic: 17.000 parts, ~240 teselles, uns segons si ja
+  són al disc) i es desa a `data/cache/cobertes_<zona>.npz`. Les façanes tenen colors variats (estètic).
+- **Altura estimada (plantes × 3 m):** tot l'edifici és **blau**, un color que no és d'edifici: es veu que l'altura
+  no és una mesura. El panell *Càmera* ho recorda sota la casella *Edificis*.
+La foto no és ortofoto vertadera: la teulada dels edificis alts hi queda desplaçada uns metres, i la mitjana de tota
+la coberta en redueix l'efecte.
+
 A Vic hi ha, a més, l'ortofoto descarregada de la F18 (`python scripts/descarregar_ortofoto.py vic`), que es veu
-sota la fotografia aèria si no hi ha connexió i dona el color de les cobertes dels edificis. **Comparació:** és la
+sota la fotografia aèria si no hi ha connexió (ja no dona el color de les cobertes). **Comparació:** és la
 mateixa font (PNOA) a 0,5 m; la fotografia per teselles arriba a z = 19 (~0,22 m per píxel a Catalunya i València),
 que ja és la resolució del vol (0,25 m a tots els llocs consultats). Per tant, la fotografia per teselles ja dona el
 detall màxim de la font a tot Espanya; el WMTS té z = 20, però seria la mateixa imatge ampliada.
@@ -317,8 +326,8 @@ tenir-los preparats: `python scripts/preparar_visibilitat.py [2026 2027 2028]`. 
 **Mapa de detall (edificis i vegetació).** Mentre el mapa es mostra, a la cel·la de 3 × 3 km del punt de detall es
 calcula el mateix amb els obstacles mesurats: terra + alçària LiDAR (ICGC a 2 m a Catalunya, IGN a 2,5 m a la resta;
 els arbres compten si la font els té) i els ulls sobre els terrats a les cel·les d'edifici. Mentrestant es veu el
-mapa del relleu, i el panell diu què s'està calculant. A la UAB es fa servir el del núvol de punts (1 m,
-`scripts/visibilitat_lidar.py`). Les altures estimades per plantes **no** hi entren. Limitacions: fora d'Espanya el
+mapa del relleu, i el panell diu què s'està calculant. La UAB es tracta igual que la resta (model d'alçàries de
+l'ICGC); el núvol de punts de la UAB (`scripts/visibilitat_lidar.py`, 1 m) només serveix per validar-lo. Les altures estimades per plantes **no** hi entren. Limitacions: fora d'Espanya el
 MDT val 0; les dates de les fonts (IGN, fins a 15 anys); sense refracció terrestre.
 
 ### Com es calcula l'eclipsi (`dades/`)

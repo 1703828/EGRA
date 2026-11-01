@@ -2045,7 +2045,7 @@ de l'escena igual a la del model (< 0,001°); capes del CNIG desactivades fora d
 comença a calcular per a l'eclipsi actiu. `prova_controls` (69 OK). **Inspeccionat visualment:** captures
 `captures/proves/eclipsi_<any>_*.png` (des del terra al màxim, a Picos, i l'ombra des de l'espai).
 
-### F33 — Rendiment i panells (01/11/2026, petició de l'equip) — EN CURS
+### F33 — Rendiment i panells (01/11/2026, petició de l'equip) — FET
 
 L'equip va notar que l'ordinador s'escalfava molt. **Causa:** cap part del programa limitava els fotogrames: el bucle
 dibuixava tan de pressa com podia, encara que no canviés res (una finestra buida feia 515 fotogrames/s; amb
@@ -2065,6 +2065,43 @@ dibuixava tan de pressa com podia, encara que no canviés res (una finestra buid
 
 **Proves de l'equip pendents:** fer servir el programa una estona i comparar la temperatura i el ventilador amb abans;
 comprovar que en repòs la resposta al ratolí i al teclat és immediata.
+
+**Provat per l'equip (01/11):** el programa va bé; un cop es va tancar sol en canviar d'ubicació de cop mentre girava
+amb les fletxes (sense el missatge d'error). **Comprovat automàticament:** 4 min de canvis d'ubicació a l'atzar (90,
+i 126 en una segona tanda) amb fletxes premudes, canvis de vista i "Anar al màxim", amb el bucle i el panell reals:
+sense errors. No s'ha pogut reproduir. Ara, si el programa es tanca per un error, el detall queda a
+`data/cache/darrer_error.txt` (`main.py`).
+
+### F34 — Colors dels edificis i un sol tractament per a tots els llocs (01/11/2026, petició de l'equip) — FET
+
+Decisió de l'equip: els edificis amb l'altura mesurada (LiDAR) tenen el color real de la coberta; els que tenen
+l'altura estimada són blaus (un color que no és d'edifici). La UAB i Vic no han de tenir tractaments especials.
+
+1. **Color de les cobertes a tot arreu** (`dades/edificis.colors_cobertes`): la mitjana dels píxels de les teselles
+   PNOA de z = 17 (~0,9 m) dins del contorn, sense 1 m de vora (els contorns massa petits, amb tots els píxels que
+   toquen). Només es baixen les teselles amb edificis. Es calcula en un procés la primera vegada que es veu cada zona
+   (`basecode/detall.py`, feina `cobertes`) i es desa a `data/cache/cobertes_<zona>.npz`. Substitueix l'ortofoto de
+   Vic (F18) com a font del color. **Comprovat automàticament:** Vic, 16.987 parts en 4 s (236 teselles, la majoria
+   ja al disc), 1 sense color; un lloc de 6 × 6 km, 1.782 parts en 1,7 s.
+2. **Blau per a les altures estimades** (`shaders/edifici.frag`): tot l'edifici (coberta una mica més fosca). Treu
+   la casella de depuració "blau mesurat, taronja estimat"; el panell *Càmera* mostra la llegenda.
+3. **UAB com la resta:** el mapa de detall fa servir el model d'alçàries de l'ICGC per cel·les, com a tot Catalunya; el
+   núvol de punts de la UAB queda només per validar (`validar_alcaries.py`: +0,10 m de mediana entre els dos).
+
+**Comprovat automàticament:** `prova_detall vic uab` (Vic: color de la foto a 16.986 de 16.987 parts; UAB: mapa de
+detall del model d'alçàries, 2 m), `prova_cel` (7), `validar_edificis` (22). **Inspeccionat visualment:** Vic des de 400
+m (cobertes de teula reals; edificis blaus fora de la zona mesurada) i la UAB amb el mapa. El mapa de detall d'una
+cel·la nova tarda ~4 min la primera vegada (223 s, amb un altre càlcul en marxa).
+
+**Mapes de la península del 2027 i el 2028** (`visibilitat_<any>_peninsula_200m.npz`): calculats l'1/11, 71 i 42 min
+(compartint el processador amb les proves); ara es llegeixen en obrir el mapa.
+
+**Limitació trobada (per a la propera entrega):** el mapa de detall només es veu mentre el punt de detall (on mira la
+càmera) és dins de la seva cel·la de 3 × 3 km: a 50 m de la vora, si la cel·la del costat no en té, desapareix. Caldria
+mantenir els mapes ja calculats mentre es vegin.
+
+Pendent de decidir: l'ortofoto de Vic encara es fa servir com a color del terra de reserva (només es veu mentre no
+han arribat les teselles); es podria treure del tot.
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).

@@ -6,7 +6,7 @@ doble clic ni punt d'observacio, i la navegacio continua mentre es preparen.
 Parts (es poden triar amb arguments; per defecte totes, en ordre):
   vic       Vic, placa Major (llista del panell): conserva la zona de 5 m, l'ortofoto de 0,5 m i els edificis; els
             edificis passen a altures mesurades (ICGC); nom del lloc.
-  uab       UAB (llista): zona del Valles, mapa de detall del nuvol de punts (1 m) quan el mapa es mostra.
+  uab       UAB (llista): zona del Valles, mapa de detall del model d'alcaries de l'ICGC (2 m), com a tot Catalunya.
   valencia  Des de la UAB, nomes navegant: pujar (E), girar cap a Valencia (fletxes), avancar (W) i baixar amb la roda
             fins a un carrer. S'hi espera el relleu de 5 m, s'hi activen els edificis (a la vista aeria) i el mapa, i
             es tria un punt amb doble clic (nom del lloc). Es mesura el temps de cada fotograma mentre tot es prepara.
@@ -162,13 +162,24 @@ def main():
         r = nom_del_punt()
         print(f'   nom: {text_nom(r)}')
         ok(r is not None and r['nucli'] is not None and 'Vic' in r['nucli'][0], 'Vic: el nucli del punt es Vic')
+        # color de les cobertes (fotografia aeria del PNOA): totes les parts, a tot arreu; s'espera el calcul
+        s = esperar(lambda: app.edificis is not None and app.edificis.colors_coberta is not None, 300, 'Vic')
+        cc = app.edificis.colors_coberta if app.edificis is not None else None
+        amb = int((~np.isnan(cc[:, 0])).sum()) if cc is not None else 0
+        ok(cc is not None and amb > 0.99 * len(cc), f'Vic: color de les cobertes de la foto a {amb} de '
+           f'{len(cc) if cc is not None else 0} parts ({s:.0f} s)')
         app.camera_observador.mirar(250, 3)
         fotograma(20)
         desa('vic_terra')
-        app.acolorir_alcades = True
-        fotograma(5)
-        desa('vic_terra_origen_alcades')
-        app.acolorir_alcades = False
+        app.edificis_aeris = True
+        app.posar_exploracio_sobre_el_punt()
+        app.camera_exploracio.posicio = app.ulls() + 0.4 * (app.camera_exploracio.posicio - app.ulls()) / \
+            np.linalg.norm(app.camera_exploracio.posicio - app.ulls())
+        app.canviar_vista(0)
+        fotograma(20)
+        desa('vic_aeria_cobertes')
+        app.canviar_vista(1)
+        app.edificis_aeris = False
         resum_estat('Vic')
         resultats['vic'] = dict(app.detall.estat)
 
@@ -182,15 +193,19 @@ def main():
         ok(app.zona is not None and app.nom_zona.startswith('Valles'), 'UAB: la zona del Valles es la que es dibuixa')
         s = esperar(lambda: app.zona is not None and app.zona.vis_detall is not None, 600, 'UAB')
         vd = app.zona.vis_detall if app.zona is not None else None
-        ok(vd is not None and 'nuvol de punts' in vd.get('descripcio', ''),
-           f'UAB: el mapa de detall es el del nuvol de punts LiDAR a 1 m ({s:.0f} s)')
+        ok(vd is not None and 'ICGC' in vd.get('descripcio', ''),
+           f'UAB: el mapa de detall es el del model d\'alcaries de l\'ICGC, com a la resta de Catalunya '
+           f'({vd.get("descripcio") if vd else "-"}, {s:.0f} s)')
         s = esperar(lambda: app.edificis is not None and app.edificis.mesurades, 600, 'UAB')
         ok(app.edificis is not None and app.edificis.mesurades, f'UAB: altures mesurades ({s:.0f} s): '
            f'{app.edificis.resum_alcades() if app.edificis else ""}')
         app.camera_observador.mirar(285, 2)
         fotograma(10)
         desa('uab_terra_mapa')
+        # a 400 m del punt (com a Vic): el centre de la imatge (el punt de detall) queda dins de la cel·la del mapa
         app.posar_exploracio_sobre_el_punt()
+        app.camera_exploracio.posicio = app.ulls() + 0.4 * (app.camera_exploracio.posicio - app.ulls()) / \
+            np.linalg.norm(app.camera_exploracio.posicio - app.ulls())
         app.canviar_vista(0)
         fotograma(10)
         desa('uab_aeria_mapa')

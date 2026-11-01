@@ -32,6 +32,7 @@ COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'ANULARITAT': (1.0, 0.6, 0.2, 
               'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
 COLOR_SUAU = (0.65, 0.68, 0.72, 1.0)
 COLOR_AVIS = (1.0, 0.8, 0.4, 1.0)
+COLOR_ALCADA_ESTIMADA = (0.30, 0.50, 0.95)   # el mateix que BLAU_ESTIMADA (shaders/edifici.frag)
 # marques de la barra de temps: contacte, color
 MARQUES = [('c1', (1.0, 0.85, 0.3)), ('c2', COLOR_TOTALITAT), ('maxim', (1.0, 1.0, 1.0)), ('c3', COLOR_TOTALITAT),
            ('c4', (1.0, 0.85, 0.3)), ('posta', (1.0, 0.45, 0.2))]
@@ -254,6 +255,8 @@ def panell_capes(app):
     _, app.mostrar_edificis = imgui.checkbox('Edificis', app.mostrar_edificis)
     imgui.same_line()
     _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
+    if app.mostrar_edificis or app.edificis_aeris:
+        llegenda(COLOR_ALCADA_ESTIMADA, 'Blau: altura estimada (sense LiDAR)')
     _, app.ombres.actiu = imgui.checkbox('Ombres del relleu', app.ombres.actiu)
 
 
@@ -316,7 +319,6 @@ def panell_avancat(app):
     imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
     if app.zona is not None and app.zona.orto is not None:
         _, app.usar_ortofoto = imgui.checkbox('Ortofoto de la zona', app.usar_ortofoto)
-    _, app.acolorir_alcades = imgui.checkbox('Edificis: blau mesurat, taronja estimat', app.acolorir_alcades)
     t = app.peninsula
     if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026: en un altre eclipsi enganyarien
         canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)

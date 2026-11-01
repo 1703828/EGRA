@@ -2,8 +2,9 @@
 // Edificis: volums opacs il·luminats pel Sol (amb la part que en tapa la Lluna i el color que li dona
 // l'atmosfera) i pel cel. La normal de cada cara (coberta o facana) surt de les derivades de la posicio.
 // Aspecte (el color de cada part i la boira venen d'edifici.vert):
-//  - Cobertes: el color de l'ortofoto sobre aquella coberta (dada real) o, si no n'hi ha, un color de teula o de
-//    terrat triat per edifici (estetic).
+//  - Altura estimada (sense mesura LiDAR): tot l'edifici blau (BLAU_ESTIMADA), que no es un color d'edifici.
+//  - Cobertes amb altura mesurada: el color de la fotografia aeria sobre aquella coberta (dada real) o, si no n'hi
+//    ha, un color de teula o de terrat triat per edifici (estetic).
 //  - Facanes: un color per edifici d'una paleta de facanes mediterranies i finestres procedimentals (estetic),
 //    una fila per planta real del Catastro (cada 3 m) i repartides per cada costat; a la planta baixa, mes altes.
 //    De lluny (a mes de 400 m, o quan una finestra ocupa menys d'un parell de pixels) el dibuix es substitueix pel
@@ -25,13 +26,13 @@ uniform float llum_cel;        // llum del cel (0..1)
 uniform vec3 color_sol;        // color de la llum del Sol (dades/atmosfera.color_llum_sol)
 uniform vec3 color_amb;        // color de la llum del cel
 uniform vec3 amunt;            // vertical local al centre dels edificis (unitari)
-uniform bool acolorir_origen;  // depuracio: facanes blaves si l'altura es mesurada, taronges si es estimada
 
 const float PLANTA = 3.0;      // m (com dades/edificis.ALCADA_PLANTA_M)
 const float K_CEL = 0.25;      // pes de la llum del cel i del Sol (els mateixos que terrain.frag)
 const float K_SOL = 0.75;
 const float ALBEDO_TERRA = 0.25; // part de la llum que reflecteix el terra (asfalt, formigo i vegetacio: ~0,1-0,35)
 const float PAS_FINESTRA = 3.2;
+const vec3 BLAU_ESTIMADA = vec3(0.30, 0.50, 0.95);   // edificis amb l'altura estimada per plantes
 
 // 1 dins de l'interval [a, b] de x, amb una vora d'un pixel (antialias); w = amplada d'un pixel en unitats de x
 float banda(float x, float a, float b, float w) {
@@ -79,8 +80,8 @@ void main() {
     // el vidre: fosc, amb una mica del color del cel (la boira de l'horitzo) que s'hi reflecteix
     vec3 finestra = vec3(0.05, 0.06, 0.08) * llum + 0.08 * llum_cel * boira_v;
     vec3 b = base;
-    if (acolorir_origen && llargada >= 0.0)
-        b = mesurada > 0.5 ? vec3(0.35, 0.60, 0.95) : vec3(1.00, 0.55, 0.15);
+    if (mesurada < 0.5)
+        b = llargada >= 0.0 ? BLAU_ESTIMADA : 0.8 * BLAU_ESTIMADA;   // la coberta, una mica mes fosca
     vec3 color = mix(b * llum, finestra, vidre);
     fragColor = vec4(mix(boira_v, color, visibilitat), 1.0);
 }
