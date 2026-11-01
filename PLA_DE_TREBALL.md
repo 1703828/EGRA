@@ -2117,6 +2117,32 @@ les comarques, 1 a 8 km, cap a 1,5 km; cap des del terra ni amb la casella desac
 captures `captures/proves/noms_*.png`. **Limitacions:** els noms es mostren sense accents (font del panell); fora de
 Catalunya no hi ha nivell comarcal; el relleu no tapa els noms (només l'horitzó de la Terra).
 
+### F36 — Ombres dels edificis (01/11/2026, petició de l'equip) — FET
+
+Abans, el mapa d'ombres de 32 km tenia texels d'~8 m: els edificis de menys de ~12 m no feien ombra i cap no en
+rebia. Ara (`basecode/ombres_relleu.py`, `shaders/ombres.glsl`):
+1. **Segon mapa, fi:** 3 × 3 km al voltant del punt de detall, 4.096 texels per costat (0,7–0,9 m), ajustat a les
+   altures del quadrat (relleu + 250 m per als edificis). Només quan hi ha edificis dibuixats.
+2. **Els edificis en reben** (`edifici.frag`), amb la mateixa funció que el terreny (`ombres.glsl`, `#include`).
+3. **Marge segons la inclinació de la llum** al mapa fi (30 cm + texel × tangent, fins a 20 texels): sense "acne"
+   a les cobertes ni a les façanes; amb el Sol rasant es perden els primers metres de l'ombra arran de l'obstacle.
+4. Els mapes es refan quan l'hora canvia en 1 s o més (abans, a cada fotograma mentre es reproduïa).
+
+**Inspeccionat visualment:** Vic a les 18:00 (CEST) des de 250 m, amb ombres i sense: les ombres dels edificis a la
+plaça Major, als carrers i a les cobertes més baixes; cap ratlla d'acne. Al màxim (Sol a la posta) tot és molt fosc.
+**Comprovat automàticament:** `validar_ombres_relleu` (GPU contra CPU 100 % a Picos; s'hi admet una diferència de 5
+píxels entre dues vegades enceses: un píxel de vora ja variava abans, ~1 de cada 3 execucions). **Cost:** mentre es
+reprodueix, ~22 ms per fotograma (13 ms en pausa) al Mac M1 de l'equip.
+
+### F37 — Correcció: el programa es tancava en recollir feines en segon pla (01/11/2026, error trobat per l'equip) — FET
+
+**Provat per l'equip:** la finestra es va tancar en activar el mapa sobre Mallorca (i abans, en canviar d'ubicació de
+cop). `data/cache/darrer_error.txt` (F33) va donar l'error: `KeyError: 'pegat'` a `Detall.recollir`. **Causa:** en
+recollir una feina acabada (p. ex. els edificis d'una zona), tornar a situar l'observador treu la feina del pegat;
+el bucle continuava amb la llista copiada abans i no la trobava. **Correcció:** si una feina ja no hi és, se salta.
+**Comprovat automàticament:** la mateixa situació reproduïda amb dues feines falses: amb el codi anterior,
+`KeyError('pegat')`; amb el nou, correcte.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).

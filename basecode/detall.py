@@ -477,8 +477,10 @@ class Detall:
     def recollir(self):
         app = self.app
         for tipus in list(self.feines):
-            f = self.feines[tipus]
-            if not f.fet:
+            # en recollir-ne una, se'n pot haver tret una altra (p. ex. tornar a situar l'observador quan arriben els
+            # edificis treu la feina del pegat): llavors ja no hi es i se salta (abans: KeyError i el programa es tancava)
+            f = self.feines.get(tipus)
+            if f is None or not f.fet:
                 continue
             del self.feines[tipus]
             if f.error:
