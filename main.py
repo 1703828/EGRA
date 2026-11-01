@@ -90,7 +90,7 @@ from basecode import window as winmod
 from dades.data_io import TERRENYS
 from dades.model_eclipsi import ModelEclipsi, area_tapada, angle_entre, efemerides, punt_ombra
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
-from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS
+from dades.observador import Observador, ALCADA_ULLS_KM, UBICACIONS, UBICACIO_INICIAL
 from dades.navegacio import cub_navegacio
 from dades.obstacles import RADI_COS_M
 from dades import atmosfera
@@ -104,6 +104,9 @@ MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
 ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
 INCLINACIO_EN_ARRIBAR = 2.0        # graus: en arribar a un punt amb doble clic, la mirada just sobre l'horitzo
+# mirada en arrencar (rumb i inclinacio, graus): des de la placa Civica de la UAB, cap al campus (est-sud-est), una
+# direccio oberta; cap a l'oest (on es el Sol al maxim, azimut 286 i 4 graus) hi ha un edifici al davant
+MIRADA_INICIAL = (100.0, 3.0)
 HORA_ABANS_C1 = 1.0                # l'arrencada es aquest nombre d'hores abans de C1 (temps TU del model)
 # Repos: si la imatge no canvia (mateixa camera i hora, en pausa) i no hi ha cap feina en segon pla durant REPOS_S,
 # el bucle espera esdeveniments (teclat, ratoli, finestra) com a molt ESPERA_REPOS_S en lloc de tornar a dibuixar
@@ -172,8 +175,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.ressaltar_ombra = False  # linies de l'ombra de la Lluna (didactic, opcional)
         self.camera = None
 
-        # --- punt d'observacio (dada independent): Picos de Europa
-        nom, lat, lon = UBICACIONS[0]
+        # --- punt d'observacio (dada independent): la UAB, placa Civica (dades/observador.UBICACIO_INICIAL)
+        nom, lat, lon = next(u for u in UBICACIONS if u[0] == UBICACIO_INICIAL)
         self.triar_punt(lat, lon, nom)
         # arrencada: pausat, una hora abans del primer contacte (C1) calculat pel model en aquest punt.
         # Nomes en arrencar: canviar d'ubicacio despres no toca el temps
@@ -186,10 +189,10 @@ class GraphicsEngine(GraphicsEngineBase):
         self.esc_premuda = False
         self.avis_caminar, self.avis_caminar_fins = '', -1.0   # resultat de passar a caminar (panell)
 
-        # --- cameres: comencem mirant cap al Sol des del terra
-        az, el = self.model.sol(self.hora)
+        # --- cameres: comencem des del terra mirant cap al campus (MIRADA_INICIAL; abans, cap al Sol, que a la
+        # UAB queda darrere d'un edifici). El boto "Mirar el Sol" hi gira la mirada
         self.camera_observador = CameraObservador(self)
-        self.camera_observador.mirar(az, el)
+        self.camera_observador.mirar(*MIRADA_INICIAL)
         self.camera_exploracio = CameraExploracio(self, self.ulls())
         self.posar_exploracio_sobre_el_punt()
         self.camera_guiada = CameraGuiada(self)
@@ -715,7 +718,9 @@ class GraphicsEngine(GraphicsEngineBase):
             imgui.new_frame()
             self.render()
             imgui.set_next_window_pos((10, 10), imgui.Cond.FIRST_USE_EVER)
-            imgui.begin('Eclipsi')
+            # sense imgui.ini: en arrencar sempre al mateix lloc i desplegat (les proves, amb el mateix fitxer, el
+            # podien deixar mogut o plegat)
+            imgui.begin('Eclipsi', False, imgui.WindowFlags.NO_SAVED_SETTINGS)
             self.build_ui()
             imgui.end()
             imgui.render()

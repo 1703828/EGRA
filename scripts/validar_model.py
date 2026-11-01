@@ -21,7 +21,7 @@ from pyproj import Transformer
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dades import eclipse_data  # noqa: E402
 from dades.model_eclipsi import ModelEclipsi  # noqa: E402
-from dades.observador import UBICACIONS  # noqa: E402
+from dades.observador import UBICACIONS_PROVES as UBICACIONS  # noqa: E402
 
 MDT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'mdt', 'peninsula_200m.tif')
 # les sis ubicacions del programa (dades/observador.py) i tres punts mes de comprovacio (centres de ciutat

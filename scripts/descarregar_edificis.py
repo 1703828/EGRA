@@ -35,7 +35,7 @@ from shapely.ops import unary_union
 
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
-from dades.observador import UBICACIONS  # noqa: E402
+from dades.observador import UBICACIONS_PROVES as UBICACIONS  # noqa: E402
 from dades.edificis import fitxer_zona, ZONA_DE_LA_UBICACIO, RADI_ZONA_M, preparar_malla  # noqa: E402
 from dades.data_io import ZONES_DETALL  # noqa: E402
 from dades.catastro import DIR_ZIPS, descarregar, llegir_parts  # noqa: E402

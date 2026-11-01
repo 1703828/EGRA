@@ -47,6 +47,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from dades import geodesia
     from dades.navegacio import UA_KM, DISTANCIA_PARET_KM
     from dades.efemerides import RADI_SOL_KM
@@ -144,7 +145,7 @@ def main():
             ok(ce.posicio[k] == limit, f'cara {cara}, posicio directa fora del cub: es queda a la paret '
                                        f'(a {DISTANCIA_PARET_KM:.0f} km)')
     for nom_boto, boto in (("Veure l'ombra des de l'espai", app.veure_ombra_des_de_lespai),
-                           ('triar una ubicacio', lambda: app.triar_ubicacio(*programa.UBICACIONS[1][1:], programa.UBICACIONS[1][0]))):
+                           ('triar una ubicacio', lambda: app.triar_ubicacio(*UBICACIONS_PROVES[1][1:], UBICACIONS_PROVES[1][0]))):
         boto()
         fotograma()
         ok(np.all(ce.posicio >= cub.minim) and np.all(ce.posicio <= cub.maxim), f'boto "{nom_boto}": la camera es dins del cub')
@@ -174,7 +175,7 @@ def main():
 
     # ------------------------------------------------------------ 3. ratoli capturat
     print('\n== Ratoli capturat')
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_ubicacio(lat, lon, nom)
     app.hora = app.model.hores['maxim'] - 0.5
     app.canviar_vista(1)
@@ -382,7 +383,7 @@ def main():
     cg = app.camera_guiada
     if app.ratoli.capturat:
         app.ratoli.alliberar()
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_ubicacio(lat, lon, nom)
     app.canviar_vista(1)
     fotograma()
@@ -469,7 +470,7 @@ def main():
     app.canviar_vista(2)
     cg.progres = S2
     fotograma()
-    nom, lat, lon = programa.UBICACIONS[5]
+    nom, lat, lon = UBICACIONS_PROVES[5]
     app.triar_ubicacio(lat, lon, nom)
     fotograma()
     f, _ = cg.trajectoria.marc(cg.progres)
@@ -493,7 +494,7 @@ def main():
     from PIL import Image
     carpeta = os.path.join(ARREL, 'captures', 'proves')
     os.makedirs(carpeta, exist_ok=True)
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_ubicacio(lat, lon, nom)
     app.hora = app.model.hores['maxim']
     cg.recentrar()

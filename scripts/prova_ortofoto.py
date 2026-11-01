@@ -81,6 +81,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     W, H = 1280, 860
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - prova de l\'ortofoto', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
@@ -111,7 +112,7 @@ def main():
         app.ctx.finish()
         return Image.frombytes('RGB', (W, H), objectiu.read(components=3)).transpose(Image.FLIP_TOP_BOTTOM)
 
-    nom, lat, lon = next(u for u in programa.UBICACIONS if ZONA_DE_LA_UBICACIO[u[0]] == ZONA)
+    nom, lat, lon = next(u for u in UBICACIONS_PROVES if ZONA_DE_LA_UBICACIO[u[0]] == ZONA)
     t0 = time.time()
     app.triar_ubicacio(lat, lon, nom)
     print(f'   carregar la zona amb l\'ortofoto: {time.time() - t0:.1f} s (inclou el relleu i els edificis)')

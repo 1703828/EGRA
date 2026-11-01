@@ -4,7 +4,7 @@ el relleu, la fotografia, els edificis (altures mesurades) i el mapa de visibili
 doble clic ni punt d'observacio, i la navegacio continua mentre es preparen.
 
 Parts (es poden triar amb arguments; per defecte totes, en ordre):
-  vic       Vic, placa Major (llista del panell): conserva la zona de 5 m, l'ortofoto de 0,5 m i els edificis; els
+  vic       Vic, placa Major (llista del panell): conserva la zona de 5 m i els edificis (sense ortofoto feta a ma); els
             edificis passen a altures mesurades (ICGC); nom del lloc.
   uab       UAB (llista): zona del Valles, mapa de detall del model d'alcaries de l'ICGC (2 m), com a tot Catalunya.
   valencia  Des de la UAB, nomes navegant: pujar (E), girar cap a Valencia (fletxes), avancar (W) i baixar amb la roda
@@ -45,7 +45,7 @@ def main():
     sys.argv = ['main.py']
     import main as programa
     from dades import geodesia, llocs
-    from dades.observador import UBICACIONS
+    from dades.observador import UBICACIONS_PROVES as UBICACIONS
 
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - prova del detall', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
@@ -143,8 +143,8 @@ def main():
         z = app.zona
         ok(z is not None and app.nom_zona == 'Vic' and z.alt.shape == (4000, 4000),
            'Vic: la zona de 5 m (20 x 20 km, 4000 x 4000 px) es la que es dibuixa')
-        ok(z is not None and z.orto is not None and z.orto_detall is not None,
-           'Vic: l\'ortofoto de la zona (5 m) i la de detall (0,5 m) son carregades com abans')
+        ok(z is not None and z.orto is None and z.orto_detall is None,
+           'Vic: sense l\'ortofoto feta a ma (el terra, de les teselles del PNOA, com a tot arreu)')
         ok(app.edificis is not None and app.edificis.n_parts > 1000, f'Vic: edificis del Catastro '
            f'({app.edificis.n_parts if app.edificis else 0} parts)')
         s = esperar(lambda: app.edificis is not None and app.edificis.mesurades, 400, 'Vic')

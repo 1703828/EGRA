@@ -117,6 +117,7 @@ def amb_finestra():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     W, H = 1280, 860
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - prova del mosaic', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
@@ -179,7 +180,7 @@ def amb_finestra():
 
     import glm
     os.makedirs(CARPETA, exist_ok=True)
-    nom, lat, lon = next(u for u in programa.UBICACIONS if u[0].startswith('Vic'))
+    nom, lat, lon = next(u for u in UBICACIONS_PROVES if u[0].startswith('Vic'))
     app.triar_ubicacio(lat, lon, nom)
     app.hora = 14.5     # 16:30 hora local: Sol alt, abans de l'eclipsi
     app.canviar_vista(0)
@@ -208,21 +209,8 @@ def amb_finestra():
     ok(app.mosaic.estat()[3] == 0, 'cap tesella fallada')
 
     print('\n== Alineacio')
-    o = app.observador
-    _, _, amunt = geodesia.base_local(o.lat, o.lon)
-    posar(o.lat, o.lon, app.altitud_terra_km(o.lat, o.lon) + 0.4, 0.0, -89.0)
-    app.edificis_aeris = False
-    esperar()
+    # (la comparacio amb l'ortofoto de Vic ja no es fa: des de la F38 el programa no la carrega)
     gris = lambda img: np.asarray(img.convert('L'), dtype=float)[100:740, 320:960]
-    mosaic = gris(imatge())
-    app.mosaic.actiu = False
-    fotograma(2)
-    orto = gris(imatge())
-    app.mosaic.actiu = True
-    dx, dy, q = desplacament(orto, mosaic)
-    m_px = 0.4 * 2 * math.tan(math.radians(ce.fov / 2)) / H * 1000
-    ok(math.hypot(dx, dy) * m_px < 1.0 and q > 0.1, f'Vic des de 400 m: mosaic contra l\'ortofoto de la zona, '
-       f'{dx:+.2f}, {dy:+.2f} px ({math.hypot(dx, dy) * m_px:.2f} m; 1 px = {m_px:.2f} m), maxim de correlacio {q:.2f}')
     # globus contra terreny, al delta de l'Ebre (relleu ~0)
     posar(40.70, 0.80, 3.0, 0.0, -89.0)
     esperar()
@@ -240,7 +228,7 @@ def amb_finestra():
     ok(math.hypot(dx, dy) * m_px < 5.0, f'delta de l\'Ebre des de 3 km: globus contra terreny {dx:+.2f}, {dy:+.2f} px '
        f'({math.hypot(dx, dy) * m_px:.1f} m; 1 px = {m_px:.1f} m), maxim {q:.2f}')
     # pegat de 5 m contra graella general, a l'Escala des de 200 m (el pegat es posa al voltant del punt d'observacio)
-    _, lat_e, lon_e = next(u for u in programa.UBICACIONS if 'Escala' in u[0])
+    _, lat_e, lon_e = next(u for u in UBICACIONS_PROVES if 'Escala' in u[0])
     app.triar_punt(lat_e, lon_e, 'Escala')
     posar(lat_e, lon_e, 0.2, 0.0, -89.9)
     esperar()

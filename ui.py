@@ -73,7 +73,7 @@ def panell_camera(app):
     w, _ = imgui.get_io().display_size
     imgui.set_next_window_pos((w - 10, 10), imgui.Cond.FIRST_USE_EVER, (1.0, 0.0))
     imgui.set_next_window_size((AMPLADA_PANELL, 0), imgui.Cond.ALWAYS)
-    imgui.begin('Camera')
+    imgui.begin('Camera', False, imgui.WindowFlags.NO_SAVED_SETTINGS)   # sempre a la dreta i desplegat en arrencar
     imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
     panell_vista(app)
     imgui.separator_text('On es la camera')
@@ -384,8 +384,6 @@ def panell_tecles(app):
 
 def panell_avancat(app):
     imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
-    if app.zona is not None and app.zona.orto is not None:
-        _, app.usar_ortofoto = imgui.checkbox('Ortofoto de la zona', app.usar_ortofoto)
     t = app.peninsula
     if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026: en un altre eclipsi enganyarien
         canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)

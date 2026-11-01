@@ -32,12 +32,12 @@ import numpy as np
 import rasterio
 from pyproj import Transformer
 
-from dades import alcaries, data_io, geodesia, llocs, teselles
+from dades import alcaries, geodesia, llocs, teselles
 from dades.data_io import ZONES_DETALL
 from dades.edificis import ZONA_DE_LA_UBICACIO, RADI_ZONA_M, fitxer_zona
 from dades.alcaries import centre_cel
 from dades.feines import Feina, FeinaProces
-from dades.observador import UBICACIONS
+from dades.observador import UBICACIONS_PROVES
 from .edificis import Edificis
 from .terrain import Terrain, MIDA_PEGAT
 
@@ -97,7 +97,10 @@ class Detall:
             cx, cy = llocs.centre(clau)
             marge = 0.0 if llocs.de_quadricula(clau) else llocs.MARGE_M
             return max(abs(x - cx), abs(y - cy)) < llocs.meitat_edificis(clau) - marge + extra
-        punts = [_A_UTM.transform(lon, lat) for nom, lat, lon in UBICACIONS if ZONA_DE_LA_UBICACIO.get(nom) == clau]
+        # els punts al voltant dels quals es van baixar els edificis de les zones fetes a ma (tots sis, encara que el
+        # panell ara en mostri quatre: descriuen les dades que hi ha)
+        punts = [_A_UTM.transform(lon, lat) for nom, lat, lon in UBICACIONS_PROVES
+                 if ZONA_DE_LA_UBICACIO.get(nom) == clau]
         return any(math.hypot(x - px, y - py) < RADI_ZONA_M - llocs.MARGE_M + extra for px, py in punts)
 
     def conte(self, z, x, y, marge):
@@ -165,14 +168,8 @@ class Detall:
     def _carregar_cpu(cami, clau, nom, max_textura, mesurades, avis):
         avis(f'Llegint el relleu de {nom}...')
         t = Terrain.preparar(cami, max_textura)
-        # ortofoto de la zona (nomes les fetes a ma en tenen: scripts/descarregar_ortofoto.py): la de tota la zona i
-        # la de detall (la primera; cada zona en te com a molt una per punt d'observacio)
-        general, detalls = data_io.ortofotos(clau)
-        detall = detalls[0][0] if detalls else None
-        orto = {}
-        if general:
-            avis(f'Llegint l\'ortofoto de {nom}...')
-            orto = {c: t.llegir_ortofoto(c, c == general) for c in (general, detall) if c}
+        # (l'ortofoto feta a ma de Vic, F18, ja no es fa servir: el color del terra es el de les teselles del PNOA, com
+        # a tot arreu; peticio de l'equip de l'1/11)
         e = None
         if os.path.exists(fitxer_zona(clau)):
             avis(f'Llegint els edificis de {nom}...')
@@ -181,7 +178,7 @@ class Detall:
         from dades.edificis import preparar_malla
         falta = os.path.exists(fitxer_zona(clau)) and (
             e is None or (mesurades and preparar_malla(clau, cami, mesurades=True, nomes_llegir=True) is None))
-        return dict(terreny=t, edificis=e, orto=(general, detall, orto), falta_malla=falta)
+        return dict(terreny=t, edificis=e, falta_malla=falta)
 
     def _crear(self, cami, clau, nom, cpu):
         """Objectes OpenGL de la zona llegida (cpu, de _carregar_cpu). Si li falta la malla dels edificis, es fa en un
@@ -191,9 +188,6 @@ class Detall:
             self.feines['malla'] = FeinaProces(clau, _preparar_malla, clau, cami, descripcio='malla dels edificis')
         t = Terrain(app, cami, globus=True, preparat=cpu['terreny'])
         t.pare, t.dibuixar_mar = app.peninsula, True
-        general, detall, orto = cpu.get('orto', (None, None, {}))
-        if general:
-            t.posar_ortofoto(general, detall, orto)
         for atribut in ('exaggeration', 'overlay', 'opacitat', 'limits_totalitat', 'wireframe'):
             setattr(t, atribut, getattr(app.peninsula, atribut))
         e = None

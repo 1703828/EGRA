@@ -57,6 +57,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from basecode.camera_exploracio import direccio_mirada
     from basecode.terrain import mostrejar_bilineal
     from dades import geodesia, eclipse_data
@@ -98,7 +99,7 @@ def main():
             return h
         return alcada
 
-    ubicacions = programa.UBICACIONS if a.totes else programa.UBICACIONS[:1]
+    ubicacions = UBICACIONS_PROVES if a.totes else UBICACIONS_PROVES[:1]
     for k, (nom, lat, lon) in enumerate(ubicacions):
         print(f'\n== {nom}')
         app.triar_ubicacio(lat, lon, nom)

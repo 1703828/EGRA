@@ -38,6 +38,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from dades import geodesia
     from basecode.camera_exploracio import VELOCITAT_CAMINAR_M_S, FACTOR_CORRER
 
@@ -232,7 +233,7 @@ def main():
        f'sortint de la zona de 5 m cap al relleu de 200 m: ulls sempre a 1,7 m i, just a la frontera, '
        f'{salt_cm:.3f} cm de diferencia en 1 cm (cap esglao)')
 
-    nom, lat, lon = programa.UBICACIONS[2]       # l'Escala, a la costa
+    nom, lat, lon = UBICACIONS_PROVES[2]       # l'Escala, a la costa
     app.triar_ubicacio(lat, lon, nom)
     fotograma(2)
     ok((np.linalg.norm(ce.posicio - app.ulls()) < 1e-9) and ce.caminar,
@@ -256,7 +257,7 @@ def main():
 
     # ------------------------------------------------------------ 7. entrar a caminar
     print('\n== Entrar i sortir del mode Caminar')
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     ce.caminar = False
     app.triar_ubicacio(lat, lon, nom)
     fotograma()

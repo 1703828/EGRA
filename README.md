@@ -5,7 +5,8 @@ Projecte de l'assignatura EGRA (Alícia Martí, Oriol Mota, Elena Gutiérrez).
 Visualitzem en 3D l'**eclipsi total de Sol del 12 d'agost de 2026** sobre el relleu real d'Espanya.
 L'escena és un model geomètric coherent: la Terra (el·lipsoide WGS84 amb textura de la NASA), el
 relleu de la península (MDT de 200 m de l'IGN), una zona de detall de 5 m al voltant del punt
-d'observació (Picos de Europa, Vic, l'Escala o el Vallès) i el Sol i la Lluna a les seves posicions i mides reals (efemèrides de JPL Horizons). L'ombra de la Lluna es
+d'observació (zones fetes a mà a Vic, el Vallès, l'Escala i Picos, o un lloc de 6 × 6 km que es baixa sol a
+qualsevol altre punt) i el Sol i la Lluna a les seves posicions i mides reals (efemèrides de JPL Horizons). L'ombra de la Lluna es
 calcula per a cada punt de la superfície i es veu moure's sobre la Terra.
 
 Es pot observar l'eclipsi des d'un punt, a 1,7 m sobre el terra, o explorar lliurement des del terreny
@@ -46,7 +47,7 @@ python scripts/descarregar_mdt.py valles     # Cerdanyola, la UAB i Montmeló
 Sense aquests fitxers el programa funciona igual, però en aquestes ubicacions només hi ha el relleu de
 200 m (ho avisa a la consola).
 
-S'obre una finestra amb la vista des del terra (Picos de Europa, uns minuts abans del màxim), el
+S'obre una finestra amb la vista des del terra (la UAB, plaça Cívica, on es fa la presentació), el
 panell i la barra de temps. La primera vegada es calculen uns fitxers auxiliars del terreny (uns
 segons); a partir de llavors es carrega en un o dos segons. Es poden calcular d'entrada amb:
 
@@ -135,7 +136,9 @@ al voltant de la Terra entre les 14:00 i les 21:30 TU. La càmera s'atura a 1.00
 Càlcul: `dades/navegacio.py`; comprovació: `python scripts/prova_controls.py`.
 
 **Arrencada:** el programa comença pausat una hora abans de l'inici de l'eclipsi (C1, calculat pel model)
-a Picos: a les 18:31:39 (hora d'estiu). Canviar d'ubicació no canvia l'hora.
+al punt inicial, la UAB (plaça Cívica, `dades/observador.UBICACIO_INICIAL`): a les 18:34:55 (hora d'estiu; C1
+19:34:55, màxim 20:29:09, posta 20:55:22). Picos, el cas de totalitat, és a la llista. Canviar d'ubicació no canvia
+l'hora.
 
 **P** no canvia res de la càmera: congela el temps on és i el torna a posar en marxa des del mateix
 instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a explorar i s'allunya
@@ -145,9 +148,10 @@ Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i
 del mateix lloc). Quan es tria una ubicació de la llista, la càmera d'exploració es posa a sobre del lloc
 nou, perquè en passar a explorar (V) es parteixi d'allà.
 
-Ubicacions de la llista (coordenades verificades el 26/10/2026, font a `PLA_DE_TREBALL.md` §10.3): Picos
-de Europa (centre de la zona de 5 m, totalitat), plaça Major de Vic, ajuntament de l'Escala, ajuntament de
-Cerdanyola, ajuntament de Montmeló i plaça Cívica de la UAB.
+Ubicacions de la llista (coordenades verificades el 26/10/2026, font a `PLA_DE_TREBALL.md` §10.3): plaça Major de
+Vic, ajuntament de Montmeló, ajuntament de Cerdanyola i plaça Cívica de la UAB (on arrenca). Picos de Europa (el cas
+de totalitat) i l'Escala ja no hi són (equip, 01/11/2026), però les seves dades es conserven i els scripts de prova hi
+continuen passant (`dades/observador.UBICACIONS_PROVES`); qualsevol altre punt es pot triar amb doble clic.
 
 Botons:
 
@@ -260,8 +264,8 @@ lluny.
 La foto no és ortofoto vertadera: la teulada dels edificis alts hi queda desplaçada uns metres, i la mitjana de tota
 la coberta en redueix l'efecte.
 
-A Vic hi ha, a més, l'ortofoto descarregada de la F18 (`python scripts/descarregar_ortofoto.py vic`), que es veu
-sota la fotografia aèria si no hi ha connexió (ja no dona el color de les cobertes). **Comparació:** és la
+L'ortofoto de Vic descarregada a la F18 (`python scripts/descarregar_ortofoto.py vic`) **ja no es fa servir** (equip,
+01/11/2026): Vic es tracta com qualsevol altre lloc. **Comparació** (per què no calia): és la
 mateixa font (PNOA) a 0,5 m; la fotografia per teselles arriba a z = 19 (~0,22 m per píxel a Catalunya i València),
 que ja és la resolució del vol (0,25 m a tots els llocs consultats). Per tant, la fotografia per teselles ja dona el
 detall màxim de la font a tot Espanya; el WMTS té z = 20, però seria la mateixa imatge ampliada.
@@ -504,9 +508,9 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat (Tab, clic dret, focus, FPS, zoom, límits), panell, P, roda i vista guiada (anada i tornada, temps, ubicació, Mirar l'eclipsi); captures a `captures/proves/guiat_*.png` |
 | `prova_cel.py` | Cel i llum: shader contra el model de la CPU, el cel no tapa cap objecte, continuïtat minut a minut, saturació, totalitat contra posta, orientació dels triangles dels edificis i colors de coberta, temps per fotograma (1280 × 860 i 2560 × 1720) |
 | `prova_obstacles.py` | Edificis com a obstacles: geometries de prova (paret, diagonal, cantonades, escletxes, patis), 3.000 moviments a l'atzar sobre el Catastro del Vallès i el programa real (punts exteriors amb cel, caminar i volar contra l'ajuntament de Cerdanyola, cobertes, recuperació) |
-| `prova_ortofoto.py` | Ortofoto d'una zona: alineació amb el Catastro, mida, memòria, temps per fotograma i captures (carrer i aire, amb foto i sense) |
+| `prova_ortofoto.py` | (Obsolet des de la F38: el programa ja no carrega l'ortofoto.) Ortofoto d'una zona: alineació amb el Catastro, mida, memòria, temps per fotograma i captures |
 | `descarregar_ortofoto.py` | Descarrega l'ortofoto del PNOA d'una zona (tota la zona a 5 m i 4 × 4 km a 0,5 m al voltant de cada punt) |
-| `prova_mosaic.py` | Fotografia aèria i controls aeris: coordenades de les teselles, precisió, sense xarxa, alineació amb l'ortofoto de Vic i entre la Terra i el terreny, temps, arrossegar, roda, orbitar, inèrcia, doble clic i edificis segons la vista; captures a `captures/proves/mosaic_*.png` |
+| `prova_mosaic.py` | Fotografia aèria i controls aeris: coordenades de les teselles, precisió, sense xarxa, alineació entre la Terra i el terreny, temps, arrossegar, roda, orbitar, inèrcia, doble clic i edificis segons la vista; captures a `captures/proves/mosaic_*.png` |
 | `prova_caminar.py` | Mode Caminar amb el programa real: direcció amb W/S/A/D a diferents rumbs, diagonal, inclinació, FPS, pendents (ulls a 1,7 m), pas llarg subdividit, vora de zona i mar, entrar/sortir, focus, panell |
 | `validar_visibilitat.py` | Mapa de visibilitat d'un MDT: circumstàncies de la graella contra el model punt a punt, marge al màxim i hores contra un raig exacte; amb `--cnig`, classes contra la capa del CNIG |
 | `descarregar_lidar.py` | Baixa el LiDAR de l'ICGC al voltant d'un punt (`uab`: 3 × 3 km) i en fa rasters d'1 m (superfície, terra, edificis); els LAZ s'esborren (`data/lidar/`) |

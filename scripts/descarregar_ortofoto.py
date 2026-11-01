@@ -38,7 +38,7 @@ from rasterio.transform import from_origin  # noqa: E402
 
 from dades.data_io import ZONES_DETALL  # noqa: E402
 from dades.edificis import ZONA_DE_LA_UBICACIO  # noqa: E402
-from dades.observador import UBICACIONS  # noqa: E402
+from dades.observador import UBICACIONS_PROVES as UBICACIONS  # noqa: E402
 
 URL = 'https://www.ign.es/wms-inspire/pnoa-ma'
 CAPA = 'OI.OrthoimageCoverage'

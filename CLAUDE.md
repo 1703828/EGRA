@@ -76,8 +76,9 @@ ubicació; tornar al punt d’observació; ajuda curta dels controls. Les capes 
 totalitat, overlays) i els paràmetres de depuració van a un apartat avançat tancat per defecte. Noms
 comprensibles per a algú que no conegui OpenGL ni astronomia.
 
-Ubicacions objectiu: Vic, l’Escala, Cerdanyola, Montmeló i la UAB. Picos es conserva com a cas de
-totalitat i zona de detall. Els punts concrets i les seves fonts es documenten al pla.
+Ubicacions de la llista: Vic, Montmeló, Cerdanyola i la UAB (on arrenca el programa). Tots els llocs es tracten
+igual, sense casos especials. Picos (cas de totalitat) i l’Escala ja no són a la llista, però les seves dades es
+conserven per als scripts de prova. Els punts concrets i les seves fonts es documenten al pla.
 
 ## Organització del codi
 

@@ -77,7 +77,7 @@ def geometries():
 def contorns_reals():
     print('\n== Contorns reals del Valles (Catastro)')
     from dades.edificis import llegir_zona
-    from dades.observador import UBICACIONS
+    from dades.observador import UBICACIONS_PROVES as UBICACIONS
     parts = llegir_zona('valles')
     if parts is None:
         print('   (sense dades del Valles: python scripts/descarregar_edificis.py)')
@@ -115,6 +115,7 @@ def programa_real():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from dades import geodesia
     from dades.observador import ALCADA_ULLS_KM
     from basecode.camera_exploracio import RADI_VOL_M, MARGE_COBERTA_M
@@ -146,7 +147,7 @@ def programa_real():
         prof = np.frombuffer(objectiu.read(components=1, attachment=-1, dtype='f4'), 'f4')
         return float((prof >= 1.0).mean())
 
-    for nom, lat, lon in programa.UBICACIONS:
+    for nom, lat, lon in UBICACIONS_PROVES:
         app.triar_ubicacio(lat, lon, nom)
         o = app.observador
         obs = app.edificis.obstacles if app.edificis is not None else None
@@ -165,7 +166,7 @@ def programa_real():
             ok(sep >= RADI_COS_M and cel > 0.5, text)
 
     # caminar cap a l'ajuntament de Cerdanyola
-    nom, lat, lon = programa.UBICACIONS[3]
+    nom, lat, lon = UBICACIONS_PROVES[3]
     app.triar_ubicacio(lat, lon, nom)
     app.caminar_des_del_punt()
     fotograma()

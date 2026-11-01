@@ -33,7 +33,7 @@ from dades import geodesia  # noqa: E402
 from dades.efemerides import RADI_LLUNA_KM, RADI_SOL_KM  # noqa: E402
 from dades.model_eclipsi import efemerides  # noqa: E402
 from dades.navegacio import cub_navegacio  # noqa: E402
-from dades.observador import UBICACIONS, ALCADA_ULLS_KM  # noqa: E402
+from dades.observador import UBICACIONS_PROVES as UBICACIONS, ALCADA_ULLS_KM  # noqa: E402
 from dades.trajectoria import Trajectoria, orientacio, angles_cap_a, S1, S2, S3, H0_KM  # noqa: E402
 
 FOV = 50.0

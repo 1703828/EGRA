@@ -55,7 +55,7 @@ def main():
     import requests
     from basecode.camera_exploracio import COEF_LOG, direccio_mirada
     from dades import edificis, geodesia, eclipse_data
-    from dades.observador import UBICACIONS
+    from dades.observador import UBICACIONS_PROVES as UBICACIONS
 
     W, H = 640, 640
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - edificis', use_ui_panel=True)

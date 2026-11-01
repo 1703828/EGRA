@@ -47,6 +47,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from dades import geodesia, eclipse_data
     from basecode.camera_exploracio import direccio_mirada
 
@@ -123,7 +124,7 @@ def main():
 
     print(f"{'Ubicacio':24s} {'azimut':>7s} {'MDT':>7s} {'dist.':>8s} {'dibuix.':>8s} {'imatge':>8s} "
           f"{'img-dib':>8s} {'Sol':>6s} {'classe':>6s} {'CNIG':>5s}")
-    for nom, lat, lon in programa.UBICACIONS:
+    for nom, lat, lon in UBICACIONS_PROVES:
         app.triar_punt(lat, lon, nom)
         m = app.model
         app.hora = m.hores['maxim']

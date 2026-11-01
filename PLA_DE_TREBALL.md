@@ -2143,6 +2143,28 @@ el bucle continuava amb la llista copiada abans i no la trobava. **Correcció:**
 **Comprovat automàticament:** la mateixa situació reproduïda amb dues feines falses: amb el codi anterior,
 `KeyError('pegat')`; amb el nou, correcte.
 
+### F38 — Arrencada a la UAB, quatre ubicacions i Vic sense cas especial (01/11/2026, petició de l'equip) — FET
+
+1. **Arrencada a la UAB, plaça Cívica** (`dades/observador.UBICACIO_INICIAL`): la presentació es fa allà. Pausat a
+   C1 − 1 h (18:34:55; C1 19:34:55, màxim 20:29:09, posta 20:55:22), mirant a 100° (cap al campus;
+   `main.MIRADA_INICIAL`; abans s'arrencava mirant el Sol): cap a l'oest, on és el Sol al màxim (286°, 4°), hi ha
+   un edifici al davant. *Mirar el Sol* hi gira la mirada.
+2. **La llista té quatre punts:** Vic, Montmeló, Cerdanyola i la UAB. Picos i l'Escala en surten; les seves dades es
+   conserven i els scripts de prova fan servir `UBICACIONS_PROVES` (els sis de sempre, en el mateix ordre).
+3. **Vic com la resta:** el programa ja no carrega l'ortofoto feta a mà (F18) ni té la casella "Ortofoto de la zona";
+   el terra és el de les teselles PNOA. Queden sense ús (neteja a part, sense canvi de comportament):
+   `Terrain.posar_ortofoto` i la part del shader (`usar_orto`), `scripts/descarregar_ortofoto.py`,
+   `scripts/prova_ortofoto.py` i `data/ortofoto/` (24 MB, fora del Git).
+4. **Panells sense `imgui.ini`** (`NO_SAVED_SETTINGS`): en arrencar, *Eclipsi* a l'esquerra i *Càmera* a la dreta,
+   desplegats. Una prova havia deixat el panell *Càmera* plegat sobre l'altre al fitxer que comparteixen.
+
+`CLAUDE.md` (ubicacions objectiu) actualitzat amb la decisió. **Comprovat automàticament:** `prova_vistes` (102),
+`prova_controls` (69), `prova_eclipsis` (27), `prova_cel` (7), `prova_caminar` (26), `validar_ombres_relleu`,
+`prova_noms` (9), `validar_edificis` (22), `prova_obstacles` (25), `prova_mosaic` (sense la comparació amb l'ortofoto),
+`prova_llocs` (10), `prova_detall` (València; en una execució en què València s'acabava de tornar a preparar, "tornar-hi"
+va trobar una cel·la veïna encara mesurant-se; a la següent, correcte). **Inspeccionat visualment:** l'arrencada (plaça
+Cívica cap al campus, els dos panells al seu lloc).
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).

@@ -63,6 +63,7 @@ def main():
         glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from basecode.camera_exploracio import COEF_LOG
     from dades import geodesia, eclipse_data
     from dades.model_eclipsi import punt_ombra
@@ -186,7 +187,7 @@ def main():
        f"arrencada pausada a {hl(app.hora)}, una hora abans de C1 ({hl(m0.hores['c1'])}) a {app.observador.nom}, "
        f"dins de la barra de temps ({hl(app.ef.inici)}-{hl(app.ef.final)})")
     co, ce = app.camera_observador, app.camera_exploracio
-    for k, (nom, lat, lon) in enumerate(programa.UBICACIONS):
+    for k, (nom, lat, lon) in enumerate(UBICACIONS_PROVES):
         print(f'\n== {nom}')
         app.reproduint = False
         app.canviar_vista(1)
@@ -335,12 +336,12 @@ def main():
     ce.posicio = ce.posicio + 20000 * ce.posicio / np.linalg.norm(ce.posicio)
     ok(ce.velocitat() > 1000, f'a {ce.alcada_sobre_terra():,.0f} km, W va a {ce.velocitat():,.0f} km/s')
     h = app.hora
-    for nom, lat, lon in programa.UBICACIONS[1:4]:
+    for nom, lat, lon in UBICACIONS_PROVES[1:4]:
         app.triar_ubicacio(lat, lon, nom)
         fotograma()
     ok(app.hora == h and not app.reproduint, "canviar d'ubicacio (llista) no canvia l'hora ni posa en marxa el temps")
     cam, ulls = ce.posicio.copy(), app.ulls()
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_punt(lat, lon, nom)
     fotograma()
     ok(np.array_equal(ce.posicio, cam) and np.linalg.norm(app.ulls() - ulls) > 10,
@@ -367,6 +368,7 @@ def bucle_real(app, programa, ok):
     que fa el desplegable del panell. Comprova l'estat (no les imatges: llegir el framebuffer de la finestra
     de macOS no es fiable)."""
     from basecode import window as winmod
+    from dades.observador import UBICACIONS_PROVES
     co, ce = app.camera_observador, app.camera_exploracio
     io = imgui.get_io()
     premudes = set()
@@ -382,7 +384,7 @@ def bucle_real(app, programa, ok):
                                                    cam=ce.posicio.copy(), cam_mirada=(ce.rumb, ce.inclinacio),
                                                    hora=app.hora, reproduint=app.reproduint, vista=app.vista))
 
-    nom, lat, lon = programa.UBICACIONS[3]
+    nom, lat, lon = UBICACIONS_PROVES[3]
     passos = [lambda: app.triar_ubicacio(lat, lon, nom), lambda: app.canviar_vista(1),   # 1. triar la ubicacio
               lambda: co.mirar(200.0, 5.0), desa('inici'),
               lambda: premudes.add(glfw.KEY_RIGHT)] + [None] * 15 + [             # 3. girar amb les fletxes
@@ -403,7 +405,7 @@ def bucle_real(app, programa, ok):
         passos += [lambda c=capa: [setattr(t, 'overlay', c) for t in app.terrenys()], None]
     passos += [lambda: [setattr(t, 'wireframe', True) for t in app.terrenys()], None,
                lambda: [setattr(t, 'wireframe', False) for t in app.terrenys()],
-               lambda: app.triar_punt(*programa.UBICACIONS[0][1:], programa.UBICACIONS[0][0]), None, None]
+               lambda: app.triar_punt(*UBICACIONS_PROVES[0][1:], UBICACIONS_PROVES[0][0]), None, None]
     n = [0]
     render = app.render
 

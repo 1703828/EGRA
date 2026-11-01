@@ -37,7 +37,7 @@ ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ARREL)
 from dades import eclipse_data, eclipsis  # noqa: E402
 from dades.model_eclipsi import ModelEclipsi  # noqa: E402
-from dades.observador import UBICACIONS  # noqa: E402
+from dades.observador import UBICACIONS_PROVES as UBICACIONS  # noqa: E402
 
 PAGINES = {'2026': 'SE2026Aug12Tgoogle.html', '2027': 'SE2027Aug02Tgoogle.html', '2028': 'SE2028Jan26Agoogle.html'}
 URL_PAGINA = 'https://eclipse.gsfc.nasa.gov/SEgoogle/SEgoogle2001/SE2026Aug12Tgoogle.html'

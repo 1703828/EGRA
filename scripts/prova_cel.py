@@ -43,6 +43,7 @@ def main():
     glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
     sys.argv = ['main.py']
     import main as programa
+    from dades.observador import UBICACIONS_PROVES
     from dades import geodesia, atmosfera
     from PIL import Image
 
@@ -71,7 +72,7 @@ def main():
     carpeta = os.path.join(ARREL, 'captures', 'proves')
     os.makedirs(carpeta, exist_ok=True)
     co = app.camera_observador
-    nom, lat, lon = programa.UBICACIONS[1]                     # Vic
+    nom, lat, lon = UBICACIONS_PROVES[1]                     # Vic
     app.triar_ubicacio(lat, lon, nom)
     app.canviar_vista(1)
     m = app.model
@@ -156,7 +157,7 @@ def main():
     ok(purs == 0, f'cap pixel de cel amb un canal saturat i un altre fosc ({purs})')
 
     # ------------------------------------------------------------ 4. totalitat contra posta (Picos)
-    nom, lat, lon = programa.UBICACIONS[0]
+    nom, lat, lon = UBICACIONS_PROVES[0]
     app.triar_ubicacio(lat, lon, nom)
     m = app.model
     t = (m.hores['c2'] + m.hores['c3']) / 2
@@ -186,7 +187,7 @@ def main():
 
     # ------------------------------------------------------------ 5. edificis
     print('\n== Edificis (Vic)')
-    nom, lat, lon = programa.UBICACIONS[1]
+    nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_ubicacio(lat, lon, nom)
     from dades.edificis import preparar_malla
     from dades.data_io import ZONES_DETALL
