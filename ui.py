@@ -278,14 +278,15 @@ def panell_avancat(app):
         _, app.usar_ortofoto = imgui.checkbox('Ortofoto de la zona', app.usar_ortofoto)
     _, app.acolorir_alcades = imgui.checkbox('Edificis: blau mesurat, taronja estimat', app.acolorir_alcades)
     t = app.peninsula
-    canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)
-    if canviat:
-        for terreny in app.terrenys():
-            terreny.limits_totalitat = lim
-    canviat, op = imgui.slider_float('Opacitat CNIG', t.opacitat, 0, 1)
-    if canviat:
-        for terreny in app.terrenys():
-            terreny.opacitat = op
+    if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026: en un altre eclipsi enganyarien
+        canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)
+        if canviat:
+            for terreny in app.terrenys():
+                terreny.limits_totalitat = lim
+        canviat, op = imgui.slider_float('Opacitat CNIG', t.opacitat, 0, 1)
+        if canviat:
+            for terreny in app.terrenys():
+                terreny.opacitat = op
     canviat, exag = imgui.slider_float('Exageracio', t.exaggeration, 1, 20)
     if canviat:
         for terreny in app.terrenys():

@@ -11,6 +11,9 @@ Com es calcula (cub_navegacio):
      60 graus i no cabria a la pantalla. El marge es el que cal perque, des de la paret que hi ha darrere
      del Sol, el disc sencer ocupi com a molt el 90 % del camp de visio vertical de la camera
      d'exploracio: distancia al centre d = R / sin(0,45 * fov), marge = d - R.
+     Al voltant de la Terra es deixen, a mes, ESPAI_TERRA_KM lliures en tots els sentits: si no, en un eclipsi
+     en que el Sol queda tot cap a un costat (el del 2027, al mati) la Terra quedava a ~3,5 milions de km d'una
+     paret i, a tot l'entorn de la Terra, es veia l'avis de la paret (basecode/paret_cub.py) sense acostar-s'hi.
   3. Les dimensions mes curtes s'amplien simetricament fins a la mes llarga: un cub.
 El cub es calcula un sol cop i no canvia durant la sessio.
 
@@ -28,6 +31,8 @@ from .efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 
 UA_KM = 149_597_870.7          # unitat astronomica (IAU 2012)
 FRACCIO_CAMP = 0.9             # el Sol sencer ha d'ocupar com a molt aquesta fraccio del camp vertical
+ESPAI_TERRA_KM = 1.0e7        # espai lliure al voltant de la Terra (~26 vegades la distancia a la Lluna): mes
+                               # que la distancia a que es comenca a veure la paret (3 % del costat, ~5 milions de km)
 DISTANCIA_PARET_KM = 1000.0    # la camera s'atura a aquesta distancia de la paret, no a sobre: si el pla
                                # d'una cara passes pels ulls, es veuria de cantell (rasteritzacio degenerada)
 
@@ -61,7 +66,7 @@ def cub_navegacio(ef, fov_vertical_graus):
     """Cub de navegacio a partir de les efemerides (ef) i del camp de visio de la camera d'exploracio."""
     hores = np.linspace(ef.inici, ef.final, int(round((ef.final - ef.inici) * 60)) + 1)   # cada minut
     sol, lluna = (np.array(v) for v in zip(*(ef.posicions(h) for h in hores)))
-    terra = np.array([geodesia.A_KM, geodesia.A_KM, geodesia.B_KM])
+    terra = np.array([geodesia.A_KM, geodesia.A_KM, geodesia.B_KM]) + ESPAI_TERRA_KM
     lo = np.minimum.reduce([sol.min(0) - RADI_SOL_KM, lluna.min(0) - RADI_LLUNA_KM, -terra])
     hi = np.maximum.reduce([sol.max(0) + RADI_SOL_KM, lluna.max(0) + RADI_LLUNA_KM, terra])
     marge = marge_per_enquadrar(fov_vertical_graus)

@@ -404,7 +404,8 @@ class Detall:
     def detall_en_curs(self):
         """Si s'esta preparant el detall del punt (superficie, altures o mapa de detall)."""
         return 'superficie' in self.feines or 'alcades' in self.feines or \
-            (self.app.calcul_detall is not None and not self.app.calcul_detall.fet)
+            (self.app.calcul_detall is not None and not self.app.calcul_detall.fet
+             and not self.app.calcul_detall.cancelat)
 
     def candidats_mapa(self):
         """Superficies de detall al disc: [(cami, limits UTM, cami dels ulls, descripcio, MDT del relleu proper o

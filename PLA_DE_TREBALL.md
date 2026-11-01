@@ -2021,6 +2021,30 @@ distingeix arbres d'edificis; als llocs nous les cobertes no tenen el color de l
 les zones grans fetes a mà (Vallès, 36 M de píxels) tarda molt la primera vegada (es calcula després del detall
 del punt); Navarra i el País Basc sense edificis (cadastres propis); sense ortofoto vertadera.
 
+### F32 — Correccions: canviar d'eclipsi (01/11/2026, error trobat per l'equip) — FET
+
+**Error (provat per l'equip):** en triar l'eclipsi del 2027 o el 2028 al panell, el programa es tancava amb
+`GLError 1281 (invalid value)` a `glUseProgram`, dins de slimgui. **Causa:** canviar d'eclipsi refà el cub de
+navegació i n'allibera el shader; slimgui desa el shader actiu abans de dibuixar el panell i el reactiva en acabar, i
+aquell ja era esborrat. **Correcció:** `main.py` deixa la GPU sense shader actiu just abans de dibuixar el panell
+(`GL.glUseProgram(0)`). Les proves no ho van detectar perquè cap no dibuixava el panell en canviar d'eclipsi.
+
+Altres problemes del 2027 i el 2028 trobats en provar-ho:
+1. A *Avançat*, "Límits de la totalitat (CNIG)" i "Opacitat CNIG" sortien en tots els eclipsis: els límits oficials
+   del 2026 es podien dibuixar sobre un altre eclipsi. Ara només surten amb el 2026, com el desplegable de capes.
+2. El 2/8/2027 el Sol queda tot cap a un costat i la Terra quedava a ~3,5 milions de km d'una paret del cub de
+   navegació: l'avís de la paret (ratlles) es veia a tot l'entorn de la Terra (captura "ombra des de l'espai").
+   Ara el cub deixa sempre 10 milions de km lliures al voltant de la Terra (`dades/navegacio.py`, `ESPAI_TERRA_KM`;
+   el 2026 no canvia: 1,647 UA).
+3. Un càlcul del mapa de visibilitat de detall que ja no calia (mapa tret, un altre eclipsi o una altra cel·la) no
+   s'aturava i impedia començar tots els altres. Ara es cancel·la, com els del relleu.
+
+**Comprovat automàticament:** `scripts/prova_eclipsis.py` (nova): els tres eclipsis i tornar al 2026 amb el bucle real
+i el panell dibuixat, sense errors d'OpenGL; contactes dins de les efemèrides; "Anar al màxim"; separació Sol–Lluna
+de l'escena igual a la del model (< 0,001°); capes del CNIG desactivades fora del 2026; el mapa de visibilitat es
+comença a calcular per a l'eclipsi actiu. `prova_controls` (69 OK). **Inspeccionat visualment:** captures
+`captures/proves/eclipsi_<any>_*.png` (des del terra al màxim, a Picos, i l'ombra des de l'espai).
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).

@@ -73,6 +73,7 @@ import glm
 import numpy as np
 import moderngl as mgl
 from slimgui import imgui
+from OpenGL import GL
 
 from basecode.engine import GraphicsEngineBase
 from basecode.camera_exploracio import CameraExploracio, COEF_LOG, direccio_mirada, FOV as FOV_EXPLORACIO
@@ -370,9 +371,13 @@ class GraphicsEngine(GraphicsEngineBase):
         z = self.zona
         d = self.detall.detall_mapa if self.mapa_visibilitat else None
         cd = self.calcul_detall
+        if cd is not None and not cd.fet and not cd.cancelat and (d is None or d[0] != cd.cami or cd.clau != clau):
+            cd.cancel()   # ja no cal (mapa tret, un altre eclipsi o una altra cel·la): no ha d'aturar els altres
         if cd is not None and cd.fet:
             self.calcul_detall = None
-            if cd.error or cd.resultat is None:
+            if cd.cancelat:
+                cd = None
+            elif cd.error or cd.resultat is None:
                 self.mapes_fallats.add((cd.cami, cd.clau))
             elif cd.clau == clau and z is not None and d is not None and d[0] == cd.cami:
                 z.posar_visibilitat_detall(cd.resultat, d[1])
@@ -657,8 +662,9 @@ class GraphicsEngine(GraphicsEngineBase):
         self.lluna.radi_sol = float(self.radi_sol_camera)
 
     def run(self):
-        """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb una sola diferencia: Esc
-        primer allibera el ratoli si es capturat; amb el ratoli lliure, Esc tanca el programa, com abans."""
+        """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb dues diferencies: Esc
+        primer allibera el ratoli si es capturat (amb el ratoli lliure, Esc tanca el programa, com abans) i, abans
+        del panell, no queda cap shader actiu."""
         while not winmod.should_close(self.window):
             glfw.poll_events()
             if winmod.is_escape_pressed(self.window):
@@ -678,6 +684,10 @@ class GraphicsEngine(GraphicsEngineBase):
             self.build_ui()
             imgui.end()
             imgui.render()
+            # Cap shader actiu abans de dibuixar el panell: slimgui desa el que hi ha actiu i el reactiva en acabar.
+            # Si el panell n'ha alliberat un (p. ex. el cub de navegacio en canviar d'eclipsi), seria un shader
+            # esborrat (GLError 1281, invalid value) i el programa es tancava.
+            GL.glUseProgram(0)
             self.ui_renderer.render(imgui.get_draw_data())
             glfw.swap_buffers(self.window)
         self._shutdown()
