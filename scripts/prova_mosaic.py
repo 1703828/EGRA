@@ -330,9 +330,10 @@ def amb_finestra():
        f'({ce.inclinacio:.1f} graus)')
 
     print('\n== Doble clic i edificis')
+    app.edificis_aeris = False   # (per defecte es veuen tambe a la vista aeria; aqui es comprova l'opcio apagada)
     posar(41.9288 - 0.0107, 2.2553, 0.486 + 1.19, 30.0, -55.0)
     fotograma(3)
-    ok(app.edificis is not None and not app.edificis.visible, 'vista aeria: els edificis no es dibuixen')
+    ok(app.edificis is not None and not app.edificis.visible, 'vista aeria amb l\'opcio apagada: els edificis no es dibuixen')
     rumb = ce.rumb
     for _ in range(2):
         moure_cursor(640, 430, 1)

@@ -134,10 +134,10 @@ class GraphicsEngine(GraphicsEngineBase):
         self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
         self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = self.paret = None
         self.edificis = None          # edificis de la zona de detall (Catastro), si n'hi ha
-        # edificis: es mostren en primera persona (observacio i caminant), per veure l'horitzo que deixen, i no
-        # a la vista aeria (vol lliure i guiada), on taparien la fotografia; cada cas es pot canviar al panell
+        # edificis: es mostren en primera persona (observacio i caminant) i a la vista aeria (vol lliure i guiada);
+        # cada cas es pot canviar al panell
         self.mostrar_edificis = True
-        self.edificis_aeris = False
+        self.edificis_aeris = True    # (equip, 01/11/2026: tambe a la vista aeria per defecte; es poden amagar)
         self._clau_edificis = None
         self.mostrar_noms = True      # noms de lloc importants sobre el mapa a les vistes aeries (ui.noms_al_mapa)
         self.noms_mapa = None         # [(nom, nivell, posicio ECEF)], es prepara el primer cop que es dibuixen

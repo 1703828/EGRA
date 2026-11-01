@@ -203,10 +203,9 @@ navegant).
 A les zones de detall amb dades (el Vallès —UAB, Cerdanyola i Montmeló—, Vic i l'Escala; a Picos no n'hi ha
 cap a menys de 2 km), els edificis del Catastro es dibuixen com a volums amb coberta plana i façanes,
 assentats sobre el relleu. Són opacs i escriuen la profunditat com la resta de l'escena, de manera que tapen
-el Sol (i el halo). Per defecte es dibuixen **en primera persona** (observar des del terra i caminar), per veure
-l'horitzó que deixen, i no a la vista aèria, on taparien la fotografia. Les opcions del panell **Edificis des
-del terra** i **Edificis també a la vista aèria** ho canvien sense moure la càmera ni l'hora, i el panell diu quina part del Sol tapen des dels ulls
-(càlcul geomètric amb el disc sencer, separat de la part que tapa la Lluna). Les **altures són estimades**:
+el Sol (i el halo). Per defecte es dibuixen **a totes les vistes** (des del terra, caminant i a l'aire). Les caselles
+*Edificis* i *A la vista aèria* del panell *Càmera* ho canvien sense moure la càmera ni l'hora. (La part del Sol que
+tapen des dels ulls es pot calcular, `Edificis.fraccions`, però el panell ja no la mostra.) Les **altures són estimades**:
 plantes del Catastro × 3 m (incertesa ~±20–30 %), o mesurades amb LiDAR (veure a sota). Els edificis fan ombra
 al terra i als altres edificis (veure *Ombres del relleu i dels edificis*).
 

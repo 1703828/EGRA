@@ -2165,6 +2165,33 @@ el bucle continuava amb la llista copiada abans i no la trobava. **Correcció:**
 va trobar una cel·la veïna encara mesurant-se; a la següent, correcte). **Inspeccionat visualment:** l'arrencada (plaça
 Cívica cap al campus, els dos panells al seu lloc).
 
+### F39 — Edificis també a la vista aèria per defecte (01/11/2026, petició de l'equip) — FET
+
+`main.py`: `edificis_aeris = True`. **Provat per l'equip:** les ombres dels edificis des de l'aire i des del terra, els
+noms de lloc a diferents altures i l'estabilitat (cap tancament des de la F37) es veuen bé.
+
+### Mapa de visibilitat: estat real i idees per a la propera entrega (01/11/2026, equip)
+
+**Decisió:** la part visual del mapa queda fora de l'informe intermedi i passa a la propera entrega.
+
+**Què passa ara (provat per l'equip, comprovat al codi):** a la península el mapa es veu per als tres eclipsis (200 m,
+`visibilitat_<any>_peninsula_200m.npz`). Dins d'una zona de 5 m feta a mà (p. ex. el Vallès, 36 M de píxels) no es veu
+res: la zona tapa la península (forat a la graella general) i el seu mapa propi no s'ha calculat mai (trigaria
+hores), de manera que alla només es veu la foto. El mapa de la península és el de 200 m: no veu ni els turons
+petits, ni els edificis, ni els arbres.
+
+**Idees de l'equip:**
+1. Si una zona ja és descarregada (relleu de 5 m, edificis i alçades), poder-ne veure el mapa de detall de tota la
+   zona, a més qualitat, i no només el de la cel·la de 3 × 3 km on es mira.
+2. Pensar-ho per a qui ho mirarà: des del terrat de casa (els ulls a la coberta, que ja calcula la superfície de
+   detall), des d'una plaça (al carrer) o des d'un turó o una muntanya per veure-ho millor (on el Sol queda més
+   temps per sobre de l'horitzó). Mapes per zones concretes, p. ex. la plana de Vic.
+3. Mentre no hi hagi mapa de la zona, mostrar el de la península a sota (no un forat sense color) i mantenir els
+   mapes de detall ja calculats mentre es vegin (ara desapareixen a 50 m de la vora de la cel·la).
+
+**Dades sense ús des de la F34:** `visibilitat_2026_uab_{superficie,terra}_1m_25830.npz` (34 MB, el mapa del núvol de
+punts de la UAB) i els rasters de `data/lidar/` només serveixen per validar.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
