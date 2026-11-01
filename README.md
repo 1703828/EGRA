@@ -294,8 +294,13 @@ Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m
   - **Càmera** (a la dreta): la vista (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra
     de la Lluna des de l'espai); **on és la càmera**: altura sobre el terra que es dibuixa a sota, altitud sobre el
     nivell del mar (sobre l'el·lipsoide WGS84) i coordenades; què es dibuixa (fotografia aèria, edificis, ombres del
-    relleu); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
+    relleu, noms de lloc); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
     filferros, origen de les altures, dades del CNIG) són desplegables tancats.
+- **Noms de lloc sobre el mapa** (`ui.noms_al_mapa`, `data/noms_mapa.json`), com a Google Maps, a les vistes aèries:
+  segons l'altura de la càmera sobre el terra, les capitals de comunitat (de 25 a 4.000 km), les de província (de 12 a
+  1.500 km) i les de comarca de Catalunya (de 3 a 200 km). Més a prop desapareixen. No s'escriuen els que queden
+  darrere de l'horitzó ni els que en taparien un de més important. La casella *Noms de lloc* del panell *Càmera* els
+  amaga.
 - **Rendiment:** el programa fa servir la sincronia vertical (`glfw.swap_interval(1)`): no dibuixa més fotogrames dels
   que la pantalla mostra (~60 per segon). La imatge és la mateixa. Si durant mig segon no canvia res (mateixa càmera i
   hora, en pausa) i no hi ha res en segon pla (descàrregues, càlculs de mapes, detall, nom del lloc), queda **en
@@ -485,6 +490,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
 | `descarregar_edificis.py` | Baixa els edificis del Catastro de les zones de detall i en prepara les dades i la malla (`data/edificis/`, `data/cache/`) |
 | `validar_edificis.py` | Edificis: contorns contra OpenStreetMap, plantes contra la font, cobertes a la cota calculada, Sol visible/parcial/total a la imatge contra el càlcul geomètric, halo, interruptor, rendiment |
+| `prova_noms.py` | Noms de lloc sobre el mapa: el fitxer té els tres nivells; quins s'escriuen sobre Manresa a 1.200, 300, 60, 8 i 1,5 km (de prop, cap); cap des del terra ni amb la casella desactivada; captures a `captures/proves/noms_*.png` |
 | `prova_eclipsis.py` | Els tres eclipsis amb el bucle real i el panell dibuixat: canviar-hi sense errors d'OpenGL, contactes, *Anar al màxim*, Sol i Lluna de l'escena iguals al model, capes del CNIG només el 2026, el mapa de visibilitat comença; captures a `captures/proves/eclipsi_*.png` |
 | `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat (Tab, clic dret, focus, FPS, zoom, límits), panell, P, roda i vista guiada (anada i tornada, temps, ubicació, Mirar l'eclipsi); captures a `captures/proves/guiat_*.png` |
 | `prova_cel.py` | Cel i llum: shader contra el model de la CPU, el cel no tapa cap objecte, continuïtat minut a minut, saturació, totalitat contra posta, orientació dels triangles dels edificis i colors de coberta, temps per fotograma (1280 × 860 i 2560 × 1720) |

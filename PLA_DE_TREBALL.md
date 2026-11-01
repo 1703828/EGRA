@@ -2103,6 +2103,20 @@ mantenir els mapes ja calculats mentre es vegin.
 Pendent de decidir: l'ortofoto de Vic encara es fa servir com a color del terra de reserva (només es veu mentre no
 han arribat les teselles); es podria treure del tot.
 
+### F35 — Noms de lloc sobre el mapa (01/11/2026, petició de l'equip) — FET
+
+Com a Google Maps: a les vistes aèries, els noms dels llocs importants per situar-se, segons l'altura de la càmera, i
+de prop desapareixen. **Dades** (`scripts/preparar_noms_mapa.py` → `data/noms_mapa.json`, al Git): 94 noms del
+Nomenclàtor de l'IGN en tres nivells (capitals de comunitat, de província i de comarca de Catalunya; aquestes, d'una
+llista feta a mà, perquè el nomenclàtor no té el tipus). **Dibuix** (`ui.noms_al_mapa`): text d'imgui a la llista de
+fons (sota els panells), amb vora fosca; no s'escriuen els de darrere de l'horitzó ni els que en taparien un de més
+important. Altures de cada nivell a `ui.ALCADES_NOMS`. Casella *Noms de lloc* al panell *Càmera*.
+
+**Comprovat automàticament:** `scripts/prova_noms.py` (sobre Manresa: 40 noms a 1.200 km, 6 a 300 km, 10 a 60 km amb
+les comarques, 1 a 8 km, cap a 1,5 km; cap des del terra ni amb la casella desactivada). **Inspeccionat visualment:**
+captures `captures/proves/noms_*.png`. **Limitacions:** els noms es mostren sense accents (font del panell); fora de
+Catalunya no hi ha nivell comarcal; el relleu no tapa els noms (només l'horitzó de la Terra).
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).

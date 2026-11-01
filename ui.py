@@ -17,16 +17,23 @@ Textos sense accents: la font de slimgui no els mostra be (els noms dels serveis
 import unicodedata
 
 import glfw
+import glm
 import numpy as np
 from slimgui import imgui
 
 from basecode.terrain import (OVERLAYS, MAPES, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
                               COLORS_DURADA, COLORS_OMBRES, COLORS_CENTRAL, COLOR_TAPAT_RELLEU)
-from dades import eclipse_data, eclipsis, geodesia
+from dades import eclipse_data, eclipsis, geodesia, noms
 from dades.observador import UBICACIONS
 
 VISTES = ['Explorar', 'Des del terra', 'Espai (guiat)']
 AMPLADA_PANELL = 300
+# Noms de lloc sobre el mapa (noms_al_mapa): cada nivell es veu amb la camera entre aquestes altures sobre el terra
+# (km): de lluny, nomes els mes importants; de prop, desapareixen (el terreny ja es reconeix i taparien la vista)
+ALCADES_NOMS = {0: (25.0, 4000.0),    # capital de l'Estat i capitals de comunitat autonoma
+                1: (12.0, 1500.0),    # capitals de provincia
+                2: (3.0, 200.0)}      # capitals de comarca de Catalunya
+MIDA_NOMS = {0: 19.0, 1: 16.0, 2: 14.0}          # mida de la lletra (punts)
 VELOCITATS = [1, 10, 60, 300, 1000]   # x temps real ('Auto' a mes: lent a la totalitat)
 COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'ANULARITAT': (1.0, 0.6, 0.2, 1.0),
               'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
@@ -55,6 +62,7 @@ def build_ui(app):
     imgui.text_disabled('IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')
     imgui.pop_item_flag()
 
+    noms_al_mapa(app)
     panell_camera(app)
     barra_temps(app)
     avis_ratoli(app)
@@ -80,6 +88,64 @@ def panell_camera(app):
         panell_avancat(app)
     imgui.pop_item_flag()
     imgui.end()
+
+
+def preparar_noms(app):
+    """Els noms del mapa (dades/noms.noms_mapa) amb la seva posicio ECEF (km) sobre el relleu de la peninsula: es
+    calcula un cop."""
+    llista = []
+    for nom, nivell, lat, lon in noms.noms_mapa():
+        alt = app.peninsula.altitud_latlon(lat, lon)
+        p = geodesia.ecef(lat, lon, (alt or 0.0) / 1000.0)
+        llista.append((sense_accents(nom), nivell, np.asarray(p, dtype=float)))
+    return llista
+
+
+def noms_al_mapa(app):
+    """Escriu els noms de lloc importants sobre l'escena (fons d'imgui, sota els panells), segons l'altura de la
+    camera sobre el terra (ALCADES_NOMS), com a Google Maps. Nomes a les vistes aeries (explorar en vol lliure i
+    espai). No s'escriuen els que queden darrere de l'horitzo de la Terra ni els que en taparien un de mes
+    important (o, a igual nivell, un de mes proper)."""
+    if not app.mostrar_noms or app.vista == 1 or (app.vista == 0 and app.camera_exploracio.caminar):
+        return
+    if app.noms_mapa is None:
+        app.noms_mapa = preparar_noms(app)
+    cam = app.camera
+    lat, lon, alt = (float(v) for v in geodesia.geodesiques(cam.posicio))
+    h = alt - app.altitud_terra_km(lat, lon)
+    w, hp = imgui.get_io().display_size
+    vp = cam.m_proj * cam.m_view
+    candidats = []
+    for nom, nivell, p in app.noms_mapa:
+        h0, h1 = ALCADES_NOMS[nivell]
+        if not h0 < h < h1:
+            continue
+        rel = p - cam.posicio
+        n = p / np.linalg.norm(p)
+        if np.dot(-rel, n) <= 0:                    # darrere de l'horitzo (el pla tangent al punt)
+            continue
+        c = vp * glm.vec4(*(float(v) for v in rel), 1.0)
+        if c.w <= 0:
+            continue
+        x, y = (c.x / c.w + 1) * 0.5 * w, (1 - c.y / c.w) * 0.5 * hp
+        if -50 < x < w + 50 and -20 < y < hp + 20:
+            candidats.append((nivell, float(np.linalg.norm(rel)), nom, x, y))
+    dl = imgui.get_background_draw_list()
+    font = imgui.get_font()
+    ocupat = []
+    for nivell, _, nom, x, y in sorted(candidats):
+        mida = MIDA_NOMS[nivell]
+        tw, th = imgui.calc_text_size(nom)
+        tw, th = tw * mida / imgui.get_font_size(), th * mida / imgui.get_font_size()
+        r = (x + 6, y - th / 2, x + 6 + tw, y + th / 2)
+        if any(r[0] < o[2] + 4 and o[0] < r[2] + 4 and r[1] < o[3] + 2 and o[1] < r[3] + 2 for o in ocupat):
+            continue
+        ocupat.append(r)
+        dl.add_circle_filled((x, y), 3.0, imgui.get_color_u32((1.0, 1.0, 1.0, 0.9)))
+        dl.add_circle((x, y), 3.5, imgui.get_color_u32((0.0, 0.0, 0.0, 0.7)))
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):         # vora fosca: es llegeix sobre qualsevol fons
+            dl.add_text(font, mida, (r[0] + dx, r[1] + dy), imgui.get_color_u32((0.0, 0.0, 0.0, 0.75)), nom)
+        dl.add_text(font, mida, (r[0], r[1]), imgui.get_color_u32((1.0, 1.0, 1.0, 1.0)), nom)
 
 
 def distancia(km):
@@ -258,6 +324,7 @@ def panell_capes(app):
     if app.mostrar_edificis or app.edificis_aeris:
         llegenda(COLOR_ALCADA_ESTIMADA, 'Blau: altura estimada (sense LiDAR)')
     _, app.ombres.actiu = imgui.checkbox('Ombres del relleu', app.ombres.actiu)
+    _, app.mostrar_noms = imgui.checkbox('Noms de lloc (vista aeria)', app.mostrar_noms)
 
 
 def panell_capes_eclipsi(app):

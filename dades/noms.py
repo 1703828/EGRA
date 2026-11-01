@@ -158,3 +158,17 @@ class Consulta(Feina):
 
     def __init__(self, lat, lon):
         super().__init__((round(lat, 5), round(lon, 5)), consultar, lat, lon, descripcio='nom del lloc')
+
+
+# ------------------------------------------------------------ noms sobre el mapa (ui.py, noms_al_mapa)
+
+FITXER_NOMS_MAPA = os.path.join(os.path.dirname(DIR_CACHE), 'noms_mapa.json')   # scripts/preparar_noms_mapa.py
+
+
+def noms_mapa():
+    """[(nom, nivell, lat, lon)] dels noms que s'escriuen sobre el mapa (0 capitals de l'Estat i de comunitat, 1 de
+    provincia, 2 de comarca de Catalunya), o [] si el fitxer no hi es."""
+    if not os.path.exists(FITXER_NOMS_MAPA):
+        return []
+    with open(FITXER_NOMS_MAPA, encoding='utf-8') as f:
+        return [(d['nom'], d['nivell'], d['lat'], d['lon']) for d in json.load(f)['llocs']]

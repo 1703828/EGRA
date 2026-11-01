@@ -136,6 +136,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.mostrar_edificis = True
         self.edificis_aeris = False
         self._clau_edificis = None
+        self.mostrar_noms = True      # noms de lloc importants sobre el mapa a les vistes aeries (ui.noms_al_mapa)
+        self.noms_mapa = None         # [(nom, nivell, posicio ECEF)], es prepara el primer cop que es dibuixen
         self.usar_ortofoto = True     # color del terra de les zones de detall: fotografia aeria (si n'hi ha)
         # mapa de visibilitat de l'eclipsi (objectiu O3; basecode/terrain.py MAPES): es calcula la primera vegada
         # que es demana per a cada terreny i eclipsi (dades/visibilitat.py, en un fil) i es desa

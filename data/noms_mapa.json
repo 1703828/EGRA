@@ -1,0 +1,569 @@
+{
+"font": "Nomenclator Geografic Basic d'Espanya (NGBE), IGN, CC BY 4.0; capitals de comarca: llista de scripts/preparar_noms_mapa.py",
+"llocs": [
+{
+"nom": "Barcelona",
+"nivell": 0,
+"lat": 41.38425,
+"lon": 2.17635
+},
+{
+"nom": "Ceuta",
+"nivell": 0,
+"lat": 35.8881,
+"lon": -5.30675
+},
+{
+"nom": "Las Palmas de Gran Canaria",
+"nivell": 0,
+"lat": 28.09938,
+"lon": -15.41337
+},
+{
+"nom": "Logroño",
+"nivell": 0,
+"lat": 42.46645,
+"lon": -2.44566
+},
+{
+"nom": "Madrid",
+"nivell": 0,
+"lat": 40.40841,
+"lon": -3.6876
+},
+{
+"nom": "Melilla",
+"nivell": 0,
+"lat": 35.29072,
+"lon": -2.94721
+},
+{
+"nom": "Murcia",
+"nivell": 0,
+"lat": 37.98436,
+"lon": -1.12854
+},
+{
+"nom": "Mérida",
+"nivell": 0,
+"lat": 38.91739,
+"lon": -6.34417
+},
+{
+"nom": "Oviedo",
+"nivell": 0,
+"lat": 43.36232,
+"lon": -5.84372
+},
+{
+"nom": "Palma",
+"nivell": 0,
+"lat": 39.57115,
+"lon": 2.65182
+},
+{
+"nom": "Pamplona",
+"nivell": 0,
+"lat": 42.8141,
+"lon": -1.64515
+},
+{
+"nom": "Santa Cruz de Tenerife",
+"nivell": 0,
+"lat": 28.46285,
+"lon": -16.24721
+},
+{
+"nom": "Santander",
+"nivell": 0,
+"lat": 43.46217,
+"lon": -3.80972
+},
+{
+"nom": "Santiago de Compostela",
+"nivell": 0,
+"lat": 42.88,
+"lon": -8.54611
+},
+{
+"nom": "Sevilla",
+"nivell": 0,
+"lat": 37.38621,
+"lon": -5.99251
+},
+{
+"nom": "Toledo",
+"nivell": 0,
+"lat": 39.85652,
+"lon": -4.02497
+},
+{
+"nom": "Valladolid",
+"nivell": 0,
+"lat": 41.65233,
+"lon": -4.72335
+},
+{
+"nom": "València",
+"nivell": 0,
+"lat": 39.47534,
+"lon": -0.37566
+},
+{
+"nom": "Vitoria-Gasteiz",
+"nivell": 0,
+"lat": 42.85059,
+"lon": -2.67276
+},
+{
+"nom": "Zaragoza",
+"nivell": 0,
+"lat": 41.65646,
+"lon": -0.87929
+},
+{
+"nom": "A Coruña",
+"nivell": 1,
+"lat": 43.37127,
+"lon": -8.3955
+},
+{
+"nom": "Albacete",
+"nivell": 1,
+"lat": 38.99588,
+"lon": -1.85575
+},
+{
+"nom": "Alicante",
+"nivell": 1,
+"lat": 38.34549,
+"lon": -0.48318
+},
+{
+"nom": "Almería",
+"nivell": 1,
+"lat": 36.83892,
+"lon": -2.46413
+},
+{
+"nom": "Badajoz",
+"nivell": 1,
+"lat": 38.87874,
+"lon": -6.971
+},
+{
+"nom": "Bilbao",
+"nivell": 1,
+"lat": 43.25012,
+"lon": -2.91669
+},
+{
+"nom": "Burgos",
+"nivell": 1,
+"lat": 42.34113,
+"lon": -3.7042
+},
+{
+"nom": "Castelló de la Plana",
+"nivell": 1,
+"lat": 39.98641,
+"lon": -0.03688
+},
+{
+"nom": "Ciudad Real",
+"nivell": 1,
+"lat": 38.98652,
+"lon": -3.93132
+},
+{
+"nom": "Cuenca",
+"nivell": 1,
+"lat": 40.07654,
+"lon": -2.13152
+},
+{
+"nom": "Cáceres",
+"nivell": 1,
+"lat": 39.47317,
+"lon": -6.37121
+},
+{
+"nom": "Cádiz",
+"nivell": 1,
+"lat": 36.52171,
+"lon": -6.28415
+},
+{
+"nom": "Córdoba",
+"nivell": 1,
+"lat": 37.87954,
+"lon": -4.78032
+},
+{
+"nom": "Donostia",
+"nivell": 1,
+"lat": 43.31717,
+"lon": -1.98192
+},
+{
+"nom": "Girona",
+"nivell": 1,
+"lat": 41.98186,
+"lon": 2.82412
+},
+{
+"nom": "Granada",
+"nivell": 1,
+"lat": 37.17642,
+"lon": -3.60002
+},
+{
+"nom": "Guadalajara",
+"nivell": 1,
+"lat": 40.63436,
+"lon": -3.1621
+},
+{
+"nom": "Huelva",
+"nivell": 1,
+"lat": 37.26004,
+"lon": -6.95041
+},
+{
+"nom": "Huesca",
+"nivell": 1,
+"lat": 42.14063,
+"lon": -0.40842
+},
+{
+"nom": "Jaén",
+"nivell": 1,
+"lat": 37.76519,
+"lon": -3.79036
+},
+{
+"nom": "León",
+"nivell": 1,
+"lat": 42.59912,
+"lon": -5.56708
+},
+{
+"nom": "Lleida",
+"nivell": 1,
+"lat": 41.61527,
+"lon": 0.62062
+},
+{
+"nom": "Lugo",
+"nivell": 1,
+"lat": 43.00989,
+"lon": -7.55576
+},
+{
+"nom": "Málaga",
+"nivell": 1,
+"lat": 36.72034,
+"lon": -4.41998
+},
+{
+"nom": "Ourense",
+"nivell": 1,
+"lat": 42.33553,
+"lon": -7.86384
+},
+{
+"nom": "Palencia",
+"nivell": 1,
+"lat": 42.00784,
+"lon": -4.5346
+},
+{
+"nom": "Pontevedra",
+"nivell": 1,
+"lat": 42.43159,
+"lon": -8.64367
+},
+{
+"nom": "Salamanca",
+"nivell": 1,
+"lat": 40.96737,
+"lon": -5.66538
+},
+{
+"nom": "Segovia",
+"nivell": 1,
+"lat": 40.94987,
+"lon": -4.12524
+},
+{
+"nom": "Soria",
+"nivell": 1,
+"lat": 41.76328,
+"lon": -2.46625
+},
+{
+"nom": "Tarragona",
+"nivell": 1,
+"lat": 41.1191,
+"lon": 1.25842
+},
+{
+"nom": "Teruel",
+"nivell": 1,
+"lat": 40.34413,
+"lon": -1.10927
+},
+{
+"nom": "Zamora",
+"nivell": 1,
+"lat": 41.49914,
+"lon": -5.75495
+},
+{
+"nom": "Ávila",
+"nivell": 1,
+"lat": 40.65587,
+"lon": -4.69771
+},
+{
+"nom": "Amposta",
+"nivell": 2,
+"lat": 40.71351,
+"lon": 0.58092
+},
+{
+"nom": "Balaguer",
+"nivell": 2,
+"lat": 41.78952,
+"lon": 0.80459
+},
+{
+"nom": "Banyoles",
+"nivell": 2,
+"lat": 42.11641,
+"lon": 2.7638
+},
+{
+"nom": "Berga",
+"nivell": 2,
+"lat": 42.10421,
+"lon": 1.84606
+},
+{
+"nom": "Cervera",
+"nivell": 2,
+"lat": 41.66553,
+"lon": 1.27095
+},
+{
+"nom": "El Vendrell",
+"nivell": 2,
+"lat": 41.22003,
+"lon": 1.53484
+},
+{
+"nom": "Falset",
+"nivell": 2,
+"lat": 41.14614,
+"lon": 0.82013
+},
+{
+"nom": "Figueres",
+"nivell": 2,
+"lat": 42.26726,
+"lon": 2.96036
+},
+{
+"nom": "Gandesa",
+"nivell": 2,
+"lat": 41.05202,
+"lon": 0.439
+},
+{
+"nom": "Granollers",
+"nivell": 2,
+"lat": 41.60811,
+"lon": 2.28724
+},
+{
+"nom": "Igualada",
+"nivell": 2,
+"lat": 41.57871,
+"lon": 1.61768
+},
+{
+"nom": "La Bisbal d'Empordà",
+"nivell": 2,
+"lat": 41.95902,
+"lon": 3.03776
+},
+{
+"nom": "Manresa",
+"nivell": 2,
+"lat": 41.72296,
+"lon": 1.82691
+},
+{
+"nom": "Mataró",
+"nivell": 2,
+"lat": 41.53982,
+"lon": 2.4449
+},
+{
+"nom": "Moià",
+"nivell": 2,
+"lat": 41.81282,
+"lon": 2.09717
+},
+{
+"nom": "Mollerussa",
+"nivell": 2,
+"lat": 41.62987,
+"lon": 0.89414
+},
+{
+"nom": "Montblanc",
+"nivell": 2,
+"lat": 41.37672,
+"lon": 1.16133
+},
+{
+"nom": "Móra d'Ebre",
+"nivell": 2,
+"lat": 41.09329,
+"lon": 0.64174
+},
+{
+"nom": "Olot",
+"nivell": 2,
+"lat": 42.18321,
+"lon": 2.4846
+},
+{
+"nom": "Prats de Lluçanès",
+"nivell": 2,
+"lat": 42.0088,
+"lon": 2.03066
+},
+{
+"nom": "Puigcerdà",
+"nivell": 2,
+"lat": 42.43106,
+"lon": 1.92726
+},
+{
+"nom": "Reus",
+"nivell": 2,
+"lat": 41.15545,
+"lon": 1.10883
+},
+{
+"nom": "Ripoll",
+"nivell": 2,
+"lat": 42.20105,
+"lon": 2.19078
+},
+{
+"nom": "Sabadell",
+"nivell": 2,
+"lat": 41.54632,
+"lon": 2.10855
+},
+{
+"nom": "Sant Feliu de Llobregat",
+"nivell": 2,
+"lat": 41.38082,
+"lon": 2.04502
+},
+{
+"nom": "Santa Coloma de Farners",
+"nivell": 2,
+"lat": 41.86134,
+"lon": 2.66298
+},
+{
+"nom": "Solsona",
+"nivell": 2,
+"lat": 41.99474,
+"lon": 1.51712
+},
+{
+"nom": "Sort",
+"nivell": 2,
+"lat": 42.41302,
+"lon": 1.1312
+},
+{
+"nom": "Terrassa",
+"nivell": 2,
+"lat": 41.56314,
+"lon": 2.01013
+},
+{
+"nom": "Tortosa",
+"nivell": 2,
+"lat": 40.8109,
+"lon": 0.52102
+},
+{
+"nom": "Tremp",
+"nivell": 2,
+"lat": 42.16694,
+"lon": 0.89593
+},
+{
+"nom": "Tàrrega",
+"nivell": 2,
+"lat": 41.64635,
+"lon": 1.13895
+},
+{
+"nom": "Valls",
+"nivell": 2,
+"lat": 41.28437,
+"lon": 1.24765
+},
+{
+"nom": "Vic",
+"nivell": 2,
+"lat": 41.92991,
+"lon": 2.25505
+},
+{
+"nom": "Vielha",
+"nivell": 2,
+"lat": 42.70178,
+"lon": 0.79549
+},
+{
+"nom": "Vilafranca del Penedès",
+"nivell": 2,
+"lat": 41.3465,
+"lon": 1.69803
+},
+{
+"nom": "Vilanova i la Geltrú",
+"nivell": 2,
+"lat": 41.22403,
+"lon": 1.72605
+},
+{
+"nom": "el Pont de Suert",
+"nivell": 2,
+"lat": 42.40757,
+"lon": 0.74031
+},
+{
+"nom": "la Seu d'Urgell",
+"nivell": 2,
+"lat": 42.35802,
+"lon": 1.46245
+},
+{
+"nom": "les Borges Blanques",
+"nivell": 2,
+"lat": 41.52076,
+"lon": 0.86909
+}
+]
+}

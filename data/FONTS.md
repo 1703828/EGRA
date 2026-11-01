@@ -122,6 +122,19 @@ s'hi acosta, i es desen a `data/alcaries/cel_<x>_<y>_alcaria.npz` (float16, comp
   l'adreça més propera (a menys de 300 m) pertany a un nucli, aquell és el nucli del punt ("dins de València").
   En camp obert pot no tornar res (Picos). Consultats el 31/10/2026.
 
+## Noms sobre el mapa — `data/noms_mapa.json` (al Git, 7 kB)
+
+- **Font:** el mateix NGBE de l'IGN (CC BY 4.0), tipus *Capital de Estado*, *Capital de comunidad autónoma y ciudad
+  con estatuto de autonomía* i *Capital de provincia* a tot Espanya, i *Capital de municipio* a Catalunya.
+- **Capitals de comarca:** el nomenclàtor no té aquest tipus; la llista (43 comarques, amb Terrassa, cocapital del
+  Vallès Occidental, i el Lluçanès) és a `scripts/preparar_noms_mapa.py` i les coordenades són les de la capital de
+  municipi del NGBE. Algunes capitals de comunitat (València, Toledo...) el NGBE les té només com a capital de
+  província: la llista de comunitats també és a l'script.
+- **Contingut:** 94 noms: 20 capitals de comunitat (i Madrid, Ceuta i Melilla), 34 capitals de província més i 40 de
+  comarca més. Un sol nom per lloc (Pamplona i no Iruña). Coordenades WGS84 del punt del nomenclàtor.
+- **Reproducció:** `python scripts/preparar_noms_mapa.py` (uns 40 min l'1/11/2026: el servidor fa esgotar el temps
+  amb caixes grans i l'script les parteix; les respostes es desen a `data/cache/noms/mapa_*.json`).
+
 ## LiDAR de l'ICGC, núvol de punts (altures mesurades) — `data/lidar/` (no al Git)
 
 - **Font:** Institut Cartogràfic i Geològic de Catalunya (ICGC), *LiDAR territorial* v3r1, 3a cobertura
