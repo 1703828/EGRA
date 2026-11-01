@@ -105,6 +105,12 @@ VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
 ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
 INCLINACIO_EN_ARRIBAR = 2.0        # graus: en arribar a un punt amb doble clic, la mirada just sobre l'horitzo
 HORA_ABANS_C1 = 1.0                # l'arrencada es aquest nombre d'hores abans de C1 (temps TU del model)
+# Repos: si la imatge no canvia (mateixa camera i hora, en pausa) i no hi ha cap feina en segon pla durant REPOS_S,
+# el bucle espera esdeveniments (teclat, ratoli, finestra) com a molt ESPERA_REPOS_S en lloc de tornar a dibuixar
+# la mateixa imatge: la GPU i la CPU descansen. Qualsevol esdeveniment el desperta a l'instant, i cada
+# ESPERA_REPOS_S es torna a dibuixar igualment (recull el que acabi en segon pla).
+REPOS_S = 0.5
+ESPERA_REPOS_S = 0.25
 
 
 def suau(a, b, x):
@@ -199,6 +205,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.resize_anterior = glfw.set_framebuffer_size_callback(self.window, self.on_resize)
         self.on_resize(self.window, *glfw.get_framebuffer_size(self.window))  # per si ja ha canviat
         self.fps, self.frames, self.temps_fps = 0.0, 0, 0.0
+        self.en_repos, self._signatura, self._quiet_des_de = False, None, 0.0
 
     def drawables(self):
         objectes = [self.terra, self.peninsula, self.zona, self.edificis, self.lluna, self.sol_visible, self.halo,
@@ -661,10 +668,37 @@ class GraphicsEngine(GraphicsEngineBase):
         self.lluna.atmosfera = self.atmosfera > 0.3
         self.lluna.radi_sol = float(self.radi_sol_camera)
 
+    def feina_en_curs(self):
+        """Si alguna cosa pot canviar la imatge sense que l'usuari faci res: el temps avanca, o hi ha feines en
+        segon pla (detall, mapes, teselles, nom del lloc)."""
+        return (self.reproduint or bool(self.detall.feines) or bool(self.calculs_mapa)
+                or self.calcul_detall is not None or self.consulta_nom is not None
+                or (self.mosaic.actiu and self.mosaic.descarregador.pendents() > 0))
+
+    def signatura(self):
+        """El que determina la imatge i pot canviar d'un fotograma al seguent: vista, camera i hora."""
+        cam = self.camera
+        return (self.vista, cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapa_visibilitat)
+
+    def repos(self):
+        """Despres de cada fotograma: si fa REPOS_S que la imatge no canvia i no hi ha feina, espera esdeveniments
+        (veure REPOS_S). L'animacio de la camera (inercia, roda) canvia la signatura: no hi entra."""
+        ara, s = glfw.get_time(), self.signatura()
+        if s != self._signatura or self.feina_en_curs():
+            self._signatura, self._quiet_des_de = s, ara
+        self.en_repos = ara - self._quiet_des_de > REPOS_S
+        if self.en_repos:
+            glfw.wait_events_timeout(ESPERA_REPOS_S)
+
     def run(self):
-        """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb dues diferencies: Esc
-        primer allibera el ratoli si es capturat (amb el ratoli lliure, Esc tanca el programa, com abans) i, abans
-        del panell, no queda cap shader actiu."""
+        """El bucle de GraphicsEngineBase.run (basecode/engine.py, sense canvis) amb aquestes diferencies:
+        - Esc primer allibera el ratoli si es capturat (amb el ratoli lliure, Esc tanca el programa, com abans).
+        - Abans del panell, no queda cap shader actiu.
+        - Sincronia vertical (glfw.swap_interval(1)): swap_buffers espera que la pantalla mostri el fotograma, i
+          no se'n fan mes dels que la pantalla pot mostrar (~60 per segon). Sense, es dibuixaven tants com la GPU
+          podia (centenars per segon) i l'ordinador s'escalfava. La imatge es la mateixa.
+        - Repos quan no canvia res (repos())."""
+        glfw.swap_interval(1)
         while not winmod.should_close(self.window):
             glfw.poll_events()
             if winmod.is_escape_pressed(self.window):
@@ -680,7 +714,7 @@ class GraphicsEngine(GraphicsEngineBase):
             imgui.new_frame()
             self.render()
             imgui.set_next_window_pos((10, 10), imgui.Cond.FIRST_USE_EVER)
-            imgui.begin('Opcions')
+            imgui.begin('Eclipsi')
             self.build_ui()
             imgui.end()
             imgui.render()
@@ -690,6 +724,7 @@ class GraphicsEngine(GraphicsEngineBase):
             GL.glUseProgram(0)
             self.ui_renderer.render(imgui.get_draw_data())
             glfw.swap_buffers(self.window)
+            self.repos()
         self._shutdown()
 
     def render(self):

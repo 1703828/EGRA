@@ -387,8 +387,8 @@ def bucle_real(app, programa, ok):
               lambda: co.mirar(200.0, 5.0), desa('inici'),
               lambda: premudes.add(glfw.KEY_RIGHT)] + [None] * 15 + [             # 3. girar amb les fletxes
               lambda: premudes.clear(), desa('fletxes'),
-              lambda: (io.add_mouse_pos_event(700, 400), io.add_mouse_button_event(0, True))] + [
-              (lambda i=i: io.add_mouse_pos_event(700 + 8 * i, 400 - 3 * i)) for i in range(1, 10)] + [
+              lambda: (io.add_mouse_pos_event(450, 400), io.add_mouse_button_event(0, True))] + [
+              (lambda i=i: io.add_mouse_pos_event(450 + 8 * i, 400 - 3 * i)) for i in range(1, 10)] + [
               lambda: io.add_mouse_button_event(0, False), None, desa('ratoli')] + \
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('reproduint')] + tecla(imgui.Key.KEY_P) + [  # 4. P
               desa('pausa')] + [None] * 10 + [desa('pausa_despres')] + \

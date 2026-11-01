@@ -261,21 +261,21 @@ def main():
         io.add_mouse_button_event(boto, False)
         fotograma(frames_despres)
 
-    clic(700, 450, frames_despres=30)
+    clic(480, 500, frames_despres=30)
     ok(not app.ratoli.capturat and (co.rumb, co.inclinacio) == mirada,
        "un clic esquerre a l'escena no captura (cap espera ni conflicte amb arrossegar i el doble clic)")
-    clic(700, 450, boto=1, frames_despres=1)
+    clic(480, 500, boto=1, frames_despres=1)
     ok(app.ratoli.capturat and (co.rumb, co.inclinacio) == mirada,
        "un clic dret a l'escena captura al mateix fotograma, sense girar la mirada")
     app.ratoli.alliberar()
     fotograma(5)
     clic(150, 18, boto=1)    # la barra del titol del panell
     ok(not app.ratoli.capturat and not app.reproduint, 'un clic dret sobre el panell no captura el ratoli')
-    io.add_mouse_pos_event(700, 450)
+    io.add_mouse_pos_event(480, 500)
     fotograma(2)
     io.add_mouse_button_event(0, True)
     for i in range(10):
-        io.add_mouse_pos_event(700 + 5 * i, 450)
+        io.add_mouse_pos_event(480 + 5 * i, 500)
         fotograma()
     io.add_mouse_button_event(0, False)
     fotograma()
@@ -318,7 +318,7 @@ def main():
         fotograma()
     ok(np.array_equal(ce.posicio, cam) and (ce.rumb, ce.inclinacio) == mirada_ce and not app.ratoli.capturat,
        'arrossegar i fer rodar sobre el panell no mou ni gira la camera')
-    io.add_mouse_pos_event(700, 450)
+    io.add_mouse_pos_event(480, 500)
     fotograma(3)
 
     # ------------------------------------------------------------ 5. P
@@ -341,6 +341,7 @@ def main():
 
     # ------------------------------------------------------------ 6. roda
     print('\n== Roda')
+    io.add_mouse_pos_event(480, 320)   # cursor al centre de la imatge (entre els dos panells): s'allunya cap alla
     for inclinacio in (-25.0, -60.0):
         app.posar_exploracio_sobre_el_punt()
         app.canviar_vista(0)
@@ -385,7 +386,7 @@ def main():
     app.triar_ubicacio(lat, lon, nom)
     app.canviar_vista(1)
     fotograma()
-    io.add_mouse_pos_event(700, 450)
+    io.add_mouse_pos_event(480, 500)
     tecla(imgui.Key.KEY_G)
     fotograma()
     d0 = cg.posicio - app.ulls()
@@ -482,7 +483,7 @@ def main():
         app.ratoli.on_scroll(app.window, 0.0, -1.0)
         fotograma()
     ok(cg.progres == p, 'fer rodar sobre el panell no mou la camera guiada')
-    io.add_mouse_pos_event(700, 450)
+    io.add_mouse_pos_event(480, 500)
     # V torna a observar; G hi torna amb el mateix progres
     tecla(imgui.Key.KEY_V)
     v_obs = app.vista

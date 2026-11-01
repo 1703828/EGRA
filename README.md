@@ -277,13 +277,21 @@ Fora de la zona de 5 m no hi ha ombres del relleu, i obstacles de menys de ~12 m
 
 ### Panell i barra de temps
 
-- **Panell "Opcions"** (només controls): l'eclipsi (12/08/2026 total, 02/08/2027 total, 26/01/2028 anular); el
-  temps (reproduir o pausar, hora, fase, part del Sol tapada i velocitat: *Auto* o x1 a x1000); la vista
-  (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra des de l'espai); el punt
-  d'observació (llista, coordenades, **nucli i municipi**, tornar-hi, anar al màxim); el mapa de visibilitat;
-  les capes (fotografia aèria, edificis, ombres del relleu, línies de l'ombra de la Lluna i, el 2026, les capes
-  del CNIG); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
-  filferros, origen de les altures, dades del CNIG) són desplegables tancats.
+- **Dos panells** (només controls):
+  - **Eclipsi** (a l'esquerra): l'eclipsi (12/08/2026 total, 02/08/2027 total, 26/01/2028 anular); hora, fase, part
+    del Sol tapada i velocitat (*Auto* o x1 a x1000); el punt d'observació (llista, coordenades, **nucli i
+    municipi**, tornar-hi, anar al màxim); el mapa de visibilitat; les línies de l'ombra de la Lluna i, només el
+    2026, les capes del CNIG.
+  - **Càmera** (a la dreta): la vista (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra
+    de la Lluna des de l'espai); **on és la càmera**: altura sobre el terra que es dibuixa a sota, altitud sobre el
+    nivell del mar (sobre l'el·lipsoide WGS84) i coordenades; què es dibuixa (fotografia aèria, edificis, ombres del
+    relleu); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
+    filferros, origen de les altures, dades del CNIG) són desplegables tancats.
+- **Rendiment:** el programa fa servir la sincronia vertical (`glfw.swap_interval(1)`): no dibuixa més fotogrames dels
+  que la pantalla mostra (~60 per segon). La imatge és la mateixa. Si durant mig segon no canvia res (mateixa càmera i
+  hora, en pausa) i no hi ha res en segon pla (descàrregues, càlculs de mapes, detall, nom del lloc), queda **en
+  repòs**: només redibuixa 4 vegades per segon fins que es toca el teclat o el ratolí, que el desperten a l'instant.
+  *Avançat* ho indica al costat de l'FPS.
 - **Nom del lloc** (`dades/noms.py`): en triar un punt, el **nucli de població més proper** (Nomenclàtor Geogràfic
   Bàsic de l'IGN; si l'adreça més propera pertany a un nucli, "dins de" aquell) i el **municipi** administratiu
   (CartoCiudad). Són dades diferents: entre Vic i Tona, un punt pot ser del municipi de Malla o de Tona i tenir com a
@@ -348,7 +356,7 @@ MDT val 0; les dates de les fonts (IGN, fins a 15 anys); sense refracció terres
 
 ```
 main.py                  Programa principal: coordina l'escena (temps, astres, cel i teclat)
-ui.py                    Interfície: el panell i la barra de temps (slimgui)
+ui.py                    Interfície: els panells Eclipsi i Càmera i la barra de temps (slimgui)
 basecode/                Codi base de l'assignatura (el del repte 4, sense canvis) i els nostres objectes:
   engine.py, window.py, ui_panel.py, objects.py, camera.py, light.py, axis.py,
   meshloader.py, shaders.py       fitxers originals del professor (no es modifiquen)
@@ -468,6 +476,7 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
 | `descarregar_edificis.py` | Baixa els edificis del Catastro de les zones de detall i en prepara les dades i la malla (`data/edificis/`, `data/cache/`) |
 | `validar_edificis.py` | Edificis: contorns contra OpenStreetMap, plantes contra la font, cobertes a la cota calculada, Sol visible/parcial/total a la imatge contra el càlcul geomètric, halo, interruptor, rendiment |
+| `prova_eclipsis.py` | Els tres eclipsis amb el bucle real i el panell dibuixat: canviar-hi sense errors d'OpenGL, contactes, *Anar al màxim*, Sol i Lluna de l'escena iguals al model, capes del CNIG només el 2026, el mapa de visibilitat comença; captures a `captures/proves/eclipsi_*.png` |
 | `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat (Tab, clic dret, focus, FPS, zoom, límits), panell, P, roda i vista guiada (anada i tornada, temps, ubicació, Mirar l'eclipsi); captures a `captures/proves/guiat_*.png` |
 | `prova_cel.py` | Cel i llum: shader contra el model de la CPU, el cel no tapa cap objecte, continuïtat minut a minut, saturació, totalitat contra posta, orientació dels triangles dels edificis i colors de coberta, temps per fotograma (1280 × 860 i 2560 × 1720) |
 | `prova_obstacles.py` | Edificis com a obstacles: geometries de prova (paret, diagonal, cantonades, escletxes, patis), 3.000 moviments a l'atzar sobre el Catastro del Vallès i el programa real (punts exteriors amb cel, caminar i volar contra l'ajuntament de Cerdanyola, cobertes, recuperació) |

@@ -1,13 +1,17 @@
 """
-Interficie del programa (slimgui): el panell "Opcions" i la barra de temps.
+Interficie del programa (slimgui): dos panells ("Eclipsi" a l'esquerra i "Camera" a la dreta) i la barra de temps.
 
 GraphicsEngineBase (basecode/engine.py) obre la finestra "Opcions" a cada fotograma i crida
 GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. imgui es una interficie
 "immediata": es torna a dibuixar sencera a cada fotograma a partir de les variables del programa.
 
-El panell nomes te controls (sense textos d'explicacio, peticio de l'equip del 30/10): eclipsi, temps, vista,
-punt d'observacio (amb el nom del lloc), mapa de visibilitat, capes i l'estat del detall del lloc (terreny, foto,
-edificis i mapa, una linia cadascun). Les tecles i les opcions de depuracio son en desplegables tancats.
+Els panells nomes tenen controls (sense textos d'explicacio, peticio de l'equip del 30/10), separats en dos (peticio
+de l'equip de l'1/11):
+  - "Eclipsi": quin eclipsi, fase i velocitat, punt d'observacio (amb el nom del lloc), mapa de visibilitat, linies
+    de l'ombra de la Lluna i capes del CNIG.
+  - "Camera": vista, on es la camera (alcada sobre el terra i altitud), que es dibuixa (foto, edificis, ombres del
+    relleu) i l'estat del detall del lloc; les tecles i les opcions de depuracio en desplegables tancats.
+Reproduir i pausar es a la barra de temps (a baix).
 Textos sense accents: la font de slimgui no els mostra be (els noms dels serveis, p. ex. Valencia, es mostren sense).
 """
 import unicodedata
@@ -18,10 +22,11 @@ from slimgui import imgui
 
 from basecode.terrain import (OVERLAYS, MAPES, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
                               COLORS_DURADA, COLORS_OMBRES, COLORS_CENTRAL, COLOR_TAPAT_RELLEU)
-from dades import eclipse_data, eclipsis
+from dades import eclipse_data, eclipsis, geodesia
 from dades.observador import UBICACIONS
 
 VISTES = ['Explorar', 'Des del terra', 'Espai (guiat)']
+AMPLADA_PANELL = 300
 VELOCITATS = [1, 10, 60, 300, 1000]   # x temps real ('Auto' a mes: lent a la totalitat)
 COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'ANULARITAT': (1.0, 0.6, 0.2, 1.0),
               'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
@@ -33,20 +38,38 @@ MARQUES = [('c1', (1.0, 0.85, 0.3)), ('c2', COLOR_TOTALITAT), ('maxim', (1.0, 1.
 
 
 def build_ui(app):
-    """El panell "Opcions" (el crida GraphicsEngine.build_ui) i la finestra de la barra de temps.
+    """Els dos panells i la finestra de la barra de temps. El panell "Eclipsi" es la finestra que obre el bucle de
+    main.py (a l'esquerra); el panell "Camera" n'obre una altra a la dreta.
     Els controls no son parades de Tab (NO_TAB_STOP): imgui faria servir Tab per passar d'un control al
     seguent i es quedaria el teclat; aixi Tab queda lliure per capturar el ratoli (main.py, teclat)."""
-    imgui.set_window_size((300, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
+    imgui.set_window_size((AMPLADA_PANELL, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
     imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
     panell_eclipsi(app)
     panell_temps(app)
-    imgui.separator_text('Vista')
-    panell_vista(app)
     imgui.separator_text("Punt d'observacio")
     panell_punt(app)
     imgui.separator_text('Mapa de visibilitat')
     panell_mapa(app)
-    imgui.separator_text('Capes')
+    panell_capes_eclipsi(app)
+    imgui.text_disabled('IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')
+    imgui.pop_item_flag()
+
+    panell_camera(app)
+    barra_temps(app)
+    avis_ratoli(app)
+
+
+def panell_camera(app):
+    """Finestra "Camera", a dalt a la dreta: com es mira, on es la camera, que es dibuixa i el detall del lloc."""
+    w, _ = imgui.get_io().display_size
+    imgui.set_next_window_pos((w - 10, 10), imgui.Cond.FIRST_USE_EVER, (1.0, 0.0))
+    imgui.set_next_window_size((AMPLADA_PANELL, 0), imgui.Cond.ALWAYS)
+    imgui.begin('Camera')
+    imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
+    panell_vista(app)
+    imgui.separator_text('On es la camera')
+    panell_posicio(app)
+    imgui.separator_text('Que es dibuixa')
     panell_capes(app)
     imgui.separator_text('Detall del lloc')
     panell_detall(app)
@@ -54,11 +77,29 @@ def build_ui(app):
         panell_tecles(app)
     if imgui.collapsing_header('Avancat')[0]:
         panell_avancat(app)
-    imgui.text_disabled('IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')
     imgui.pop_item_flag()
+    imgui.end()
 
-    barra_temps(app)
-    avis_ratoli(app)
+
+def distancia(km):
+    """Text d'una distancia: en metres per sota d'1 km, en km per sobre (amb separador de milers)."""
+    if abs(km) < 0.01:
+        return f'{km * 1000:.1f} m'
+    if abs(km) < 1:
+        return f'{km * 1000:.0f} m'
+    if abs(km) < 100:
+        return f'{km:.1f} km'
+    return f'{km:,.0f} km'.replace(',', '.')
+
+
+def panell_posicio(app):
+    """Alcada de la camera sobre la superficie dibuixada (el relleu que hi ha a sota), altitud sobre l'el·lipsoide
+    (aproximadament, sobre el nivell del mar) i coordenades."""
+    lat, lon, alt = (float(v) for v in geodesia.geodesiques(app.camera.posicio))
+    terra = app.altitud_terra_km(lat, lon)
+    linia('Sobre el terra', distancia(alt - terra))
+    linia('Altitud', distancia(alt) + ' (sobre el mar)')
+    linia('Posicio', f"{abs(lat):.4f} {'N' if lat >= 0 else 'S'}, {abs(lon):.4f} {'E' if lon >= 0 else 'O'}")
 
 
 def amplada_completa():
@@ -99,23 +140,22 @@ def titol_eclipsi(clau):
 
 def panell_temps(app):
     fase = app.model.fase(app.hora)
-    if imgui.button('Pausa  (P)' if app.reproduint else 'Reproduir  (P)', amplada_completa()):
-        app.reproduir_pausar()
     imgui.text(eclipse_data.hora_local(app.hora))
     imgui.same_line()
     imgui.text_colored(COLOR_FASE.get(fase, (0.8, 0.8, 0.8, 1.0)), fase)
     imgui.progress_bar(app.tapada, amplada_completa(), f'Sol tapat {app.tapada * 100:.1f} %')
     if imgui.radio_button('Auto', app.velocitat_auto):
         app.velocitat_auto = True
-    for v in VELOCITATS:
-        imgui.same_line()
+    for k, v in enumerate(VELOCITATS):
+        if k != 3:      # dues files: Auto x1 x10 / x60 x300 x1000
+            imgui.same_line()
         if imgui.radio_button(f'x{v}', not app.velocitat_auto and app.velocitat == v):
             app.velocitat, app.velocitat_auto = v, False
 
 
 def panell_vista(app):
     for i, nom in enumerate(VISTES):
-        if i:
+        if i == 1:
             imgui.same_line()
         if imgui.radio_button(nom, app.vista == i):
             app.canviar_vista(i)
@@ -139,10 +179,9 @@ def panell_vista(app):
             cam.progres = progres
         if imgui.button('Recentrar', amplada_completa()):
             cam.recentrar()
-    if imgui.button('Mirar el Sol', (140, 0)):
+    if imgui.button('Mirar el Sol', amplada_completa()):
         app.mirar_el_sol()
-    imgui.same_line()
-    if imgui.button("Ombra des de l'espai", amplada_completa()):
+    if imgui.button("Ombra de la Lluna des de l'espai", amplada_completa()):
         app.veure_ombra_des_de_lespai()
 
 
@@ -190,9 +229,7 @@ def llegenda(color, text):
 
 def panell_mapa(app):
     for i, nom in enumerate(MAPES):
-        if i == 2:
-            imgui.new_line()
-        elif i:
+        if i % 2:       # dues per fila
             imgui.same_line()
         if imgui.radio_button(nom, app.mapa_visibilitat == i):
             app.mapa_visibilitat = i
@@ -218,6 +255,9 @@ def panell_capes(app):
     imgui.same_line()
     _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
     _, app.ombres.actiu = imgui.checkbox('Ombres del relleu', app.ombres.actiu)
+
+
+def panell_capes_eclipsi(app):
     _, app.ressaltar_ombra = imgui.checkbox("Linies de l'ombra de la Lluna", app.ressaltar_ombra)
     if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026
         t = app.peninsula
@@ -273,7 +313,7 @@ def panell_tecles(app):
 
 
 def panell_avancat(app):
-    imgui.text(f'FPS: {app.fps:.0f}')
+    imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
     if app.zona is not None and app.zona.orto is not None:
         _, app.usar_ortofoto = imgui.checkbox('Ortofoto de la zona', app.usar_ortofoto)
     _, app.acolorir_alcades = imgui.checkbox('Edificis: blau mesurat, taronja estimat', app.acolorir_alcades)

@@ -2045,6 +2045,27 @@ de l'escena igual a la del model (< 0,001°); capes del CNIG desactivades fora d
 comença a calcular per a l'eclipsi actiu. `prova_controls` (69 OK). **Inspeccionat visualment:** captures
 `captures/proves/eclipsi_<any>_*.png` (des del terra al màxim, a Picos, i l'ombra des de l'espai).
 
+### F33 — Rendiment i panells (01/11/2026, petició de l'equip) — EN CURS
+
+L'equip va notar que l'ordinador s'escalfava molt. **Causa:** cap part del programa limitava els fotogrames: el bucle
+dibuixava tan de pressa com podia, encara que no canviés res (una finestra buida feia 515 fotogrames/s; amb
+`swap_interval(1)`, 84; prova al Mac de l'equip, comprovat automàticament).
+
+1. **Sincronia vertical** (`main.py`, `run`): `glfw.swap_interval(1)`. La imatge és la mateixa; no se'n fan més
+   dels que la pantalla mostra. — FET
+2. **Repòs** (`main.py`, `repos`): si la càmera, la vista, l'hora i el mapa no canvien durant `REPOS_S` (0,5 s), en
+   pausa i sense feines en segon pla (detall, mapes, teselles, nom del lloc), el bucle espera esdeveniments com a molt
+   `ESPERA_REPOS_S` (0,25 s): ~4 fotogrames/s. El teclat i el ratolí el desperten a l'instant. La càrrega del detall
+   no s'atura: mentre hi ha feina, no hi entra. **Comprovat automàticament:** 60 s quiet a Picos: mentre es baixen
+   teselles (~22 s), ritme normal; després, 100 % en repòs a 3–4 fotogrames/s. — FET
+3. **Dos panells** (`ui.py`, petició de l'equip): *Eclipsi* a l'esquerra (eclipsi, fase i velocitat, punt
+   d'observació, mapa, línies de l'ombra i CNIG) i *Càmera* a la dreta (vista, **on és la càmera**: altura sobre el
+   terra dibuixat, altitud i coordenades; què es dibuixa; detall del lloc; tecles i avançat). El botó de reproduir
+   només és a la barra de temps. **Inspeccionat visualment:** captura dels dos panells, sense textos tallats. — FET
+
+**Proves de l'equip pendents:** fer servir el programa una estona i comparar la temperatura i el ventilador amb abans;
+comprovar que en repòs la resposta al ratolí i al teclat és immediata.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
