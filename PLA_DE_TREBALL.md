@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-10-31 (F31: detall segons la vista a tot Espanya, altures mesurades dels edificis, mapa de detall i nom del lloc).
+Darrera actualització: 2026-11-16 (O4: pla de la segona entrega — mapes de visibilitat i tècniques del puzle, amb l'acta 05 del 12/11/2026; res implementat).
 
 ---
 
@@ -137,6 +137,11 @@ Darrera actualització: 2026-10-31 (F31: detall segons la vista a tot Espanya, a
 | D86 | (F31) Fotografia: la de teselles (PNOA fins a z = 19, ~0,22 m/px) ja dona la resolució del vol (0,25 m a tots els llocs consultats) a tot Espanya; l'ortofoto de Vic (0,5 m) no s'estén. z = 20 existeix al WMTS però seria la mateixa imatge ampliada. | 31/10 |
 | D87 | (F31, equip) Mapa de visibilitat amb detall local a qualsevol lloc: superfície = terra + alçària mesurada (edificis i, si la font la té, vegetació), a 2 m (ICGC) o 2,5 m (IGN), per cel·les; mentrestant, el mapa del relleu. Les altures estimades no hi entren (D81). | 31/10 |
 | D88 | (F31, equip) Nom del punt triat: el nucli de població més proper (NGBE de l'IGN) i, separat, el municipi administratiu (CartoCiudad). | 31/10 |
+| D90 | (O4, equip) Els mapes distingeixen dues situacions sense valor, *sense dades* i *sense eclipsi*, del **valor 0**, que és un valor vàlid (hi ha eclipsi i dades, però no es veu). «Visibilitat» vol dir només «no tapat pels obstacles calculats» (relleu sempre; edificis i vegetació on hi ha alçàries mesurades), sense meteorologia. | 16/11 |
+| D91 | (O4, equip) Temps observable per defecte: el temps dins de [C1, C4] en què **qualsevol part** del disc solar queda lliure de l'horitzó i dels obstacles (marge > −r☉). Denominador: tot C4 − C1; després de la posta compta com a no observable. La fase central es mostra a part. És ocultació per obstacles: la totalitat (la Lluna tapa el Sol) **no** compta com a temps no observable. | 16/11 |
+| D92 | (O4, acta 05) Toon Shading: s'aplica com a **discretització dels resultats dels mapes** en bandes amb llindars explícits i fixos entre escales; el valor numèric es conserva. Cap mode d'estètica de dibuixos animats. | 16/11 |
+| D96 | (O4, equip) Colors: paleta seqüencial ordenada i llegible per al mapa de visibilitat; bandes fines per sobre del 90 % d'ocultació; classe pròpia per a la totalitat; el morat no té significats contradictoris entre mapes; els intervals d'O4.1 acceptats; les línies complementàries no han de saturar la vista local. D94 i D95 delegades al criteri tècnic de Claude, amb mesures (D95: comprovar que es conserven les interrupcions i la resolució temporal; D94: prioritat a les dades mesurades i diferència documentada entre obstacles calculats i representació visual). | 16/11 |
+| D93 | (O4, acta 05) Geometry shaders i instancing s'estudien primer per a la **vegetació** i els **edificis**; cada proposta té una prova acotada, una mesura i un criteri d'integració. Cap irregularitat inventada a l'horitzó ni soroll a les dimensions. Els mapes no queden bloquejats per aquests estudis. | 16/11 |
 | D89 | (F31) Les feines que passen molta estona dins de GDAL o en bucles de Python (Catastro, malla, altures, superfície) es fan en un **procés** separat: en un fil, el bloqueig global de Python (GIL) aturava el dibuix (5 min sense fotogrames llegint el Catastro de València). | 31/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
 
@@ -147,6 +152,10 @@ Darrera actualització: 2026-10-31 (F31: detall segons la vista a tot Espanya, a
 - P14–P17 resoltes a D80.
 - P18 resolta a D83.
 - Aparcat (D78): la transició cap a l'espai.
+- O4 (16/11): D90, D91 i D96 confirmades per l'equip; D94 i D95 delegades (vegeu D96). **D94** model d'obstacles del mapa de detall i coherència amb la vegetació i
+  els edificis dibuixats (es tanca a la tasca 43.7, després dels estudis 45.1–45.2 i 46.1). Llindars de les bandes
+  (O4.1) a confirmar. **D95** format temporal de les textures dels mapes 2 i 3 (tasca 41.4). **D96** paleta del mapa
+  de visibilitat (la de la referència o una seqüencial ordenada; F44).
 
 ---
 
@@ -206,6 +215,10 @@ Res d'aquesta llista no està validat formalment per l'equip.
 | Nivells de detall per rajoles i descàrrega en segon pla | N | Opcional | F8 |
 | MDS (arbres i edificis) | N | Opcional, només estudi ara | F8 |
 | O3 · Mapa de visibilitat de l'eclipsi (estàtic i dinàmic, relleu i edificis, 2026–2028) | N | Proposta (D79) | F24–F30 |
+| O4 · Quatre mapes definits, continus entre escales, detall carrer/terrat, consulta i exportació | C + N | Mínim (acta 05) | F40–F43, F47 |
+| O4 · Bandes de colors (Toon Shading aplicat als mapes) | C | Mínim (acta 05) | F44 |
+| O4 · Vegetació amb geometry shader (si les dades ho permeten) | E + N | Acta 05, amb criteri de decisió | F45 |
+| O4 · Instancing als edificis o a la vegetació (si es mesura un guany) | E + N | Acta 05, amb criteri de decisió | F46 |
 
 ---
 
@@ -2192,6 +2205,321 @@ petits, ni els edificis, ni els arbres.
 **Dades sense ús des de la F34:** `visibilitat_2026_uab_{superficie,terra}_1m_25830.npz` (34 MB, el mapa del núvol de
 punts de la UAB) i els rasters de `data/lidar/` només serveixen per validar.
 
+### O4 — Segona entrega: mapes de visibilitat i tècniques del puzle (pla del 16/11/2026)
+
+**Fonts d'aquest tram.** L'informe intermedi (`Article_control1.pdf`), l'**acta 05 del 12/11/2026**
+(`puzzle/acta_12_11.pdf`, acord conjunt de l'equip) i els tres informes individuals del puzle
+(`puzzle/toon_shading.pdf`, Elena; `puzzle/instancing.pdf`, Oriol; `puzzle/geometry_shaders.pdf`, Alícia), amb els
+articles de referència a `puzzle/informes/`. Les propostes dels informes individuals **no són acords** si l'acta no
+les recull; a cada fase es diu d'on surt cada punt (**[acta]** o **[informe]**). L'acta planteja aplicacions
+possibles; no demostra que millorin el rendiment del nostre programa: cada proposta té una prova acotada, una mesura i
+un criteri per decidir si s'integra.
+
+**Prioritat (acta, §1 i §3).** Els mapes de visibilitat són l'objectiu principal: comparar llocs segons el temps que
+s'hi pot observar l'eclipsi, tenint en compte relleu, edificis i altres obstacles. Les tècniques del puzle hi
+contribueixen, però **els mapes no queden bloquejats per experiments d'optimització**.
+
+**Fora d'aquest tram:** millores de navegació espacial, meteorologia i predicció d'aglomeracions (l'afluència ja era
+descartada, D80). No calen per completar els mapes ni les aplicacions del puzle.
+
+#### O4.0 Punt de partida (revisat al codi el 16/11/2026, sense executar el programa)
+
+Res d'aquesta taula s'ha tornat a executar avui: l'estat ve del codi llegit i de les comprovacions ja registrades a
+les fases indicades.
+
+| Funcionalitat | Estat real | Fitxers | Problema pendent | Comprovació disponible |
+|---|---|---|---|---|
+| Model dels tres eclipsis (2026, 2027 total; 2028 anular) | `FET` (F24) | `dades/eclipsis.py`, `dades/model_eclipsi.py`, `dades/efemerides.py` | Diferència sistemàtica de +3,5 s amb la NASA (escala de temps, §6.3) | `comparar_nasa.py`, `validar_model.py`, `prova_eclipsis.py` |
+| Circumstàncies en graella (contactes, màxim, fase central, Sol) | `FET` (F25) | `dades/visibilitat.circumstancies` | — | `validar_visibilitat.py` (≤ 1 s contra `ModelEclipsi`) |
+| Horitzó per direccions i marge al màxim (relleu) | `FET` (F26 a la península i llocs; comparació amb el CNIG 88,7 %, objectiu > 90 % no assolit) | `dades/visibilitat.py`, `scripts/preparar_visibilitat.py` | Criteri = **centre** del Sol; només un interval visible `t_ini`–`t_fi` (si el Sol s'amaga i torna a sortir, s'hi compta el forat) | `validar_visibilitat.py` (raig exacte en ECEF), `--cnig` |
+| Mapa de la península (200 m) dels tres eclipsis | `FET`, desat a `data/cache/visibilitat_<any>_peninsula_200m.npz` | `basecode/terrain.py` (`posar_visibilitat`), `shaders/terrain.frag` (`color_mapa`), `main.actualitzar_mapa` | — | Captures (F26) |
+| **Forat de color a les zones de 5 m** | **Problema confirmat al codi:** la península no es dibuixa dins de les zones (`forats`, `discard`), i la zona només pinta el seu mapa propi (`hi_ha_mapa`); si no en té (Vallès: 36 M de píxels, no calculat mai), `color_mapa` torna transparent | `terrain.frag` (l. 203–206, 246), `main.actualitzar_mapa` | Mostrar el mapa general a sota mentre no hi hagi el propi (F42) | Cap prova automàtica encara (F42.1) |
+| **Mapa de detall que desapareix** | **Problema confirmat al codi:** cada zona té **una sola** textura de detall (`tex_vis_detall`, `rect_vis_detall`), i `Detall.mapa_detall` només torna la cel·la que conté el punt de detall; en sortir-ne, `actualitzar_mapa` la treu | `basecode/detall.py` (`mapa_detall`, `preparar_mapa_detall`), `main.actualitzar_mapa`, `terrain.frag` | Conservar diverses cel·les mentre es vegin (F42) | Cap prova automàtica encara (F42.1) |
+| Mapa de detall per cel·les de 3 × 3 km (terra + alçària LiDAR, 2 m ICGC / 2,5 m IGN) | `FET` (F31.4, F34) | `dades/alcaries.preparar_superficie`, `basecode/detall.py`, `dades/visibilitat.Calcul(cami_ulls=…)` | (1) Els ulls van **sobre la coberta a tots els píxels d'edifici** (contorn del Catastro): carrer i terrat barrejats en un sol mapa i tots els terrats tractats com a accessibles; (2) l'ICGC no separa arbres d'edificis; (3) ~4 min per cel·la la primera vegada | `validar_alcaries.py`, `prova_detall.py`, `visibilitat_lidar.py` (UAB, només validació) |
+| Alçàries mesurades (ICGC 1 m, IGN 2,5 m edificació / vegetació separades) | `FET` (F31.3) | `dades/alcaries.py` | IGN de 2008–2015; Navarra i País Basc sense Catastro | `validar_alcaries.py`, `comparar_altures.py` |
+| Feines en segon pla (fils i processos), cancel·lació i memòries cau | `FET` (F31.7, F32, F37) | `dades/feines.py`, `basecode/detall.py`, `dades/visibilitat.Calcul` | Un sol càlcul de detall alhora; la vigència es comprova per camí i `VERSIO`, no per tots els paràmetres | `prova_detall.py`, `prova_llocs.py` |
+| Llegendes del mapa | Parcial | `ui.panell_mapa` | "Totalitat visible": la rampa s'escala amb la durada màxima dels terrenys visibles (`durada_max`), així que **el mateix color canvia de significat** segons l'escala; "sense dades" i "sense eclipsi" no tenen color propi | Inspecció de captures |
+| Color del mapa i il·luminació | Parcial | `terrain.frag` (l. 336–352) | El mapa es barreja (α 0,75–0,85) sobre el color **ja il·luminat** i després s'hi aplica la boira: a la totalitat o a l'ombra el mateix valor es veu més fosc | Cap |
+| Ombra de la Lluna | `FET`: part tapada per fragment (F9); línies didàctiques (`ressaltar_ombra`); límits oficials del CNIG **només 2026** | `terra.frag`, `terrain.frag`, `ui.py` | Franja central del 2027 i el 2028 no dibuixada; cap llegenda que separi instant i recorregut | `validar_ombra.py` |
+| Consulta d'un punt | Només el nom del lloc (F31.5) | `dades/noms.py`, `ui.py` (`consulta_nom`) | Cap consulta dels valors del mapa ni exportació | — |
+| Edificis (dibuix) | `FET` (F14, F20, F31, F34, F36) | `basecode/edificis.py`, `dades/edificis.py`, `shaders/edifici.*` | **Una sola crida de dibuix per a la zona activa** (`self.vao.render()`), triangles sense índexs (28 B per vèrtex), i una altra crida a cada mapa d'ombres. Per tant, **no hi ha una crida per edifici** i l'instancing no pot reduir-ne el nombre. Cost real no mesurat per separat | `validar_edificis.py`, `prova_obstacles.py` (cap mesura de temps per fotograma per capa) |
+| Vegetació | Només dins de l'alçària (ICGC sense classes; IGN `mdsn_v025` separada); **no es dibuixa** | `dades/alcaries.py` | Cap representació visual; els arbres compten al mapa de detall però no es veuen | — |
+
+#### O4.1 Què expressa cada mapa (definicions; F41)
+
+Convencions comunes (D90, confirmada per l'equip el 16/11):
+- **Temps** en TU als càlculs; a la interfície, hora local (2026 i 2027 CEST = TU + 2; 2028 CET = TU + 1).
+- **Interval de l'eclipsi d'un punt** = [C1, C4] calculat pel nostre model per a aquell punt (no les hores oficials).
+- **Ulls** a 1,7 m sobre el terra (carrer) o sobre una coberta identificada (terrat; vegeu F43.3).
+- **Obstacles considerats**: el relleu sempre; edificis i vegetació **només on hi ha alçàries mesurades** (D81, D87).
+  Cap meteorologia, cap refracció terrestre (D18), refracció astronòmica de Bennett sí.
+- **Dues situacions sense valor i el zero (D90):** *sense dades* (no s'ha calculat o no hi ha font) i *sense
+  eclipsi* (fora de la zona de penombra) no tenen valor; el **0** és un valor vàlid (hi ha eclipsi i dades, però no es
+  veu) i té el seu color a l'escala. "Visibilitat" vol dir sempre "geomètricament no tapat pels obstacles calculats".
+
+| Mapa | Magnitud | Unitat i interval | Instant | Bandes proposades (llindars explícits) | «Sense dades» |
+|---|---|---|---|---|---|
+| **1. Ocultació solar** [informe; acta: "percentatge d'ocultació"] | Fracció de la **superfície aparent** del Sol tapada per la Lluna (àrea d'intersecció dels discos / àrea del disc solar). **No** té en compte el relleu | % (0–100); totalitat/anularitat com a classe a part | Dues opcions: **al màxim local** (estàtic) o **a l'instant de la barra** | Les de la referència visual: < 10 · 10–20 · … · 80–90 (de 10 en 10) · 90–95 · 95–99 · 99–< 100 · fase central (total o anular, colors i noms diferents); a més, isolínies cada 1 % per sobre del 90 % (vegeu F44, referències) | Fora de la penombra = *sense eclipsi* |
+| **2. Visibilitat de l'eclipsi** [informe; acta: "visibilitat real"] | **Temps observable** dins de [C1, C4]: suma dels minuts amb el Sol visible (definició de visible: D91). Es mostren **dues** magnituds separades: (a) temps total observable i % de C4 − C1; (b) **temps observable de la fase central** (C2–C3) quan n'hi ha | (a) minuts i %; denominador = C4 − C1 **sencer**, inclosa la part després de la posta (la posta compta com a no observable, i es diu a la llegenda); (b) segons i % de C3 − C2 | Estàtic (resum de tot l'interval) | (a) les de la referència: < 20 · 20–40 · 40–60 · 60–70 · 70–80 · 80–90 · 90–95 · ≥ 95 %, més *0 %* com a classe pròpia; (b) sense fase central · 0 · 1–25 · 25–50 · 50–75 · 75–99 · 100 % | Sense alçàries mesurades: es mostra el de **relleu sol**, etiquetat com a tal (no es barreja amb el de detall sense dir-ho) |
+| **3. Ocultació pel relleu** (i obstacles) [informe; acta: "ombres del relleu"] | Part del **disc solar** per sobre de l'horitzó d'obstacles, a partir del marge = elevació aparent − horitzó en l'azimut del Sol | Classes: visible (marge > r☉), parcialment ocult (−r☉ < marge ≤ r☉; partit en > i < mig disc com el CNIG), ocult (marge ≤ −r☉), Sol sota l'horitzó astronòmic (posta) | **Instant de la barra** (i "al màxim" com a cas particular, comparable amb el CNIG) | 4 classes fixes, com la capa `terrain_shadows`, + posta | Igual que el mapa 2 |
+| **4. Ombra lunar** [informe] | (a) **Instant**: on és l'umbra/antumbra (fase central ara) i la penombra (corbes d'iso-ocultació a l'instant); (b) **Recorregut**: límits de la franja central (on la fase central dura > 0), línia central i isolínies de durada de la fase central | (a) contorn i classes del mapa 1 a l'instant; (b) línies (durada en s) | (a) barra; (b) estàtic | "Totalitat" (2026, 2027) i "anularitat" (2028) amb **noms i colors diferents**; el recorregut amb línia, l'instant amb farciment | Fora de la graella de circumstàncies |
+
+**Distinció que s'ha de llegir a la interfície:** el mapa 1 és ocultació **per la Lluna**; els mapes 2 i 3, ocultació
+**per obstacles** (combinats amb l'interval de l'eclipsi); les ombres de la il·luminació gràfica (shadow mapping, F11,
+F36) són **llum de l'escena** i no són cap d'aquests mapes. Cap mapa no fa servir la llum de l'escena per decidir res.
+
+**Decisió pendent D91 (què compta com a visible).** Proposta: el càlcul desa el marge, i per tant permet les tres
+definicions sense refer res: *centre* (marge > 0, l'actual), *qualsevol part* (marge > −r☉) i *disc sencer*
+(marge > r☉). Per al mapa 2 proposem **qualsevol part del disc** (un observador veu l'eclipsi parcial encara que
+mig Sol estigui tapat) i mostrar al detall del punt les altres dues. Canviar el criteri de `t_ini`/`t_fi` és una
+correcció (C) amb `VERSIO` nova i comparació abans/després.
+
+**Interrupcions.** `t_ini`/`t_fi` és un sol interval: un edifici que tapa el Sol 5 min al mig no resta res. Per al
+mapa 2 cal desar el **temps visible acumulat** (i el de la fase central) en lloc de, o a més de, el primer i l'últim
+instant, i per a la consulta d'un punt, la llista d'intervals visibles. Cost: dos `uint16` més per píxel.
+
+##### O4.1.1 Els mapes durant l'exploració (requisit de l'equip, 16/11/2026)
+
+**Requisit.** Els mapes, especialment el d'ocultació pel relleu (3) i el de visibilitat amb obstacles (2), han de
+funcionar durant **tota l'exploració**: península → comarca → municipi → carrers o muntanyes, amb la càmera
+vertical o **inclinada**, sense haver de triar cap punt. En apropar-se, el mapa ha d'incorporar **dades de més
+resolució calculades de nou**, no engrandir la textura general.
+
+**Càmera i temps són independents (com a tot el programa).**
+- La **càmera** només decideix **quines zones i quin nivell de detall** cal tenir; no canvia el valor calculat en
+  un punt. Cap memòria cau ni cap clau de resultat no depèn de la posició de la càmera.
+- El **temps** canvia el que es veu als mapes que mostren l'instant: el mapa 3 a l'instant de la barra, el mapa 1
+  en mode "instant" i el mapa 4a. Avançar el temps **no recalcula** res a la CPU: el shader avalua l'instant amb les
+  dades desades (uniforme `hora_s`).
+- Els mapes **resum** (mapa 1 "al màxim", mapa 2, mapa 4b) no canvien amb la barra. El mapa 2 **no** és la
+  visibilitat instantània: a la llegenda hi diu "durant tot l'eclipsi" i el mapa 3 hi diu "ara (hh:mm:ss)".
+
+**Nivells de detall de cada mapa.** No tots necessiten el mateix refinament:
+
+| Mapa | Com s'obté a cada escala | Refinament en apropar-se |
+|---|---|---|
+| 1. Ocultació (Lluna) | **Al shader**, per a cada fragment: a l'instant, la funció que ja hi ha (`tapat_des_de`); al màxim, interpolació de la graella de circumstàncies (~1–4 km), que varia molt a poc a poc (0,01° i ~1 s per km) | **Cap**: no hi entren edificis ni vegetació i no es recalcula en moure's. Continua visible a tots els zooms, sobre el relleu i a sota dels edificis |
+| 2. Visibilitat (durada) | Textures per nivell: **N0** península 200 m (existeix) → **N1** relleu 25 m per blocs (nou, comarca) → **N2** relleu 5 m per cel·les de 3 × 3 km (existeix per llocs) → **N3** superfície amb obstacles mesurats 2 / 2,5 m per cel·la (existeix, F31.4) | Sí: cada nivell es calcula amb el seu MDT (i l'horitzó llunyà del nivell inferior, com ara); de prop apareixen turons, carrers, edificis i arbres mesurats |
+| 3. Ocultació pel relleu (instant) | Les mateixes textures que el mapa 2 (mateix càlcul de l'horitzó; dades temporals de 43.1) | Sí, igual que el mapa 2 |
+| 4. Ombra lunar | Al shader (a) i línies de la graella de circumstàncies (b) | Cap |
+
+**Nivell intermedi N1 (proposta).** Entre la vista de la península (200 m) i els 15 km d'altura on avui comença el
+detall (`ALCADA_DETALL_KM`), una comarca es veuria amb píxels de 200 m engrandits. El WCS de l'IGN que ja fem servir
+té el MDT de **25 m** (`Elevacion25830_25`, comprovat a `dades/mdt_wcs.py`): blocs de ~24 × 24 km (~1 M de píxels,
+~4 MB de MDT), calculats en segon pla quan la càmera és entre ~80 i 15 km. Temps estimat per l'escala de la mesura
+de Manresa (1,4 M de píxels en 63 s): ~1 min per bloc; es mesura a 42.6 abans de fixar mida i llindars d'altura. És
+una descàrrega petita del mateix servei que ja fem servir a demanda; si l'equip la considera una font nova, es demana
+autorització abans.
+
+**Quines zones es preparen (càmera inclinada).** Avui el punt de detall és un sol raig (centre de la pantalla o sota
+la càmera). Per als mapes, la necessitat es calcula amb la **petjada de la vista**: una graella de raigs (p. ex.
+8 × 6) contra el terreny dona les cel·les/blocs visibles i, per a cadascun, la mida aproximada d'un píxel de pantalla
+sobre el terra; el nivell que cal és el que té una resolució de dades de l'ordre d'aquesta mida (N3 quan 1 px de
+pantalla < ~3 m, N2 < ~20 m, N1 < ~150 m). La prioritat és la cel·la més gran a la pantalla (normalment la més
+propera), no la del centre. Un horitzó inclinat demana N3 a prop, N2/N1 al mig i N0 al fons, alhora.
+
+**Precedència i continuïtat.** A cada fragment, el shader fa servir el nivell **més detallat disponible** que el
+cobreix (N3 > N2 > N1 > N0). Mentre un nivell es prepara, es veu el de sota. Els nivells ja carregats a la GPU es
+conserven mentre siguin a la vista i dins d'un pressupost de memòria (p. ex. les cel·les més properes fins a ~200 MB
+de textures; es mesura a 42.3); quan surten de la vista només s'alliberen de la GPU (el disc els conserva). Travessar
+una vora de cel·la no en treu cap.
+
+**Llegenda estable.** Els llindars són els d'O4.1, fixos: no depenen de l'escala, del nivell ni del que es veu (es
+treu l'escala amb `durada_max`). Si un lloc canvia de banda en apropar-se és perquè les dades són millors, i el panell
+ho diu: "Dades d'aquí: relleu 200 m / 25 m / 5 m / superfície amb edificis i vegetació (2 m, ICGC 2021–2023)".
+La consulta d'un punt (43.5) indica el nivell del valor que mostra.
+
+#### O4.2 Tasques
+
+Tipus: **R** reorganització, **C** correcció o canvi de comportament, **N** nova, **E** estudi o prova acotada (no
+s'integra fins que el criteri de decisió es compleix). Estat de totes: `PENDENT`.
+
+**F40 — Confirmar el punt de partida** (abans de canviar res)
+
+| Id | Tipus | Què | Depèn de | Fitxers | Resultat i criteri de finalització |
+|---|---|---|---|---|---|
+| 40.1 | E | Executar les comprovacions existents (`prova_vistes`, `prova_controls`, `prova_eclipsis`, `prova_detall`, `validar_visibilitat`, `validar_edificis`, `validar_model`) | — | `scripts/` | Línia base registrada aquí; cap regressió des de la F39 |
+| 40.2 | E | Reproduir els dos problemes de la taula O4.0 amb captures: Vallès amb el mapa obert (forat) i UAB caminant fins a 50 m més enllà de la vora de la cel·la (desaparició); i el recorregut de la comprovació R1 (F42) amb el codi actual | 40.1 | `scripts/captura.py` o una prova nova | Captures "abans" reproduïbles (mateixa posició, hora i eclipsi) |
+| 40.3 | E | Mesurar el cost del dibuix per capes a la UAB i a Vic: temps de GPU per passada (terreny, edificis, mapes d'ombres, cel) amb consultes de temps d'OpenGL, nombre de crides, triangles i memòria dels edificis | 40.1 | prova nova `scripts/mesurar_dibuix.py` | Taula de costos que decideix si F46 té sentit (vegeu F46) |
+
+**F41 — Definir els mapes** (documentació i decisions; sense codi)
+
+| Id | Tipus | Què | Depèn de | Resultat i criteri |
+|---|---|---|---|---|
+| 41.1 | N (doc) | Fitxa de cada mapa (O4.1): magnitud, unitats, instant o resum, bandes, «sense dades», llegenda i frase per al panell | — | L'equip accepta D90 i els llindars, o els corregeix |
+| 41.2 | N (doc) | Decidir el criteri de visibilitat (D91) i el denominador | 41.1 | Decisió registrada |
+| 41.3 | N (doc) | Per a cada mapa, **què el fa canviar**: la barra del temps (instant), res (resum) o el nivell de dades (detall); i quins nivells té (taula d'O4.1.1). Text de la llegenda que ho digui ("ara" / "durant tot l'eclipsi") | 41.1 | Taula acceptada per l'equip |
+| 41.4 | N (doc) | **Format temporal de les textures** dels mapes 2 i 3 (D95): què es desa per píxel perquè el shader pugui donar la classe del mapa 3 a qualsevol instant i el mapa 2 sense recalcular. Opcions: (a) intervals amb el centre visible (fins a k intervals: binari a l'instant); (b) moments en què el marge creua −r☉, 0 i +r☉ (classes exactes a l'instant; ~24 B/píxel amb 2 intervals per llindar); (c) marge mostrejat cada 5 min (int8; ~25 B/píxel, interpolat). Proposta: (b), i pujar a la GPU només el que demana el mapa actiu | 41.2 | Decisió amb la memòria calculada per nivell (N0–N3) |
+
+**F42 — Continuïtat dels mapes entre escales i durant l'exploració** (primera implementació; amb les dades actuals;
+no depèn de F45/F46)
+
+| Id | Tipus | Què | Depèn de | Fitxers previstos | Resultat i criteri de finalització |
+|---|---|---|---|---|---|
+| 42.1 | N (prova) | Prova automàtica de continuïtat (`prova_mapes.py`): el recorregut R1 (a sota) amb el bucle real; a cada parada, fracció de píxels de terreny visibles **sense color de mapa** on n'hi ha d'haver, nivell de dades per píxel (sortida de depuració del shader), llindars de la llegenda i temps per fotograma | 40.2 | `scripts/prova_mapes.py` | Falla amb el codi actual (forat al Vallès, desaparició a la vora) |
+| 42.2 | C | **Nivell inferior a sota:** dins d'una zona sense mapa propi, el shader llegeix el de la península (N0) i el panell n'indica la resolució | 42.1 | `terrain.frag`, `basecode/terrain.py`, `main.actualitzar_mapa`, `ui.py` | Cap píxel sense color al Vallès i a Vic; el panell diu "200 m" |
+| 42.3 | C | **Diverses cel·les per nivell:** conjunt de cel·les/blocs carregats (atles de textures o llista d'unitats, p. ex. fins a 9 de N3 i 9 de N2), conservats mentre siguin a la vista i dins del pressupost; precedència N3 > N2 > N1 > N0 al shader | 42.2 | `basecode/terrain.py` (de `tex_vis_detall` a un conjunt), `terrain.frag`, `basecode/detall.py` (`candidats_mapa`), `main.actualitzar_mapa` | 42.1 passa a la vora de la cel·la; memòria de GPU mesurada |
+| 42.4 | C | **Preparació segons la petjada de la vista** (no un sol raig): graella de raigs, nivell necessari per cel·la segons la mida del píxel sobre el terra, prioritat per mida a la pantalla; funciona amb la càmera inclinada i sense triar cap punt. Reaprofita les feines de `basecode/detall.py` (relleu, superfície) i `visibilitat.Calcul` | 42.3 | `basecode/detall.py` (`punt_vista` → petjada), `main.actualitzar_mapa` | Amb la càmera inclinada a 30° sobre el Vallès, es preparen les cel·les de primer pla i les del fons es queden en N0/N1 |
+| 42.5 | C | **Resultats antics descartats:** cada resultat porta la clau completa (nivell, cel·la/bloc, eclipsi, criteri D91, `VERSIO`, font d'alçària), **sense cap dada de la càmera**, i només s'aplica si coincideix amb l'estat actual; les feines de cel·les que ja no calen es cancel·len (com ara) | 42.4 | `dades/visibilitat.py` (`Calcul`, `vigent`), `main.py` | Canviar d'eclipsi o de zona mentre es calcula no aplica el resultat vell |
+| 42.6 | N | **Nivell N1 (relleu de 25 m per blocs)**: mesura prèvia d'un bloc (temps, MB, diferència amb N0 i N2 en punts comuns); si el cost és acceptable (≤ ~2 min per bloc en segon pla, ≤ 10 MB al disc), s'integra entre 80 i 15 km d'altura | 42.4 | `dades/llocs.py` o `dades/blocs25.py`, `dades/mdt_wcs.py`, `dades/visibilitat.py`, `basecode/detall.py` | A 30 km d'altura sobre Osona, el mapa mostra valls i serres que el de 200 m no resol (captura comparativa N0 vs N1) |
+| 42.7 | C | El mapa 1 (Lluna) al shader a tots els nivells, sense textures de detall ni càlculs nous en moure's | 41.3 | `terrain.frag` | En el recorregut R1, cap feina de càlcul nova per al mapa 1; mateix color a la península i al carrer en el mateix punt |
+| 42.8 | C | Prova de resposta amb càlculs en marxa (R1 complet) | 42.5 | `scripts/prova_mapes.py` | Mediana ≤ 20 ms i cap fotograma > 1 s, com a la F31.7 (la càmera no s'encalla) |
+
+**Comprovació R1 — recorregut de la península al carrer** (*comprovat automàticament* amb `prova_mapes.py` i
+*inspeccionat visualment* amb les captures de cada parada; després, *provat per l'equip* amb el ratolí i el teclat).
+Eclipsi 2026, hora fixa (p. ex. màxim − 10 min), mapes 2 i 3, càmera d'exploració:
+1. Vista de la península (~1.200 km): mapa N0 a tota Espanya.
+2. Baixar cap al Vallès (o Osona) fins a ~40 km i després ~10 km, **inclinant la càmera ~30–45°**: el mapa no
+   desapareix en cap moment; apareix el detall N1 i després N2, amb diferències locals reals (valls, turons).
+3. Acostar-se fins a ~500 m sobre la UAB (o la plaça Major de Vic): N3 amb edificis i vegetació mesurats.
+4. Desplaçar-se amb W A S D fins a una cel·la veïna (≥ 3 km): les cel·les ja fetes es mantenen mentre es veuen; la
+   nova mostra N2/N1/N0 fins que arriba el seu N3.
+5. Tornar a allunyar-se fins a la península: el mapa continua visible; en tornar a baixar, el detall ja calculat
+   apareix sense recalcular (memòria cau).
+A cada parada: (a) 0 % de píxels de terreny sense color dins d'Espanya (excepte *sense dades* documentat);
+(b) els llindars de la llegenda són idèntics; (c) en el mateix punt, el mapa 1 té el mateix color a totes les
+parades; (d) avançar la barra 10 min canvia el mapa 3 i no el 2; (e) temps per fotograma com a 42.8.
+
+Criteri de la fase: R1 passa, sense forats per manca del mapa local, sense desaparicions en travessar cel·les, amb
+detall real quan és disponible i sense bloquejar la càmera.
+
+**F43 — Mapes de detall i consulta de llocs** (es comença amb les dades actuals; el disseny es tanca a 43.7, després
+de F45.1–F45.2 i F46.1)
+
+| Id | Tipus | Què | Depèn de | Fitxers previstos | Resultat i criteri |
+|---|---|---|---|---|---|
+| 43.1 | C | Format temporal de D95 (41.4): **temps visible acumulat** (total i fase central) i les dades per a l'instant; intervals per a la consulta; criteri D91. Es calcula igual a N0–N3 (mateix codi, diferent MDT) | 41.4 | `dades/visibilitat.py` (`_bloc`, `VERSIO` 4), `validar_visibilitat.py` | Contra el raig exacte minut a minut en punts amb interrupcions (cas sintètic: un obstacle que tapa al mig) |
+| 43.2 | N | Zona de prova petita a la UAB (1 × 1 km), mesurant temps i memòria a 1, 2 i 5 m | 43.1 | `scripts/preparar_visibilitat.py` | Taula temps/memòria → resolució definitiva de N3 i pressupost de 42.3 |
+| 43.3 | C | **Carrer i terrat separats:** dos mapes (o dues capes) en lloc d'un de barrejat. Carrer: ulls sobre el MDT, només a píxels exteriors als contorns del Catastro. Terrat: ulls sobre la coberta de **parts del Catastro amb altura mesurada**, i etiquetat "si el terrat és accessible" (no ho sabem); mai qualsevol punt elevat del model d'alçàries | 43.2 | `dades/alcaries.preparar_superficie`, `dades/visibilitat.py`, `ui.py` | Al mapa de terrat, cap píxel fora de contorns; al de carrer, cap dins; els píxels sense alçària mesurada marcats |
+| 43.4 | N | Càlcul per **blocs reutilitzables** (les cel·les de 3 × 3 km i els blocs de N1): una zona extensa (plana de Vic) s'arma amb les unitats desades; només es calculen les que falten; límit de disc (memòria `espai-disc-limitat`). Les feines les demana la petjada de la vista (42.4), no un punt triat | 43.3, 42.4 | `basecode/detall.py`, `dades/visibilitat.py` | La plana de Vic sense recalcular cel·les fetes; temps i MB per cel·la registrats |
+| 43.5 | N | **Consulta d'un punt** (clic): coordenades, carrer/terrat, eclipsi, C1–C4 locals, temps observable i %, fase central observable, intervals, **nivell i resolució** del valor, font i obstacles considerats (relleu / edificis / vegetació / cap mesura) | 43.1 | `ui.py`, `main.py`, `dades/visibilitat.py` (lectura d'un píxel) | Els valors coincideixen amb `ModelEclipsi` + raig exacte al mateix punt |
+| 43.6 | N | **Exportació** senzilla (CSV o JSON) dels punts consultats amb les metadades de 43.5 | 43.5 | `ui.py`, `data/exportacions/` (ignorat pel Git) | Fitxer llegible que permet comparar dos llocs |
+| 43.7 | C | **Tancar el disseny dels obstacles del mapa de detall** amb els resultats de F45.1–F45.2 (vegetació) i F46.1 (edificis): quines dades entren al model de visibilitat i com es fa coherent amb el que es dibuixa | 43.3, 45.2, 46.1 | O4 d'aquest pla | Decisió registrada (D94) |
+| 43.8 | N | Llocs carregats a demanda: el mateix flux en un lloc nou (p. ex. València), arribant-hi navegant | 43.4 | — | R1 repetit a València |
+
+Criteri de la fase: comparar llocs concrets (p. ex. plaça Cívica, un terrat de la UAB, el Turonet de Cerdanyola) i
+justificar amb la consulta per què un ofereix més temps d'observació.
+
+**F44 — Representació per bandes (aplicació del Toon Shading) [acta, §2.3]**
+
+Orientació acordada a l'acta: aprofitar la **discretització** per representar els resultats en intervals de colors
+comprensibles. **No** s'afegeix cap mode d'estètica de dibuixos animats. Pot avançar amb les dades actuals després de
+F41 (no depèn de F43).
+
+**Referències visuals (`puzzle/toon_shading.pdf`, actualitzat per l'equip; imatges revisades el 16/11/2026).** Són
+orientacions de presentació, **no dades** (els valors i les formes no s'han de reproduir):
+1. *Cobertura del Sol (obscuració solar)*, pàg. 2: franges planes de color sobre la península, de groc (10–20 %) a
+   morat fosc (95–99 %) i una classe pròpia "100 % (totalitat)", llegenda a baix a l'esquerra, barra del temps i noms
+   de lloc a sobre. Portugal i el mar sense color. → Mapa 1: franges planes, mateixa estructura de llegenda.
+2. *Visibilitat real de l'eclipsi — durada visible (sobre la durada total)*, pàg. 3: mapa de calor sobre el relleu,
+   8 bandes (< 20 % a ≥ 95 %), paleta de blau a vermell (≥ 95 % vermell). → Mapa 2a: mateixa estructura de bandes.
+3. Mapa d'ombres, pàg. 4 (dalt): dues classes, verd (Sol visible) i morat (relleu que tapa), sense llegenda. →
+   Mapa 3: les 4 classes d'O4.1 amb una paleta de dos tons (clar → fosc per a "més tapat") i llegenda.
+4. Línies de l'ombra lunar, pàg. 4 (baix): línia central magenta i límits cian sobre un fons fosc. → Mapa 4b.
+5. Mapa del CNIG/IGN (pàg. 5, esquerra): **isolínies** de percentatge cada 1 % (88 % a 99 %) i de durada de la
+   totalitat (30 s a 1 min 50 s) sobre la fotografia de satèl·lit. → Isolínies del mapa 1 (> 90 %) i del 4b.
+6. Capa d'ombres del CNIG (pàg. 5, dreta): ombres del relleu fosques sobre colors pàl·lids per bandes. → Referència
+   de comparació (F47.2), no d'estil.
+
+Observacions sobre les referències:
+- **Rang real de les dades.** El 2026, l'ocultació a la península va de ~88 % a 100 % (ho mostra la mateixa imatge
+  del CNIG); amb franges de 10 en 10, gairebé tot Espanya quedaria en 2–3 colors. Per això les bandes fines de dalt
+  (90–95, 95–99, 99–< 100) i les isolínies cada 1 %. Els llindars són fixos per als tres eclipsis (el 2028, anular,
+  queda per sota del 90 % a gran part del país) i el rang de l'eclipsi actiu es veu a la llegenda.
+- **Paleta del mapa 2.** La de la referència és un arc de S; no creix de manera ordenada en lluminositat i costa de
+  llegir amb daltonisme i en gris. Proposta (D96, decideix l'equip): conservar 8 bandes i l'ordre "més calent = més
+  temps visible", però amb una paleta seqüencial ordenada (p. ex. de blau fosc a groc). Si l'equip prefereix la de la
+  referència, s'hi posen vores entre bandes perquè es distingeixin.
+- **Colors repetits.** El morat és "totalitat" al mapa 1 i "tapat pel relleu" a la referència del mapa 3. Com que
+  només es mostra un mapa alhora i cada un té títol i llegenda, és acceptable; proposta: el mapa 3 sense morat.
+
+| Id | Tipus | Què | Depèn de | Fitxers previstos | Resultat i criteri |
+|---|---|---|---|---|---|
+| 44.1 | C | Paletes fixes per mapa amb els llindars d'O4.1, en una sola taula compartida pel shader i la llegenda (sense duplicar constants); títol, unitats i "ara" / "durant tot l'eclipsi" a la llegenda | 41.1, 41.3 | `ui.py`, `terrain.frag`, `basecode/terrain.py` | La llegenda i el shader llegeixen els mateixos llindars |
+| 44.2 | C | **Significat fix entre escales i nivells**: es treu l'escala amb `durada_max`; els mateixos llindars per a N0–N3; el panell indica el nivell de dades, no un canvi d'escala | 44.1 | `terrain.frag`, `ui.py` | En R1, el mateix valor dona el mateix color a totes les parades (prova amb un píxel comú) i la llegenda no canvia |
+| 44.3 | C | Color del mapa **no il·luminat**: es pinta després de la llum i sense boira (o amb opacitat fixa sobre una base neutra), també quan la càmera és inclinada i el terreny és lluny | 44.1 | `terrain.frag` | Mateix color al mapa al màxim (fosc) i a C1 − 1 h, i a prop i lluny (prova de píxels) |
+| 44.4 | C | Colors propis per a *sense dades*, *sense eclipsi* i *0* | 44.1 | `terrain.frag`, `ui.py` | Les tres situacions es distingeixen en una captura |
+| 44.5 | N | Vores entre bandes (isolínies amb `fwidth`, com `limits_totalitat`, d'amplada constant en píxels a qualsevol zoom) i isolínies cada 1 % del mapa 1 per sobre del 90 %; evolució amb la barra als mapes d'instant (1, 3, 4a) | 44.2 | `terrain.frag` | Captures a tres instants i a tres altures |
+| 44.6 | N | Mapa 4b (recorregut): línia central, límits i isolínies de durada de la fase central a partir de la graella de circumstàncies, per als tres eclipsis; noms "totalitat" / "anularitat" | 44.1 | `dades/visibilitat.py` (circumstàncies), `terrain.frag` o una capa de línies | Límits del 2026 contra les corbes del CNIG (`validar_ombra.py`) |
+| 44.7 | N (doc) | Web: relació amb el Toon Shading i les referències visuals | 44.5 | `docs/` | Vegeu el text a sota |
+
+**Relació amb la tècnica (per a la web i l'entrega).** El Toon Shading quantitza una magnitud **d'il·luminació**
+(`dot(N, L)`) en uns quants nivells i hi assigna colors plans. Aquí quantitzem **magnituds de dades** (minuts,
+percentatges, classes de marge) en intervals amb llindars amb significat. La part comuna és la funció de
+discretització al fragment shader (`floor`/llindars, sense interpolació entre bandes) i les vores entre regions (els
+contorns del Toon Shading ↔ isolínies dels llindars). La diferència: en Toon Shading els llindars són estètics i el
+valor original es perd; aquí el valor original es conserva a la textura (la consulta el mostra) i només canvia la
+representació. La idea de canviar el detall amb la distància (X-Toon, [informe]) correspon als nivells N0–N3 de
+O4.1.1, amb una diferència important: a l'X-Toon el que canvia amb la distància és l'aspecte; aquí canvien **les
+dades** (més resolució) i l'aspecte (els llindars) es manté. Si el professor demanés una implementació literal de la
+il·luminació toon, es decidiria a part (no és a l'acta).
+
+**F45 — Geometry shaders: vegetació a partir de punts [acta, §2.1]**
+
+L'acta proposa generar representacions simplificades d'arbres a partir de punts. Primer cal saber si les dades ho
+permeten. **No pressuposem que un model d'alçàries identifica arbres individuals**: l'ICGC dona l'alçària màxima de
+qualsevol objecte per metre, sense classes; l'IGN separa vegetació (`mdsn_v025`, 2,5 m) però és una superfície, no
+una llista d'arbres.
+
+| Id | Tipus | Què | Depèn de | Fitxers previstos | Resultat i criteri de decisió |
+|---|---|---|---|---|---|
+| 45.1 | E | **Estudi de dades** a 1 × 1 km de la UAB: (a) rasters d'1 m del LiDAR de l'ICGC ja desats (`data/lidar/uab_{mds,terra,edificis}_1m.tif`): vegetació ≈ MDS − terra fora de la classe edifici (els fitxers LAS originals, amb les classes de vegetació 3/4/5 de l'ASPRS, no es van conservar; tornar-los a baixar són 2,8 GB i caldria autorització); (b) vegetació de l'IGN (`mdsn_v025`, 2,5 m) per comparar; (c) alçària ICGC fora dels contorns del Catastro. Provar una detecció de capçades (màxims locals de la superfície de vegetació suavitzada, radi = distància a la meitat de l'alçària) | F42 fet o en paral·lel | `scripts/estudi_vegetacio.py`, `data/lidar/` | Nombre de "arbres" detectats, alçària i radi; comparació visual amb l'ortofoto en 3–4 llocs. **Criteri:** si la detecció dona posicions i dimensions plausibles (capçades aïllades reconegudes a l'ortofoto), es continua; si només dona taques contínues (bosc dens), la representació serà de **masses de vegetació** i no d'arbres individuals, i es documenta així |
+| 45.2 | E | **Coherència amb la visibilitat.** Regla proposada (D94): el model d'obstacles és sempre la **superfície d'alçària mesurada** (com ara); la vegetació dibuixada **es deriva de la mateixa superfície** i és una aproximació visual, identificada com a tal. Mesurar la diferència: horitzó des de 10 punts amb la superfície i amb els volums dibuixats (cons/el·lipsoides dels punts de 45.1) | 45.1 | `scripts/estudi_vegetacio.py` | Diferència d'horitzó en graus. Si és petita davant de r☉ (0,27°), el dibuix és coherent; si no, el dibuix no s'usa com a obstacle i es diu a la llegenda |
+| 45.3 | N | **Geometry shader** (GLSL 3.30, `layout(points) in; layout(triangle_strip, max_vertices = …) out`): de cada punt (posició, alçària, radi), un volum senzill (p. ex. tronc + capçada amb 2–3 seccions o cartells creuats), orientat amb la vertical local ECEF; color de l'ortofoto o fix; rep les ombres. Variació **només** a partir de les dades (alçària i radi mesurats), sense soroll aleatori que canviï la mida | 45.1 i 45.2 superats | `basecode/vegetacio.py`, `shaders/vegetacio.{vert,geom,frag}`, `main.py`, `ui.py` (casella "Arbres (aproximació visual)") | Captures UAB des del terra i des de l'aire; cost mesurat (temps de GPU amb i sense, nombre de punts); compatible amb 3.3 core |
+| 45.4 | N (opcional) | Eina auxiliar: visualitzar normals del terreny o dels edificis amb un geometry shader (depuració) | 45.3 | `shaders/normals.geom` | Només si queda temps; **no substitueix 45.3** |
+
+Descartat **[informe, no recollit com a acord]**: irregularitats a la línia de l'horitzó i soroll Perlin a l'alçària
+(alterarien el resultat que calculem amb dades reals; l'acta mateixa demana no alterar la precisió). Edificis llunyans
+"aixecats" des d'un punt: un punt no conserva el contorn cadastral; es valora només dins de F46.
+
+**F46 — Instancing: edificis [acta, §2.2]**
+
+L'acta proposa volums senzills reutilitzant una malla per reduir crides i millorar el rendiment amb molts edificis.
+Al codi actual, **els edificis de la zona ja es dibuixen amb una sola crida** (taula O4.0): l'instancing no pot reduir
+el nombre de crides d'aquesta passada. El que podria reduir és **memòria i amplada de banda** (una caixa compartida i
+una transformació per edifici en lloc de tots els triangles), a canvi de **perdre els contorns cadastrals**.
+
+| Id | Tipus | Què | Depèn de | Fitxers previstos | Resultat i criteri de decisió |
+|---|---|---|---|---|---|
+| 46.1 | E | Amb la mesura de 40.3, comparar a la UAB i a València (molts edificis): malla actual vs. **caixa instanciada** (orientada al rectangle mínim de cada part, alçària mesurada): memòria de GPU, temps de GPU de la passada i del mapa d'ombres, i **fidelitat**: àrea de la caixa − àrea del contorn (%) i diferència d'horitzó des de 10 punts d'observació (graus) | 40.3 | `scripts/estudi_instancing.py` (prova fora del programa) | **Criteri:** s'integra per a edificis propers només si la diferència d'horitzó és < 0,05° (una cinquena part del radi del Sol) **i** hi ha guany mesurat. Previsió: la fidelitat no ho permetrà; llavors només com a **representació a distància** (vegeu 46.2) |
+| 46.2 | E/N | Representació a distància amb instancing, **separada del model d'obstacles** (la visibilitat i les ombres properes continuen amb les malles i la superfície mesurada): edificis de les cel·les veïnes, més enllà de la zona activa, com a caixes instanciades | 46.1 | `basecode/edificis_lluny.py`, `shaders/edifici_inst.vert` (`glVertexAttribDivisor` via ModernGL `'/i'`) | S'integra si permet veure edificis més enllà de la zona activa amb un cost mesurat acceptable (p. ex. < 2 ms de GPU) |
+| 46.3 | E (alternativa) | Si 46.1 no troba cap guany als edificis: instancing on hi ha geometria **realment repetida** — les capçades de F45 (una malla d'arbre, una instància per punt) — i comparar-lo amb el geometry shader de 45.3 | 45.3 | `basecode/vegetacio.py` | Comparació directa geometry shader vs. instancing amb les mateixes dades: memòria, temps i flexibilitat. És un cas docent clar i explicable |
+
+En tots els casos: comparació abans/després amb la mateixa escena, i cap millora atribuïda sense mesura.
+
+**F47 — Validació conjunta i entrega**
+
+| Id | Tipus | Què | Depèn de | Resultat |
+|---|---|---|---|---|
+| 47.1 | E | Mapes contra càlculs puntuals de referència (`ModelEclipsi` + raig exacte) a cada resolució | F43 | Taula d'errors (mediana i màxim) |
+| 47.2 | E | 2026 contra el CNIG (`terrain_shadows`), explicant resolució (200 m vs. 5 m vs. 2 m) i obstacles | F43 | Percentatges d'acord per escala |
+| 47.3 | E | Casos: Sol visible, parcialment ocult, ocult; interrupció per un edifici; carrer i terrat | F43 | Captures i consultes reproduïbles |
+| 47.4 | E | Canvis entre els tres eclipsis, zones i escales; dades absents (sense LiDAR, Navarra) i amb memòria cau | F42, F43 | Proves automàtiques |
+| 47.5 | E | Rendiment i resposta de la interfície; regressions de càmeres, temps i model astronòmic | tot | `prova_*`, `validar_*` |
+| 47.6 | N (doc) | Web i memòria: per a cada tècnica del puzle, què hem après, on s'aplica, què aporta (mesurat) i limitacions; captures reproduïbles | tot | `docs/` |
+
+#### O4.3 Dependències
+
+```
+F40 ─► F41 ─► F42 (continuïtat, nivells N0–N3, petjada) ─► F43.1–43.6 (detall, consulta) ─► 43.7 ─► F47
+  │            └─► F44 (bandes; només necessita F41)  ───────────────────────────────────────►┘
+  └─ 40.3 ─► F46.1 (instancing: estudi) ──► 43.7          F45.1 ─► F45.2 ──► 43.7
+                       └─► 46.2 / 46.3                              └─► F45.3 ─► 45.4 (opcional)
+```
+
+- F42 i F44 avancen **amb les dades actuals**; no esperen F45 ni F46.
+- Els estudis F45.1–F45.2 i F46.1 són acotats i s'han de fer **abans de tancar el disseny dels obstacles** del mapa de
+  detall (43.7); no abans de començar-lo.
+- F45.3 i F46.2/46.3 són integracions que només es fan si el seu criteri de decisió es compleix.
+
+**Primera tasca a implementar: F40 (amb el recorregut R1 "abans") i després 42.1–42.2 (mapa general a sota de les
+zones).** Reaprofita la textura
+del mapa de la península ja calculada (`visibilitat_<any>_peninsula_200m.npz`), `Terrain.textura_visibilitat`, la
+funció `color_mapa` i les UV que relacionen zona i península (`uv_de_utm`). Sabrem que funciona quan la prova nova
+`prova_mapes.py` (42.1), que ara ha de fallar, deixi de trobar píxels sense color al Vallès i a Vic amb el mapa obert,
+el panell indiqui "resolució 200 m" en aquelles zones, i `prova_vistes`, `prova_controls` i `prova_eclipsis` no
+canviïn.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -2242,3 +2570,5 @@ punts de la UAB) i els rasters de `data/lidar/` només serveixen per validar.
 | 30/10/2026 | O3: F24 (tres eclipsis, anularitat, comparats amb la NASA), F25, F26 i F28 (mapa de visibilitat del relleu, validat contra un raig exacte), menú net (D82). D80–D82, P18. Sense commit. |
 | 30/10/2026 | LiDAR de l'ICGC a la UAB (D83): 9 fulls convertits a rasters d'1 m; comparació amb el Catastro (l'estimació plantes × 3 m s'equivoca 2,8 m de mitjana) i amb el MDT de l'IGN (+0,13 m). Península 2026 validada (contra el CNIG, 88,7 %). Sense commit. |
 | 31/10/2026 | Commits de l'estat de l'O3 (`6aa3e38`, `864a3df`). F31 (petició de l'equip): detall segons la vista a tot Espanya, altures mesurades (ICGC, IGN), mapa de detall per cel·les, nom del lloc, feines en processos. D84–D89. Sense commit. |
+| 16/11/2026 | O4 (segona entrega): revisió del codi dels mapes (forat a les zones i desaparició del detall confirmats al codi, no executats), definició dels quatre mapes, tasques F40–F47 amb dependències, acta 05 del 12/11/2026 incorporada (Toon Shading com a bandes de dades; geometry shaders per a vegetació; instancing per a edificis, amb estudi previ). D90, D92, D93; pendents D91, D94. Res implementat. Sense commit. |
+| 16/11/2026 | O4: revisades les imatges de referència de `puzzle/toon_shading.pdf` (F44). Requisit de l'equip: mapes durant tota l'exploració (O4.1.1): nivells N0–N3 (N1 nou, relleu de 25 m), preparació segons la petjada de la vista amb la càmera inclinada, precedència i conservació de nivells, llegenda fixa, mapa 1 al shader sense refinament, càmera i temps independents. F41 (41.3–41.4), F42 (42.4–42.8 i recorregut R1), F43 i F44 actualitzades. Pendents D95, D96. Res implementat. Sense commit. |
