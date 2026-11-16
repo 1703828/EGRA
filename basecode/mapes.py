@@ -216,6 +216,7 @@ class Mapes:
         self.feines = {}          # (tipus, clau) -> Feina
         self.fallades = {}        # (tipus, clau) -> error
         self.desitjades = []      # [(nivell, clau, rect)] que la vista vol, de mes a menys necessaria
+        self.esperant = set()     # peces que un altre proces esta calculant (es llegiran quan acabi)
         self.ultima = -1e9
         self.textures = {}        # nivell -> (textura array, capes per peca)
         self.amb_intervals = False   # capes dels intervals a la GPU (nomes per al mapa del relleu ara)
@@ -434,7 +435,9 @@ class Mapes:
         if any(t == 'calcular' for t, _ in self.feines) or app.detall.detall_en_curs():
             return
         if visibilitat.en_calcul(cami, eclipsi, r, pas):
-            return      # un altre proces l'esta calculant (p. ex. scripts/preparar_visibilitat.py)
+            self.esperant.add(k)    # un altre proces l'esta calculant (p. ex. scripts/preparar_visibilitat.py)
+            return
+        self.esperant.discard(k)
         f = FeinaProces(k, _calcular_peca, cami, eclipsi, lluny, ulls, r, pas, descripcio=f'calcular el mapa {clau}')
         f.marca = visibilitat.cami_cache(eclipsi, cami, r, pas) + '.calculant'   # (es treu si el proces s'atura)
         self.feines[('calcular', k)] = f
@@ -771,6 +774,8 @@ class Mapes:
     def text_estat(self):
         """Linia d'estat per al panell: que es prepara."""
         if not self.feines and self.feina_graella is None:
+            if any(k[2] == eclipsis.actiu() and k not in self.peces for k in self.esperant):
+                return 'esperant un calcul d\'un altre proces (preparar_visibilitat.py)'
             return ''
         noms = {'llegir': 'llegint', 'calcular': 'calculant', 'relleu': 'baixant el relleu',
                 'superficie': 'preparant els obstacles', 'bloc': 'baixant el relleu de 25 m'}

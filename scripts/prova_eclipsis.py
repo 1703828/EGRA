@@ -134,7 +134,8 @@ def main():
             fotograma()
             n += 1
             mostrat = any(k[2] == clau for k in app.mapes.peces)
-            calculs = [k for (_, k) in app.mapes.feines if isinstance(k, tuple) and k[2] == clau]
+            calculs = [k for (_, k) in app.mapes.feines if isinstance(k, tuple) and k[2] == clau] + \
+                [k for k in app.mapes.esperant if k[2] == clau]   # (un altre proces la calcula)
             if calculs or mostrat:
                 break
         ok(calculs or mostrat, f'mapa de visibilitat: {"mostrat" if mostrat else "preparant-se"} per al {clau} '

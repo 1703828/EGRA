@@ -403,6 +403,8 @@ def main():
             fotograma()
             vistes |= feines_xarxa()
         s = time.time() - t0
+        print(f'   zona {app.nom_zona}; edificis mesurats {app.edificis is not None and app.edificis.mesurades}; '
+              f'mapes {app.mapes.resum()}')
         ok(llest() and not vistes, f'tornar-hi: relleu, edificis mesurats, mapa del relleu i mapa de detall en {s:.1f} s, '
            f'sense cap feina de xarxa (relleu, edificis, altures, superficie): {sorted(vistes) or "cap"}')
         print(f'   fotografia: {app.mosaic.descarregador.baixades - baixades} teselles noves de la xarxa '
