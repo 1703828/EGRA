@@ -21,8 +21,9 @@ import glm
 import numpy as np
 from slimgui import imgui
 
-from basecode.terrain import (OVERLAYS, MAPES, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
-                              COLORS_DURADA, COLORS_OMBRES, COLORS_CENTRAL, COLOR_TAPAT_RELLEU)
+from basecode.terrain import (OVERLAYS, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
+                              COLORS_DURADA, COLORS_OMBRES)
+from basecode import mapes as M
 from dades import eclipse_data, eclipsis, geodesia, noms
 from dades.observador import UBICACIONS
 
@@ -56,7 +57,7 @@ def build_ui(app):
     panell_temps(app)
     imgui.separator_text("Punt d'observacio")
     panell_punt(app)
-    imgui.separator_text('Mapa de visibilitat')
+    imgui.separator_text('Mapes')
     panell_mapa(app)
     panell_capes_eclipsi(app)
     imgui.text_disabled('IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')
@@ -294,26 +295,78 @@ def llegenda(color, text):
     imgui.text(text)
 
 
+def llegenda_columnes(entrades, columnes=2):
+    """Llegenda compacta: (color, text) en columnes; un color None deixa el lloc buit."""
+    x0 = imgui.get_cursor_pos_x()
+    amplada = (imgui.get_content_region_avail()[0]) / columnes
+    for k, (color, text) in enumerate(entrades):
+        if k % columnes:
+            imgui.same_line(x0 + amplada * (k % columnes))
+        if color is None:
+            imgui.text('')
+            continue
+        imgui.color_button(f'##ll{k}{text}', (*color, 1.0), imgui.ColorEditFlags.NO_TOOLTIP, (11, 11))
+        imgui.same_line()
+        imgui.text(text)
+
+
 def panell_mapa(app):
-    for i, nom in enumerate(MAPES):
-        if i % 2:       # dues per fila
-            imgui.same_line()
-        if imgui.radio_button(nom, app.mapa_visibilitat == i):
-            app.mapa_visibilitat = i
-    if app.mapa_visibilitat == 1:
-        for classe, text in enumerate(['Tapat', 'Menys de mig Sol', 'Mes de mig Sol', 'Sencer']):
-            llegenda(COLORS_OMBRES[classe], text)
-    elif app.mapa_visibilitat == 2:
-        maxim = max((t.visibilitat['durada_max'] for t in app.terrenys() if t.visibilitat), default=0.0)
-        for k, color in enumerate(COLORS_CENTRAL):
-            llegenda(color, f'{maxim * k / 4:.0f} s')
-    elif app.mapa_visibilitat == 3:
-        llegenda(COLOR_TAPAT_RELLEU, 'El relleu tapa el Sol')
-        for k, color in enumerate(COLORS_ENFOSQUIMENT):    # rampa de la part tapada per la Lluna, de 0 a 100 %
-            imgui.color_button(f'##rampa{k}', (*color, 1.0), imgui.ColorEditFlags.NO_TOOLTIP, (12, 12))
-            imgui.same_line()
-        imgui.text('Sol tapat 0 - 100 %')
-        llegenda(COLOR_TOTALITAT, 'Fase central')
+    """Quin mapa (basecode/mapes.py), el seu mode, la llegenda (llindars fixos: no canvien amb el zoom) i d'on surten
+    les dades que es veuen."""
+    m = app.mapes
+    noms = [n for _, n in M.MAPES]
+    claus = [c for c, _ in M.MAPES]
+    actual = claus.index(m.quin) if m.quin else 0
+    imgui.push_item_width(-1.0)
+    canviat, nou = imgui.combo('##mapa', actual, noms)
+    imgui.pop_item_width()
+    if canviat:
+        m.mostrar(claus[nou])
+    if not m.quin:
+        return
+    modes = M.MODES[m.quin]
+    if len(modes) > 1:
+        for k, (codi, nom) in enumerate(modes):
+            if k:
+                imgui.same_line()
+            if imgui.radio_button(nom, m.mode[m.quin] == codi):
+                m.posar_mode(codi)
+    mode = m.mode[m.quin]
+    if m.quin == 'ocultacio':
+        imgui.text_disabled('Part del Sol tapada per la Lluna' + (' ara' if mode == 'ara' else ' al maxim'))
+        anular = eclipsis.ECLIPSIS[eclipsis.actiu()]['tipus'] == 'anular'
+        llegenda_columnes([(c, t) for c, t in zip(M.OCULT_COLORS, M.OCULT_TEXTOS)] +
+                          [(M.COLOR_ANULARITAT if anular else M.COLOR_TOTALITAT, 'Anularitat' if anular else 'Totalitat')])
+    elif m.quin == 'durada':
+        if mode == 'tot':
+            imgui.text_disabled('Temps amb el Sol visible, sobre C1-C4')
+            llegenda_columnes(list(zip(M.DURADA_COLORS, M.DURADA_TEXTOS)))
+        else:
+            imgui.text_disabled('Fase central amb el Sol visible')
+            llegenda_columnes(list(zip(M.CENTRAL_COLORS, M.CENTRAL_TEXTOS)) +
+                              [(M.COLOR_FORA_CENTRAL, 'Fora de la franja')])
+        imgui.text_disabled('Durant tot l\'eclipsi (no canvia amb l\'hora)')
+    elif m.quin == 'relleu':
+        if mode == 'ara':
+            imgui.text_disabled('El Sol ara, vist des de cada punt')
+            llegenda_columnes([(M.RELLEU_COLORS[3], 'Sencer'), (M.RELLEU_COLORS[1], 'En part'),
+                               (M.RELLEU_COLORS[0], 'Tapat (relleu o obst.)'), (M.COLOR_POSTA, 'Sota l\'horitzo')])
+        else:
+            imgui.text_disabled('El Sol al maxim (classes del CNIG)')
+            llegenda_columnes(list(zip(M.RELLEU_COLORS[::-1], M.RELLEU_TEXTOS_MAXIM[::-1])))
+    elif m.quin == 'ombra':
+        imgui.text_disabled('Fase central ara i el seu recorregut')
+        anular = eclipsis.ECLIPSIS[eclipsis.actiu()]['tipus'] == 'anular'
+        llegenda_columnes([(M.COLOR_ANULARITAT if anular else M.COLOR_TOTALITAT,
+                            'Anularitat ara' if anular else 'Totalitat ara'),
+                           ((1.0, 0.92, 0.70), 'Penombra (20 %)'), (M.COLOR_LIMITS_CENTRAL, 'Franja (30 s)')])
+    if m.amb_nivells():
+        linia('Dades aqui', m.text_nivell_centre(), COLOR_SUAU)
+    estat = m.text_estat()
+    if estat:
+        imgui.text_wrapped(estat)
+    if m.amb_nivells() or m.quin == 'ocultacio':
+        imgui.text_disabled('Sense color: sense dades. Sense meteorologia.')
 
 
 def panell_capes(app):

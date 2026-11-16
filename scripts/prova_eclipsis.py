@@ -128,19 +128,18 @@ def main():
         imatge().save(os.path.join(SORTIDA, f'eclipsi_{clau}_ombra_espai.png'))
         # mapa de visibilitat: se'n llegeix o se'n comenca a calcular un de l'eclipsi actiu i el dibuix continua
         fotograma(lambda: app.canviar_vista(1))
-        app.mapa_visibilitat = 1
+        app.mapes.mostrar('durada')
         t0, n = time.time(), 0
         while time.time() - t0 < ESPERA_MAPA_S:   # primer acaben les lectures i el detall que hi hagi en curs
             fotograma()
             n += 1
-            calculs = [c for c in app.calculs_mapa.values() if c.clau == clau] + \
-                [c for c in (app.calcul_detall,) if c is not None and c.clau == clau]   # el de detall va primer
-            mostrat = any(t.visibilitat is not None and t.visibilitat['clau'] == clau for t in app.terrenys())
+            mostrat = any(k[2] == clau for k in app.mapes.peces)
+            calculs = [k for (_, k) in app.mapes.feines if isinstance(k, tuple) and k[2] == clau]
             if calculs or mostrat:
                 break
-        ok(calculs or mostrat, f'mapa de visibilitat: {"mostrat" if mostrat else "calculant-se"} per al {clau} '
+        ok(calculs or mostrat, f'mapa de visibilitat: {"mostrat" if mostrat else "preparant-se"} per al {clau} '
            f'(al cap de {time.time() - t0:.1f} s, {n / (time.time() - t0):.0f} fotogrames/s mentrestant)')
-        app.mapa_visibilitat = 0
+        app.mapes.mostrar(None)
         fotograma(n=3)
     print()
     print('Captures a captures/proves/eclipsi_*.png')

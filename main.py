@@ -97,7 +97,8 @@ from dades import atmosfera
 from basecode.cel import Cel
 from basecode.mosaic import Mosaic
 from basecode.detall import Detall
-from dades import eclipse_data, eclipsis, geodesia, noms, visibilitat
+from basecode.mapes import Mapes
+from dades import eclipse_data, eclipsis, geodesia, noms
 import ui
 
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
@@ -142,11 +143,9 @@ class GraphicsEngine(GraphicsEngineBase):
         self.mostrar_noms = True      # noms de lloc importants sobre el mapa a les vistes aeries (ui.noms_al_mapa)
         self.noms_mapa = None         # [(nom, nivell, posicio ECEF)], es prepara el primer cop que es dibuixen
         self.usar_ortofoto = True     # color del terra de les zones de detall: fotografia aeria (si n'hi ha)
-        # mapa de visibilitat de l'eclipsi (objectiu O3; basecode/terrain.py MAPES): es calcula la primera vegada
-        # que es demana per a cada terreny i eclipsi (dades/visibilitat.py, en un fil) i es desa
-        self.mapa_visibilitat = 0
-        self.calculs_mapa, self.mapes_fallats = {}, set()   # cami del MDT -> visibilitat.Calcul del relleu
-        self.calcul_detall = None     # mapa de detall (edificis i vegetacio mesurats) de la cel·la del punt de detall
+        # mapes de l'eclipsi (objectius O3 i O4): basecode/mapes.py (les dades es preparen en segon pla segons la
+        # vista, per nivells de detall; el shader del terreny les llegeix)
+        self.mapes = Mapes(self)
         self.consulta_nom, self.nom_punt = None, None   # nom del lloc del punt d'observacio (dades/noms.py)
 
         # --- territori: la peninsula sencera posada sobre la Terra; el detall (zones de 5 m, edificis) el
@@ -339,75 +338,9 @@ class GraphicsEngine(GraphicsEngineBase):
             self.canviar_vista(1)
         return True
 
-    def actualitzar_mapa(self):
-        """Mapa de visibilitat: si es mostra, cada terreny que es dibuixa ha de tenir el de l'eclipsi actiu (relleu) i
-        la zona activa, el de detall de la cel·la del punt de detall si n'hi ha (edificis i vegetacio mesurats,
-        basecode/detall.py). Es llegeixen o es calculen en fils (dades/visibilitat.Calcul), un de relleu i un de
-        detall alhora; les textures es creen aqui (fil principal). Si no es mostra, s'alliberen (memoria de la GPU)."""
-        clau = eclipsis.actiu()
-        for cami, c in list(self.calculs_mapa.items()):
-            if not c.fet:
-                continue
-            del self.calculs_mapa[cami]
-            if c.cancelat:
-                continue                                   # el terreny ja no es veia: es tornara a demanar si cal
-            if c.error or c.resultat is None:
-                self.mapes_fallats.add((c.cami, c.clau))   # no es torna a provar a cada fotograma
-            if c.resultat is not None and c.clau == clau:
-                for t in self.terrenys():
-                    if t.cami == c.cami:
-                        t.posar_visibilitat(c.resultat)
-        # llegir un mapa ja calculat es pot fer sempre; calcular-ne un, d'un en un (cada calcul fa servir tota la CPU) i
-        # despres del detall del punt (mes petit i mes util). Un calcul d'un terreny que ja no es veu acaba igualment
-        # (queda desat) pero no impedeix llegir els altres
-        visibles = {t.cami for t in self.terrenys()} if self.mapa_visibilitat else set()
-        for c in self.calculs_mapa.values():
-            if not c.fet and not c.nomes_llegir and c.cami not in visibles and not c.cancelat:
-                c.cancel()                                 # deixa lloc al del terreny que es veu ara
-        calculant = any(not c.fet and not c.nomes_llegir and not c.cancelat for c in self.calculs_mapa.values())
-        for t in self.terrenys():
-            if self.mapa_visibilitat == 0:
-                if t.visibilitat is not None:
-                    t.posar_visibilitat(None)
-                continue
-            if (t.visibilitat is not None and t.visibilitat['clau'] == clau) or t.cami in self.calculs_mapa \
-                    or (t.cami, clau) in self.mapes_fallats:
-                continue
-            if visibilitat.vigent(t.cami, clau):
-                self.calculs_mapa[t.cami] = visibilitat.Calcul(t.cami, clau, nomes_llegir=True)
-            elif not calculant and not self.detall.detall_en_curs():
-                self.calculs_mapa[t.cami] = visibilitat.Calcul(t.cami, clau, self.peninsula.cami)
-                calculant = True
-        # detall: nomes es fa servir si encara es el de la cel·la del punt i cap dins de la zona activa
-        z = self.zona
-        d = self.detall.detall_mapa if self.mapa_visibilitat else None
-        cd = self.calcul_detall
-        if cd is not None and not cd.fet and not cd.cancelat and (d is None or d[0] != cd.cami or cd.clau != clau):
-            cd.cancel()   # ja no cal (mapa tret, un altre eclipsi o una altra cel·la): no ha d'aturar els altres
-        if cd is not None and cd.fet:
-            self.calcul_detall = None
-            if cd.cancelat:
-                cd = None
-            elif cd.error or cd.resultat is None:
-                self.mapes_fallats.add((cd.cami, cd.clau))
-            elif cd.clau == clau and z is not None and d is not None and d[0] == cd.cami:
-                z.posar_visibilitat_detall(cd.resultat, d[1])
-                z.vis_detall.update(cami=d[0], descripcio=d[3])
-        if z is None:
-            return
-        if d is None:
-            if z.vis_detall is not None:
-                z.posar_visibilitat_detall(None, None)
-            return
-        if z.vis_detall is not None and z.vis_detall.get('cami') == d[0] and z.vis_detall['clau'] == clau:
-            return
-        if self.calcul_detall is None and (d[0], clau) not in self.mapes_fallats:
-            self.calcul_detall = visibilitat.Calcul(d[0], clau, lluny=[d[4] or z.cami, self.peninsula.cami],
-                                                    cami_ulls=d[2])
-
     def text_mapa(self):
-        """Estat del calcul del mapa (panell), o ''."""
-        return self.detall.estat['mapa'] if self.mapa_visibilitat else ''
+        """Estat del mapa (panell), o ''."""
+        return self.mapes.text_estat() if self.mapes.quin else ''
 
     def triar_ubicacio(self, lat, lon, nom):
         """Desplegable del panell: l'observador va a la ubicacio i la camera d'exploracio se situa a sobre,
@@ -675,14 +608,15 @@ class GraphicsEngine(GraphicsEngineBase):
     def feina_en_curs(self):
         """Si alguna cosa pot canviar la imatge sense que l'usuari faci res: el temps avanca, o hi ha feines en
         segon pla (detall, mapes, teselles, nom del lloc)."""
-        return (self.reproduint or bool(self.detall.feines) or bool(self.calculs_mapa)
-                or self.calcul_detall is not None or self.consulta_nom is not None
+        return (self.reproduint or bool(self.detall.feines) or self.mapes.ocupat()
+                or self.consulta_nom is not None
                 or (self.mosaic.actiu and self.mosaic.descarregador.pendents() > 0))
 
     def signatura(self):
         """El que determina la imatge i pot canviar d'un fotograma al seguent: vista, camera i hora."""
         cam = self.camera
-        return (self.vista, cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapa_visibilitat)
+        return (self.vista, cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapes.quin,
+                self.mapes.mode_actual(), len(self.mapes.peces))
 
     def repos(self):
         """Despres de cada fotograma: si fa REPOS_S que la imatge no canvia i no hi ha feina, espera esdeveniments
@@ -737,7 +671,7 @@ class GraphicsEngine(GraphicsEngineBase):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
         self.detall.actualitzar()   # detall segons la vista: es prepara i es carrega en segon pla
-        self.actualitzar_mapa()     # mapa de visibilitat (es calcula o es llegeix en segon pla)
+        self.mapes.actualitzar()    # mapes de l'eclipsi (les peces que vol la vista, en segon pla)
         self.actualitzar_nom()
         self.actualitzar_edificis()
         self.avancar_temps(dt)
@@ -793,6 +727,7 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def on_destroy(self):
         self.detall.destroy()
+        self.mapes.destroy()
         self.mosaic.destroy()
         self.ombres.destroy()
         self.cel.destroy()

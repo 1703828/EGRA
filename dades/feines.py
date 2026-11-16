@@ -55,10 +55,20 @@ class FeinaProces(Feina):
     """Com Feina, pero la funcio s'executa en un proces nou (spawn: no comparteix res amb el programa). Un fil del
     programa n'escolta els avisos i el resultat."""
 
+    proces = None
+    cancelada = False
+
+    def cancel(self):
+        """Atura el proces (p. ex. un calcul que ja no cal): no queda res desat i la feina acaba amb error."""
+        self.cancelada = True
+        if self.proces is not None and self.proces.is_alive():
+            self.proces.terminate()
+
     def _executar(self, funcio, args):
         ctx = multiprocessing.get_context('spawn')
         cua = ctx.Queue()
         p = ctx.Process(target=_proces, args=(cua, funcio, args), daemon=True)
+        self.proces = p
         try:
             p.start()
         except Exception as e:   # noqa: BLE001 (sense proces no hi ha feina: es diu al panell)
@@ -71,7 +81,8 @@ class FeinaProces(Feina):
                 tipus, valor = cua.get(timeout=1.0)
             except Exception:   # noqa: BLE001 (cua buida: el proces potser ha mort)
                 if not p.is_alive():
-                    self.error = self.error or f'el proces ha acabat sense resultat (codi {p.exitcode})'
+                    self.error = self.error or ('cancel·lada' if self.cancelada else
+                                                f'el proces ha acabat sense resultat (codi {p.exitcode})')
                     break
                 continue
             if tipus == 'estat':

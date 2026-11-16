@@ -17,8 +17,8 @@ Per a aquest punt, a cada fotograma (com a molt cada REVISIO_S):
   3. Pegats: el pegat dens de la zona (5 m, ~2,5 km) i el de la peninsula (200 m, ~100 km) es tornen a centrar,
      tambe en un fil, quan el punt se n'allunya.
   4. Altures mesurades dels edificis (dades/alcaries.py): quan els edificis es veuen i encara son estimats.
-  5. Mapa de visibilitat de detall (dades/alcaries.preparar_superficie i dades/visibilitat): quan el mapa es mostra,
-     per a la cel·la de la quadricula del punt, amb els edificis i la vegetacio mesurats.
+  (Els mapes de l'eclipsi preparen les seves dades a basecode/mapes.py, segons tota la vista: aqui nomes hi ha la
+  feina de la superficie dels obstacles, _preparar_superficie, que tambe fan servir.)
 Cada feina guarda que s'ha demanat (clau). Quan acaba, el resultat queda al disc; nomes es fa servir si encara es el
 que cal per al punt actual (una descarrega antiga no canvia el que es veu despres de moure's).
 
@@ -67,7 +67,6 @@ class Detall:
         self.ultima = -1e9
         self._limits = {}
         self.estat = dict(terreny='', foto='', edificis='', mapa='')
-        self.detall_mapa = None   # (cami, limits, ulls, descripcio, mdt) del mapa de detall que toca, si n'hi ha
         self.preparar = True      # False: nomes es fa servir el que ja hi ha al disc (proves sense xarxa)
         self.cel_les_mesurades = {}   # zona -> cel·les on ja s'han mesurat les altures dels edificis
         self.desitjat = (None, 0.0)   # (cel·la del punt, des de quan hi es): per a ESPERA_PREPARAR_S
@@ -216,10 +215,6 @@ class Detall:
         app = self.app
         if app.zona is not None and (cami is None or app.zona.cami != cami):
             app.zona.treure_pegat()           # el pegat es torna a fer al voltant del punt nou
-            if app.zona.visibilitat is not None:
-                app.zona.posar_visibilitat(None)
-            if app.zona.vis_detall is not None:
-                app.zona.posar_visibilitat_detall(None, None)
         if cami is None:
             app.zona, app.edificis, app.nom_zona, app.peninsula.fills = None, None, None, []
             return
@@ -324,8 +319,6 @@ class Detall:
         self.recentrar_pegats(lat, lon)
         if estable:
             self.preparar_alcades(volguts, x, y)
-        if app.mapa_visibilitat:
-            self.preparar_mapa_detall(x, y, estable)
 
     def lliure(self, tipus, clau):
         """Si es pot comencar una feina d'aquest tipus per a la clau: cap altra en curs i no ha fallat abans. Les que
@@ -402,71 +395,11 @@ class Detall:
         self.feines['carregar_edificis'] = Feina(zona, _llegir_edificis, zona, cami, self.mesurades_disponibles(zona),
                                                  descripcio='llegir els edificis')
 
-    # ------------------------------------------------------------ mapa de visibilitat de detall
+    # ------------------------------------------------------------ detall en curs
 
     def detall_en_curs(self):
-        """Si s'esta preparant el detall del punt (superficie, altures o mapa de detall)."""
-        return 'superficie' in self.feines or 'alcades' in self.feines or \
-            (self.app.calcul_detall is not None and not self.app.calcul_detall.fet
-             and not self.app.calcul_detall.cancelat)
-
-    def candidats_mapa(self):
-        """Superficies de detall al disc (dades/alcaries.py, per cel·les): [(cami, limits UTM, cami dels ulls,
-        descripcio, MDT del relleu proper o None)]. Totes es fan de la mateixa manera a tot arreu (peticio de l'equip
-        de l'1/11): el nuvol de punts de la UAB (scripts/visibilitat_lidar.py) ja no s'hi fa servir; es conserva per
-        validar les altures (scripts/validar_alcaries.py: model d'alcaries - nuvol de punts, +0,10 m de mediana)."""
-        import glob
-        import json
-        out = []
-        for meta in sorted(glob.glob(os.path.join(alcaries.DIR_ALCARIES, 'cel_*.json'))):
-            with open(meta) as f:
-                m = json.load(f)
-            cami = alcaries.cami_superficie(m['clau'], 'superficie')
-            if os.path.exists(cami):
-                font = alcaries.FONTS[m['font']]['curt']
-                out.append((cami, tuple(self.limits(cami)), alcaries.cami_superficie(m['clau'], 'ulls'),
-                            f'{font}, a {m["res_m"]:g} m', m['mdt'] if os.path.exists(m['mdt']) else None))
-        return out
-
-    def mapa_detall(self, x, y):
-        """El mapa de detall que conte el punt i cap dins de la zona activa: (cami, limits, ulls, descripcio, mdt)."""
-        z = self.app.zona
-        if z is None:
-            return None
-        for cami, (x0, y0, x1, y1), ulls, desc, mdt in self.candidats_mapa():
-            if not (x0 < x < x1 and y0 < y < y1):
-                continue
-            (u0, v1), (u1, v0) = z.uv_de_utm(x0, y0), z.uv_de_utm(x1, y1)
-            if 0 <= u0 and u1 <= 1 and 0 <= v0 and v1 <= 1:
-                return cami, (x0, y0, x1, y1), ulls, desc, mdt
-        return None
-
-    def preparar_mapa_detall(self, x, y, estable=True):
-        """Si no hi ha mapa de detall al punt, prepara la superficie de la cel·la i en calcula la visibilitat. Es fa
-        servir el relleu del lloc de la quadricula de la cel·la (cobreix la cel·la amb 1,5 km de marge)."""
-        app = self.app
-        self.detall_mapa = self.mapa_detall(x, y)
-        if self.detall_mapa is not None or app.zona is None or not estable:
-            return
-        cx, cy = centre_cel(x, y)
-        clau = f'cel_{cx:.0f}_{cy:.0f}'
-        if os.path.exists(alcaries.cami_superficie(clau, 'superficie')):
-            return      # ja es al disc: es fara servir quan la zona activa la contingui (la del lloc de la cel·la)
-        lloc = llocs.clau(cx, cy)
-        if not llocs.te_relleu(lloc):
-            if self.lliure('relleu', lloc):
-                protegits = {z['clau'] for z in self.carregades.values()}
-                self.feines['relleu'] = FeinaProces(lloc, _preparar_relleu, lloc, self.max_textura, protegits,
-                                                    descripcio='relleu de la cel·la del mapa')
-            return
-        if not self.lliure('superficie', clau) or app.calcul_detall is not None:
-            return
-        # contorns dels edificis (per posar els ulls sobre els terrats): els de la zona que en tingui a la cel·la
-        parts_zona = next((z['clau'] for z in self.zones() if self.te_edificis(z['clau'], cx, cy)), None)
-        self.feines['superficie'] = FeinaProces(clau, _preparar_superficie, (cx, cy), llocs.cami_mdt(lloc),
-                                                parts_zona, descripcio='superficie del mapa de detall')
-
-    # ------------------------------------------------------------ resultats de les feines
+        """Si s'esta preparant el detall del punt (superficie o altures): els mapes no hi comencen cap calcul."""
+        return 'superficie' in self.feines or 'alcades' in self.feines
 
     def recollir(self):
         app = self.app
@@ -514,8 +447,6 @@ class Detall:
                     self.carregar_edificis(zona)
             elif tipus == 'carregar_edificis' and f.resultat is not None:
                 self._canviar_edificis(f.clau, f.resultat)
-            elif tipus == 'superficie':
-                pass        # el mapa es calcula a main.actualitzar_mapa, que ara ja troba la superficie
             elif tipus == 'cobertes':
                 for z in self.carregades.values():
                     if z['clau'] == f.clau and z['edificis'] is not None:
@@ -615,28 +546,7 @@ class Detall:
             else:
                 et = 'pendents (primer el relleu de 5 m)'
         # mapa
-        if not app.mapa_visibilitat:
-            mt = 'no es mostra'
-        else:
-            parts = []
-            c = app.calculs_mapa.get(z.cami if z is not None else app.peninsula.cami)
-            c_altre = next((c for c in app.calculs_mapa.values() if not c.fet), None)
-            if c is not None and not c.fet:
-                parts.append(f'relleu: {c.estat}')
-            elif z is not None and z.visibilitat is not None:
-                parts.append('relleu 5 m')
-            elif app.peninsula.visibilitat is not None:
-                parts.append('relleu 200 m' + (' (5 m en espera: es calcula un altre mapa)' if c_altre else ''))
-            cd = app.calcul_detall
-            if en_curs('superficie'):
-                parts.append('detall: ' + en_curs('superficie'))
-            elif cd is not None and not cd.fet:
-                parts.append(f'detall: {cd.estat}')
-            elif z is not None and z.vis_detall is not None:
-                parts.append(f'detall amb edificis i vegetacio ({z.vis_detall.get("descripcio", "")})')
-            elif any(t == 'superficie' for t, _ in self.fallades):
-                parts.append('detall no disponible (sense LiDAR)')
-            mt = '; '.join(parts) or 'esperant el relleu'
+        mt = app.mapes.text_estat() if app.mapes.quin else 'no es mostra'
         self.estat = dict(terreny=t, foto=ft, edificis=et, mapa=mt)
 
     def destroy(self):

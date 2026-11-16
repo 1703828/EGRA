@@ -188,14 +188,16 @@ def main():
         print('== UAB, placa Civica (llista del panell)')
         ubicacio('UAB')
         app.canviar_vista(1)
-        app.mapa_visibilitat = 1
+        app.mapes.mostrar('durada')
         fotograma(3)
         ok(app.zona is not None and app.nom_zona.startswith('Valles'), 'UAB: la zona del Valles es la que es dibuixa')
-        s = esperar(lambda: app.zona is not None and app.zona.vis_detall is not None, 600, 'UAB')
-        vd = app.zona.vis_detall if app.zona is not None else None
-        ok(vd is not None and 'ICGC' in vd.get('descripcio', ''),
-           f'UAB: el mapa de detall es el del model d\'alcaries de l\'ICGC, com a la resta de Catalunya '
-           f'({vd.get("descripcio") if vd else "-"}, {s:.0f} s)')
+        app.canviar_vista(0)
+        app.camera_exploracio.posicio = app.ulls() + 0.4 * app.ulls() / np.linalg.norm(app.ulls())
+        app.camera_exploracio.orientar(0.0, -60.0)
+        s = esperar(lambda: any(k[0] == 3 for k in app.mapes.peces), 900, 'UAB')
+        ok(any(k[0] == 3 for k in app.mapes.peces), f'UAB: mapa de detall amb els obstacles mesurats '
+           f'({app.mapes.text_nivell_centre()}, {s:.0f} s)')
+        app.canviar_vista(1)
         s = esperar(lambda: app.edificis is not None and app.edificis.mesurades, 600, 'UAB')
         ok(app.edificis is not None and app.edificis.mesurades, f'UAB: altures mesurades ({s:.0f} s): '
            f'{app.edificis.resum_alcades() if app.edificis else ""}')
@@ -211,7 +213,7 @@ def main():
         desa('uab_aeria_mapa')
         resum_estat('UAB')
         resultats['uab'] = dict(app.detall.estat)
-        app.mapa_visibilitat = 0
+        app.mapes.mostrar(None)
 
     # ------------------------------------------------------------ Valencia, navegant
     if 'valencia' in parts:
@@ -304,7 +306,7 @@ def main():
         desa('valencia_relleu')
         # 6. edificis a la vista aeria (el panell: "A la vista aeria") i mapa de visibilitat ("Al maxim")
         app.edificis_aeris = True
-        app.mapa_visibilitat = 1
+        app.mapes.mostrar('durada')
         s = esperar(lambda: app.edificis is not None, 900, 'Valencia')
         ok(app.edificis is not None and app.edificis.n_parts > 0,
            f'Valencia: edificis del Catastro ({app.edificis.n_parts if app.edificis else 0} parts, {s:.0f} s)')
@@ -314,13 +316,11 @@ def main():
         e = app.edificis
         ok(e is not None and e.mesurades and e.font_alcada == 'ign',
            f'Valencia: altures mesurades amb el MDSn de l\'IGN ({s:.0f} s): {e.resum_alcades() if e else ""}')
-        s = esperar(lambda: app.zona is not None and app.zona.visibilitat is not None, 900, 'Valencia')
-        ok(app.zona is not None and app.zona.visibilitat is not None, f'Valencia: mapa del relleu de 5 m ({s:.0f} s)')
-        s = esperar(lambda: app.zona is not None and app.zona.vis_detall is not None, 1800, 'Valencia')
-        vd = app.zona.vis_detall if app.zona is not None else None
-        ok(vd is not None and 'IGN' in vd.get('descripcio', ''),
-           f'Valencia: mapa de detall amb edificis i vegetacio de l\'IGN ({s:.0f} s): '
-           f'{vd.get("descripcio") if vd else ""}')
+        s = esperar(lambda: any(k[0] == 2 for k in app.mapes.peces), 900, 'Valencia')
+        ok(any(k[0] == 2 for k in app.mapes.peces), f'Valencia: mapa del relleu de 5 m ({s:.0f} s)')
+        s = esperar(lambda: any(k[0] == 3 for k in app.mapes.peces), 1800, 'Valencia')
+        ok(any(k[0] == 3 for k in app.mapes.peces),
+           f'Valencia: mapa de detall amb edificis i vegetacio ({s:.0f} s): {app.mapes.text_nivell_centre()}')
         fotograma(10)
         desa('valencia_mapa_aeria')
         resultats['vista'] = (ce.posicio.copy(), ce.rumb, ce.inclinacio)     # per tornar-hi exactament
@@ -386,7 +386,7 @@ def main():
         app.canviar_vista(0)
         ce.caminar = False
         app.edificis_aeris = True
-        app.mapa_visibilitat = 1
+        app.mapes.mostrar('durada')
         ce.posicio = geodesia.ecef(*VALENCIA, 400.0)      # lluny (per sobre del detall): res de Valencia
         fotograma(5)
         baixades = app.mosaic.descarregador.baixades
@@ -396,8 +396,8 @@ def main():
         ce.posicio = posicio
         ce.orientar(rumb, inclinacio)
         llest = lambda: (app.zona is not None and app.nom_zona.startswith('Lloc') and app.edificis is not None
-                         and app.edificis.mesurades and app.zona.vis_detall is not None
-                         and app.zona.visibilitat is not None)
+                         and app.edificis.mesurades and any(k[0] == 3 for k in app.mapes.peces)
+                         and any(k[0] == 2 for k in app.mapes.peces))
         vistes = set()
         while not llest() and time.time() - t0 < 120:
             fotograma()

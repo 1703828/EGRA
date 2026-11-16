@@ -63,20 +63,6 @@ uniform bool depuracio_ombra;       // depuracio (scripts): el color es el facto
 uniform bool usar_orto;
 uniform sampler2D tex_orto;          // tota la zona, mateixes UV que el terreny (graella del MDT)
 uniform sampler2D tex_orto_detall;   // detall (0,5 m) al voltant del punt d'observacio
-// mapa de visibilitat de l'eclipsi (dades/visibilitat.py, objectiu O3); mateixes UV que el relleu, NEAREST.
-// R, G: primer i darrer moment amb el centre del Sol per sobre de l'horitzo (s des de l'inici de les efemerides);
-// B: marge al maxim (centesimes de grau + 32768); A: segons de fase central visibles x 10. 65535: sense valor.
-uniform sampler2D tex_visibilitat;
-uniform bool hi_ha_mapa;             // el del terreny (n'hi pot haver nomes el de detall)
-uniform sampler2D tex_vis_detall;    // el mateix a 1 m amb el LiDAR, dins de rect_vis_detall (UV del terreny)
-uniform bool hi_ha_vis_detall;
-uniform vec4 rect_vis_detall;
-uniform int mapa;                    // 0 cap, 1 al maxim, 2 totalitat visible, 3 instant actual
-uniform float hora_s;                // l'hora de la barra, en s des de l'inici de les efemerides
-uniform float radi_sol_graus;
-uniform float durada_central_max;    // s
-uniform vec3 colors_central[5];
-uniform vec3 color_tapat_relleu;
 uniform bool hi_ha_detall;
 uniform vec4 rect_detall;            // rectangle del detall en UV del terreny (u0, v0, u1, v1)
 // atmosfera (dades/atmosfera.py): la boira es del color del cel a l'horitzo segons la direccio (terrain.vert)
@@ -199,34 +185,7 @@ bool central_des_de(vec3 p) {
     return d < abs(rl - rs);
 }
 
-// color (rgb) i opacitat (a) del mapa de visibilitat en aquest punt; tapat = part del Sol que tapa la Lluna aqui
-vec4 color_mapa(float tapat) {
-    vec2 td = (uv - rect_vis_detall.xy) / (rect_vis_detall.zw - rect_vis_detall.xy);
-    bool detall = hi_ha_vis_detall && all(greaterThanEqual(td, vec2(0.0))) && all(lessThanEqual(td, vec2(1.0)));
-    if (!detall && !hi_ha_mapa) return vec4(0.0);
-    vec4 v = (detall ? texture(tex_vis_detall, td) : texture(tex_visibilitat, uv)) * 65535.0;
-    if (mapa == 1) {
-        if (v.b < 0.5) return vec4(0.0);                // sense eclipsi
-        float m = (v.b - 32768.0) / 100.0;              // marge (graus)
-        int classe = m > radi_sol_graus ? 3 : (m > 0.0 ? 2 : (m > -radi_sol_graus ? 1 : 0));
-        return vec4(colors_ombres[classe], 0.8);
-    }
-    if (mapa == 2) {
-        if (v.a > 65534.5) return vec4(0.0);            // fora de la franja central
-        float t = clamp(v.a / 10.0 / durada_central_max, 0.0, 1.0) * 4.0;
-        int i = min(int(t), 3);
-        return vec4(mix(colors_central[i], colors_central[i + 1], t - float(i)), 0.85);
-    }
-    if (mapa == 3) {
-        if (tapat <= 0.0) return vec4(0.0);             // aqui no hi ha eclipsi en aquest instant
-        if (v.r > 65534.5 || hora_s < v.r || hora_s > v.g) return vec4(color_tapat_relleu, 0.85);   // el relleu el tapa
-        if (central_des_de(pos_mon)) return vec4(color_totalitat, 0.85);
-        float t = clamp(tapat, 0.0, 1.0) * 3.0;
-        int i = min(int(t), 2);
-        return vec4(mix(colors_enfosquiment[i], colors_enfosquiment[i + 1], t - float(i)), 0.75);
-    }
-    return vec4(0.0);
-}
+#include "mapes.glsl"
 #endif
 
 void main() {
@@ -273,6 +232,7 @@ void main() {
     }
 #endif
     vec3 color;
+    vec3 n_mapa = normalize(amunt), llum_mapa = n_mapa;   // per a l'ombrejat fix del mapa
 
     if (es_faldilla) {
         // normal plana de la paret a partir de les derivades de la posicio; girada cap a la camera
@@ -289,6 +249,8 @@ void main() {
         if (globus) {
             vec3 up = normalize(amunt), ex = normalize(tx), ez = normalize(cross(ex, up));
             normal = normalize(-exaggeration * g.x * ex + up - exaggeration * g.y * ez);
+            n_mapa = normal;
+            llum_mapa = normalize(up - 0.6 * ex - 0.6 * ez);   // llum fixa del nord-oest (nomes per al mapa)
         } else {
             normal = normalize(vec3(-exaggeration * g.x, 1.0, -exaggeration * g.y));
         }
@@ -333,11 +295,6 @@ void main() {
         vec4 o = color_overlay();
         color = mix(color, o.rgb, opacitat * o.a);
 #ifdef PROFUNDITAT_LOG
-        // mapa de visibilitat (nomes a terra)
-        if (mapa != 0) {
-            vec4 mv = color_mapa(tapat);
-            color = mix(color, mv.rgb, mv.a * (1.0 - smoothstep(-w, w, d)));
-        }
 #endif
         // limits de la franja de totalitat: on la mascara (filtrada, suau) passa per 0.5
         if (limits_totalitat) {
@@ -355,6 +312,13 @@ void main() {
 #ifdef PROFUNDITAT_LOG
     if (ressaltar_ombra)
         color = ressaltar(color, tapat, d_tapat, smoothstep(-0.03, 0.0, dot(normalize(amunt), normalize(sol_rel - pos_mon))));
+    // mapa de l'eclipsi (nomes a terra): despres de la llum i de la boira, perque el color es llegeixi igual de dia,
+    // a la totalitat i de lluny (mapes.glsl)
+    if (mapa != 0 && !es_faldilla && d <= 0.0) {
+        vec4 mv = color_mapa(tapat, d_tapat, amunt);
+        float ombrejat = 0.80 + 0.20 * max(dot(n_mapa, llum_mapa), 0.0);
+        color = mix(color, mv.rgb * ombrejat, mv.a);
+    }
 #endif
     fragColor = vec4(color, 1.0);
 }

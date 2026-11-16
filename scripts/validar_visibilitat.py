@@ -140,6 +140,10 @@ def main():
                 pitjor[k] = math.inf
     ok(all(v < TOL_CONTACTES_S for v in pitjor.values()),
        'contactes: ' + ', '.join(f'{k} {v:.2f} s' for k, v in pitjor.items()) + f' (objectiu < {TOL_CONTACTES_S} s)')
+    # part del Sol tapada per la Lluna al maxim (mapa d'ocultacio): contra ModelEclipsi.fraccio_tapada al maxim
+    dt = [abs(c['tapat_max'][i] - m.fraccio_tapada(m.hores['maxim'])) for i, m in enumerate(models)
+          if m.hores['maxim'] is not None]
+    ok(max(dt) < 0.001, f'part del Sol tapada al maxim: diferencia maxima {max(dt) * 100:.3f} punts (objectiu < 0,1)')
 
     print(f'\n== 2. Marge al maxim i hores de visibilitat contra un raig exacte ({len(mostra)} pixels)')
     dif_m, dif_t, n_t = [], [], 0
@@ -149,19 +153,23 @@ def main():
         h0 = float(ulls[fila, col]) if ulls is not None else None
         marge_exacte = el - horitzo_exacte(relleu, la, lo, az, h0, tr.a)
         dif_m.append(r['marge'][fila, col] / 100.0 - marge_exacte)
-        # hores: el marge exacte cada minut entre C1 i C4
+        # hores: el marge exacte cada minut entre C1 i C4; es comparen el primer i l'ultim moment amb alguna part
+        # del Sol lliure (marge > -r, D91) amb el primer inici i l'ultim final dels intervals desats
+        rs = float(r['radi_sol'])
         hs = np.arange(m.hores['c1'], m.hores['c4'], 1 / 60)
         marges = []
         for h in hs:
             az, el = m.sol(h)
             marges.append(el - horitzo_exacte(relleu, la, lo, az, h0, tr.a) if el > -1.5 else -10.0)
-        vis_e = np.array(marges) > 0
-        ti, tf = r['t_ini'][fila, col], r['t_fi'][fila, col]
-        if vis_e.any() and ti != vis.SENSE:
+        vis_e = np.array(marges) > -rs
+        nm = min(int(r['n_iv'][0, fila, col]), vis.K_IV)
+        ini = [r['iv'][0, i, 0, fila, col] for i in range(nm) if r['iv'][0, i, 0, fila, col] != vis.SENSE]
+        fin = [r['iv'][0, i, 1, fila, col] for i in range(nm) if r['iv'][0, i, 1, fila, col] != vis.SENSE]
+        if vis_e.any() and ini and fin:
             e_ini, e_fi = hs[vis_e.argmax()], hs[len(vis_e) - 1 - vis_e[::-1].argmax()]
-            dif_t += [(inici + ti / 3600 - e_ini) * 3600, (inici + tf / 3600 - e_fi) * 3600]
+            dif_t += [(inici + min(ini) / 3600 - e_ini) * 3600, (inici + max(fin) / 3600 - e_fi) * 3600]
             n_t += 1
-        elif vis_e.any() != (ti != vis.SENSE):
+        elif vis_e.any() != bool(ini):
             dif_t.append(math.inf)
     dif_m = np.abs(dif_m)
     ok(np.median(dif_m) < TOL_MARGE_MEDIANA and np.percentile(dif_m, 95) < TOL_MARGE_P95,

@@ -1,7 +1,8 @@
 """
-Precalcula els mapes de visibilitat (dades/visibilitat.py, objectiu O3) de la peninsula i de les zones de detall
-descarregades, perque el programa no els hagi de calcular la primera vegada que es demanen. Els que ja hi son
-(i corresponen al MDT actual) no es tornen a calcular.
+Precalcula el mapa de visibilitat (dades/visibilitat.py, objectiu O3) de la peninsula (nivell N0, 200 m), perque el
+programa no l'hagi de calcular la primera vegada que es demana. Si ja hi es (i correspon al MDT i a la versio
+actuals), no es torna a calcular. Els nivells de mes detall (N1-N3) els calcula el programa per peces, a mesura que
+es miren (basecode/mapes.py); --zones calcula, a mes, les zones de 5 m fetes a ma senceres (lent: hores al Valles).
 
 Executa (des de l'arrel, amb l'entorn egra):
     python scripts/preparar_visibilitat.py                 # eclipsi del 2026
@@ -18,9 +19,9 @@ from dades.data_io import TERRENYS, ZONES_DETALL  # noqa: E402
 
 
 def main():
-    claus = sys.argv[1:] or ['2026']
+    claus = [a for a in sys.argv[1:] if not a.startswith('-')] or ['2026']
     peninsula = next(c for n, c, _ in TERRENYS if n == 'Peninsula')
-    mdts = [peninsula] + [c for _, c, _ in ZONES_DETALL if os.path.exists(c)]
+    mdts = [peninsula] + ([c for _, c, _ in ZONES_DETALL if os.path.exists(c)] if '--zones' in sys.argv else [])
     for clau in claus:
         eclipsis.triar(clau)
         for cami in mdts:
