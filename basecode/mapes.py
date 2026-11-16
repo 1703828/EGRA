@@ -158,10 +158,32 @@ def _llegir_peca(nivell, clau_peca, cami, eclipsi, rect, pas, k, avis):
     r = visibilitat.llegir(cami, eclipsi, rect, pas)
     if r is None:
         return None
-    # nomes les capes empaquetades (la consulta d'un punt les descodifica): menys memoria i, des d'un proces, menys
-    # dades per passar al programa
-    return dict(dades=empaquetar(r, k), transform=tuple(float(v) for v in r['transform']), res=float(r['res']),
+    d = empaquetar(r, k)
+    if nivell == 3:
+        _marcar_edificis(d['capa0'], cami, r)
+    # nomes les capes empaquetades (la consulta d'un punt les descodifica)
+    return dict(dades=d, transform=tuple(float(v) for v in r['transform']), res=float(r['res']),
                 radi_sol=float(r['radi_sol']), inici=float(r['inici']))
+
+
+BIT_EDIFICI = 256       # a la capa 0 (canal A): el pixel es dins d'un contorn del Catastro (ulls al terrat)
+
+
+def _marcar_edificis(capa0, cami_sup, r):
+    """Marca a la capa 0 els pixels dins dels edificis (raster 'edifici' de la cel·la, dades/alcaries.py)."""
+    import rasterio
+    from rasterio.windows import from_bounds
+    cami = cami_sup.replace('_superficie_', '_edifici_')
+    if not os.path.exists(cami):
+        return
+    tr = rasterio.Affine(*r['transform'])
+    files, cols = capa0.shape[:2]
+    x0, y1 = tr.c, tr.f
+    x1, y0 = x0 + tr.a * cols, y1 + tr.e * files
+    with rasterio.open(cami) as f:
+        e = f.read(1, window=from_bounds(x0, y0, x1, y1, f.transform), boundless=True, fill_value=0)
+    if e.shape == (files, cols):
+        capa0[..., 3] |= np.where(e > 0, BIT_EDIFICI, 0).astype('u2')
 
 
 def _calcular_peca(cami, eclipsi, lluny, cami_ulls, rect, pas, avis):
@@ -185,6 +207,7 @@ class Mapes:
     def __init__(self, app):
         self.app, self.ctx = app, app.ctx
         self.quin, self.mode = None, {m: modes[0][0] for m, modes in MODES.items()}
+        self.terrats = True       # el mapa tambe a les cobertes dels edificis (valor amb els ulls al terrat)
         self.peces = {}           # (nivell, clau, eclipsi) -> Peca carregada a la GPU
         self.feines = {}          # (tipus, clau) -> Feina
         self.fallades = {}        # (tipus, clau) -> error
@@ -379,7 +402,7 @@ class Mapes:
             if mdt is None:
                 self._preparar_relleu(rect)
                 return
-            if not os.path.exists(sup):
+            if not os.path.exists(sup) or not os.path.exists(alcaries.cami_superficie(cel, 'edifici')):
                 self._preparar_sup((cx, cy), cel, mdt)
                 return
             cami, lluny, ulls, r, pas = sup, [mdt, pen], alcaries.cami_superficie(cel, 'ulls'), rect, PAS_AZIMUT_N3
@@ -509,11 +532,52 @@ class Mapes:
     # ------------------------------------------------------------ shader
 
     def aplicar(self, sp, terreny):
-        """Uniforms del mapa per dibuixar un terreny: on es cada peca en les UV del terreny."""
+        """Uniforms del mapa per dibuixar un terreny: on es cada peca en les UV del terreny (calculades aqui, en doble
+        precisio)."""
+        self._aplicar(sp, terreny.uv_de_utm, NIVELLS, False)
+
+    def aplicar_edificis(self, sp, edificis):
+        """Uniforms del mapa per dibuixar les cobertes dels edificis (terrats): nomes les peces dels obstacles (N3),
+        amb les coordenades del mapa en metres relatius a l'origen dels edificis (x a l'est, y al sud, com les files),
+        i la correspondencia lineal de posicio (ECEF relativa a l'origen) a aquestes coordenades. En 3 km, el terme
+        que la linealitzacio deixa (la curvatura de la Terra i de la projeccio) es de l'ordre de centimetres en
+        horitzontal: molt menys que els pixels de 2 m."""
+        if 'mapa' not in sp:
+            return
+        if getattr(edificis, '_a_utm', None) is None:
+            o = np.asarray(edificis.origen_ecef, float)
+
+            def utm(p):
+                la, lo, _ = geodesia.geodesiques(p)
+                return np.array(_A_UTM.transform(float(lo), float(la)))
+            u0 = utm(o)
+            h = 0.01                      # km
+            jac = np.stack([(utm(o + h * e) - utm(o - h * e)) / (2 * h) for e in np.eye(3)], 1)   # m per km
+            a = np.zeros((3, 3))
+            a[0], a[1] = jac[0], -jac[1]
+            edificis._a_utm, edificis._origen_utm = a, u0
+        a, (ox, oy) = edificis._a_utm, edificis._origen_utm
+        sp['a_utm'].write(np.ascontiguousarray(a.T, 'f4').tobytes())     # mat3 de GLSL: per columnes
+        sp['cam_menys_origen'].write(glm.vec3(*(self.app.camera.posicio - edificis.origen_ecef)))
+        sp['sol_rel'].write(glm.vec3(*(self.app.sol_ecef - self.app.camera.posicio)))
+        s, l = self.app.sol_ecef - edificis.origen_ecef, self.app.lluna_ecef - edificis.origen_ecef
+        from dades.model_eclipsi import area_tapada, angle_entre
+        from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
+        rs, rl, d = math.asin(RADI_SOL_KM / np.linalg.norm(s)), math.asin(RADI_LLUNA_KM / np.linalg.norm(l)), \
+            angle_entre(s, l)
+        sp['tapat_aqui'].value = float(area_tapada(d, rs, rl))
+        sp['central_aqui'].value = bool(d < abs(rl - rs))
+        mostrar = self.terrats and self.quin in ('durada', 'relleu')
+        self._aplicar(sp, lambda x, y: (x - ox, oy - y), (3,) if mostrar else (), True)
+        if not mostrar:
+            sp['mapa'].value = 0
+
+    def _aplicar(self, sp, coords, nivells, cobertes):
         if 'mapa' not in sp:
             return
         codi = {None: 0, 'ocultacio': 1, 'durada': 2, 'relleu': 3, 'ombra': 4}[self.quin]
         sp['mapa'].value = codi
+        sp['mapa_cobertes'].value = cobertes
         # cada sampler ha de tenir sempre una textura del seu tipus a la seva unitat (si dos samplers de tipus
         # diferents comparteixen unitat, el dibuix dona GL_INVALID_OPERATION), encara que no hi hagi mapa
         for nivell in NIVELLS:
@@ -535,8 +599,8 @@ class Mapes:
         if self.tex_graella is not None:
             tr = self.graella['transform']
             files, cols = self.graella['tapat_max'].shape
-            u0, v0 = terreny.uv_de_utm(tr[2], tr[5])
-            u1, v1 = terreny.uv_de_utm(tr[2] + tr[0] * cols, tr[5] + tr[4] * files)
+            u0, v0 = coords(tr[2], tr[5])
+            u1, v1 = coords(tr[2] + tr[0] * cols, tr[5] + tr[4] * files)
             sp['rect_graella'].value = (u0, v0, u1, v1)
         else:
             sp['rect_graella'].value = (0.0, 0.0, 0.0, 0.0)
@@ -544,13 +608,13 @@ class Mapes:
         # peces
         rects, escales, capes0, n_per_nivell = [], [], [], []
         for nivell in NIVELLS:
-            ps = [p for p in self.peces.values() if p.nivell == nivell and p.slot is not None]
+            ps = [p for p in self.peces.values() if p.nivell == nivell and p.slot is not None and nivell in nivells]
             ps.sort(key=lambda p: p.slot)
             t = self.textures.get(nivell)
             for p in ps:
                 x0, y0, x1, y1 = p.rect
-                u0, v0 = terreny.uv_de_utm(x0, y1)
-                u1, v1 = terreny.uv_de_utm(x1, y0)
+                u0, v0 = coords(x0, y1)
+                u1, v1 = coords(x1, y0)
                 rects.append((u0, v0, u1, v1))
                 w, h = t[2]
                 escales.append((p.forma[1] / w, p.forma[0] / h))
@@ -601,6 +665,63 @@ class Mapes:
                             p.dades['capa0'][f, c, 0] != visibilitat.SENSE:
                         return p, f, c
         return None
+
+    def consulta(self, lat, lon, model):
+        """El que diu el mapa de temps observable en un punt (tasca 43.5), amb tot el necessari per entendre'l:
+        dict, o None si no hi ha cap peca amb dades. model: ModelEclipsi del punt (contactes locals)."""
+        r = self.nivell_a(lat, lon)
+        if r is None or model is None or not model.valid:
+            return None
+        p, f, c = r
+        v = p.dades['capa0'][f, c].astype(int)
+        frac = v[0] / visibilitat.FRAC
+        hh = model.hores
+        durada = (hh['c4'] - hh['c1']) * 60.0
+        central = None if v[1] == visibilitat.SENSE else v[1] / visibilitat.FRAC
+        dur_c = (hh['c3'] - hh['c2']) * 3600.0 if hh.get('c2') is not None and hh.get('c3') is not None else None
+        intervals = []
+        for capa in p.dades['intervals'][:1] if p.nivell == 0 else p.dades['intervals']:
+            ini, fi = int(capa[f, c, 0]), int(capa[f, c, 1])
+            if ini != visibilitat.SENSE:
+                intervals.append((self.inici + ini / 3600.0, self.inici + fi / 3600.0))
+        n = v[3] % 16
+        edifici = p.nivell == 3 and bool(v[3] & BIT_EDIFICI)
+        if p.nivell == 3:
+            obstacles = 'relleu, edificis i vegetacio (' + p.descripcio + ', alcaria LiDAR)'
+        else:
+            obstacles = 'nomes el relleu (' + NOM_NIVELL[p.nivell] + '): sense edificis ni vegetacio'
+        return dict(lat=lat, lon=lon, eclipsi=eclipsis.actiu(), nivell=p.nivell, dades=p.descripcio,
+                    res_m=p.res, tipus='terrat (ulls a 1,7 m sobre la coberta)' if edifici else
+                    'carrer (ulls a 1,7 m sobre el terra)', obstacles=obstacles, frac=frac, minuts=frac * durada,
+                    durada_min=durada, central=central, segons_central=None if central is None or dur_c is None
+                    else central * dur_c, durada_central_s=dur_c, intervals=intervals, n_intervals=n,
+                    marge_maxim=None if v[2] == 0 else (v[2] - 32768) / 100.0,
+                    c1=hh['c1'], c4=hh['c4'], posta=hh.get('posta'))
+
+    def exportar(self, r, cami=None):
+        """Afegeix una consulta (consulta()) a data/exportacions/consultes.csv (tasca 43.6). Retorna el cami."""
+        import csv
+        from dades import data_io
+        cami = cami or os.path.join(os.path.dirname(data_io.DIR_CACHE), 'exportacions', 'consultes.csv')
+        os.makedirs(os.path.dirname(cami), exist_ok=True)
+        nou = not os.path.exists(cami)
+        hl = eclipsis.hora_local
+        with open(cami, 'a', newline='', encoding='utf-8') as fh:
+            w = csv.writer(fh)
+            if nou:
+                w.writerow(['data_consulta', 'eclipsi', 'lat', 'lon', 'tipus', 'nivell', 'dades', 'resolucio_m',
+                            'obstacles', 'c1_local', 'c4_local', 'temps_observable_min', 'durada_c1_c4_min',
+                            'percentatge', 'fase_central_observable_s', 'durada_fase_central_s', 'intervals_local',
+                            'nombre_intervals', 'marge_al_maxim_graus', 'criteri'])
+            w.writerow([time.strftime('%Y-%m-%d %H:%M'), r['eclipsi'], f"{r['lat']:.6f}", f"{r['lon']:.6f}",
+                        r['tipus'], f"N{r['nivell']}", r['dades'], f"{r['res_m']:g}", r['obstacles'], hl(r['c1']),
+                        hl(r['c4']), f"{r['minuts']:.1f}", f"{r['durada_min']:.1f}", f"{100 * r['frac']:.1f}",
+                        '' if r['segons_central'] is None else f"{r['segons_central']:.0f}",
+                        '' if r['durada_central_s'] is None else f"{r['durada_central_s']:.0f}",
+                        ' '.join(f'{hl(a)}-{hl(b)}' for a, b in r['intervals']), r['n_intervals'],
+                        '' if r['marge_maxim'] is None else f"{r['marge_maxim']:.2f}",
+                        'alguna part del Sol lliure d\'obstacles (D91); sense meteorologia'])
+        return cami
 
     def resum(self):
         """Per a les proves: peces carregades per nivell, feines i el nivell al centre."""

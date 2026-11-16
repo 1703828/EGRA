@@ -30,6 +30,20 @@ uniform vec3 amunt;            // vertical local al centre dels edificis (unitar
 // ombres del relleu i dels altres edificis (basecode/ombres_relleu.py): factor_ombra; nomes treu la llum directa del Sol
 #include "ombres.glsl"
 
+// mapa de l'eclipsi a les cobertes (terrats, basecode/mapes.py): el mateix codi que el terreny (mapes.glsl), amb les
+// coordenades del mapa (m, UTM relatiu a l'origen dels edificis) i la Lluna al centre dels edificis (canvia menys
+// d'un 0,1 % en 3 km)
+uniform vec3 cam_menys_origen;   // camera - origen dels edificis (km)
+uniform mat3 a_utm;              // de posicio relativa a l'origen (km) a UTM relatiu a l'origen (m): files x, y
+uniform vec3 sol_rel;            // el Sol relatiu a la camera (km)
+uniform float tapat_aqui;
+uniform bool central_aqui;
+vec2 uv;                         // coordenades del mapa d'aquest fragment (les fa servir mapes.glsl)
+vec3 pos_mon;
+float tapat_des_de(vec3 p) { return tapat_aqui; }
+bool central_des_de(vec3 p) { return central_aqui; }
+#include "mapes.glsl"
+
 const float PLANTA = 3.0;      // m (com dades/edificis.ALCADA_PLANTA_M)
 const float K_CEL = 0.25;      // pes de la llum del cel i del Sol (els mateixos que terrain.frag)
 const float K_SOL = 0.75;
@@ -86,5 +100,13 @@ void main() {
     if (mesurada < 0.5)
         b = llargada >= 0.0 ? BLAU_ESTIMADA : 0.8 * BLAU_ESTIMADA;   // la coberta, una mica mes fosca
     vec3 color = mix(b * llum, finestra, vidre);
-    fragColor = vec4(mix(boira_v, color, visibilitat), 1.0);
+    color = mix(boira_v, color, visibilitat);
+    // mapa als terrats: nomes a les cobertes (cares horitzontals), despres de la llum i de la boira com al terreny
+    if ((mapa == 2 || mapa == 3) && llargada < 0.0) {
+        pos_mon = pos_rel;
+        uv = (a_utm * (pos_rel + cam_menys_origen)).xy;
+        vec4 mv = color_mapa(tapat_aqui, 0.0, amunt);
+        color = mix(color, mv.rgb * (0.85 + 0.15 * max(dot(n, amunt), 0.0)), mv.a);
+    }
+    fragColor = vec4(color, 1.0);
 }

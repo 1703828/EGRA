@@ -362,11 +362,40 @@ def panell_mapa(app):
                            ((1.0, 0.92, 0.70), 'Penombra (20 %)'), (M.COLOR_LIMITS_CENTRAL, 'Franja (30 s)')])
     if m.amb_nivells():
         linia('Dades aqui', m.text_nivell_centre(), COLOR_SUAU)
+        _, m.terrats = imgui.checkbox('Terrats (si son accessibles)', m.terrats)
+        consulta_mapa(app)
     estat = m.text_estat()
     if estat:
         imgui.text_wrapped(estat)
     if m.amb_nivells() or m.quin == 'ocultacio':
         imgui.text_disabled('Sense color: sense dades. Sense meteorologia.')
+
+
+def consulta_mapa(app):
+    """El mapa al punt d'observacio (tasca 43.5): que s'hi veu, d'on surt i amb quins obstacles; es pot desar."""
+    o = app.observador
+    r = app.mapes.consulta(o.lat, o.lon, app.model)
+    if not imgui.tree_node('Mapa al punt d\'observacio'):
+        return
+    if r is None:
+        imgui.text_disabled('Encara no hi ha dades en aquest punt')
+        imgui.tree_pop()
+        return
+    hl = eclipsis.hora_local
+    linia('Temps visible', f"{r['minuts']:.0f} de {r['durada_min']:.0f} min ({100 * r['frac']:.0f} %)")
+    if r['segons_central'] is not None:
+        linia('Fase central', f"{r['segons_central']:.0f} de {r['durada_central_s']:.0f} s")
+    if r['intervals']:
+        t = ', '.join(f'{hl(a)[:5]}-{hl(b)[:5]}' for a, b in r['intervals'])
+        mes = r['n_intervals'] - len(r['intervals'])
+        linia('Intervals', t + (f' (+{mes})' if mes > 0 else ''))
+    linia('Ulls', r['tipus'].split(' (')[0])
+    imgui.text_wrapped(f"Dades: {r['dades']}. Obstacles: {r['obstacles']}.")
+    if r['posta'] is not None:
+        imgui.text_disabled(f"Posta {hl(r['posta'])[:5]}: despres no compta.")
+    if imgui.button('Desar la consulta (CSV)', amplada_completa()):
+        app.avis_caminar, app.avis_caminar_fins = f'Desada a {app.mapes.exportar(r)}', glfw.get_time() + 4.0
+    imgui.tree_pop()
 
 
 def panell_capes(app):

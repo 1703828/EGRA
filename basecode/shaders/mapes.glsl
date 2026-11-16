@@ -10,6 +10,7 @@
 // nomes un ombrejat fix del relleu (llum del nord-oest) perque es vegi la forma del terreny; la llum de l'eclipsi no
 // canvia el color que es llegeix.
 
+uniform bool mapa_cobertes;           // false: el terreny (carrer); true: les cobertes dels edificis (terrats)
 uniform int mapa;                     // 0 cap, 1 ocultacio, 2 temps observable, 3 relleu, 4 ombra de la Lluna
 uniform int mapa_mode;                // ocultacio: 0 al maxim, 1 ara; durada: 0 tot, 1 fase central; relleu: 0 al maxim, 1 ara
 uniform bool mapa_anular;             // l'eclipsi es anular (fase central = anularitat)
@@ -62,6 +63,14 @@ bool dades_mapa(out vec4 resum, out int nivell, out vec3 coord) {
             if (any(lessThan(t, vec2(0.0))) || any(greaterThanEqual(t, vec2(1.0)))) continue;
             vec3 c = vec3(t * mapa_escala[i], float(mapa_capa[i]));
             vec4 v = mostra_nivell(nv, c) * 65535.0;
+            // pixel dins d'un edifici del Catastro (nomes al nivell dels obstacles): el valor es el del terrat (ulls
+            // sobre la coberta). Al terreny (carrer) no es mostra (ni el nivell de sota, que no ho sap); a les
+            // cobertes, nomes aquests
+            bool edifici = nv == 3 && mod(floor(v.a / 256.0 + 0.001), 2.0) > 0.5;
+            if (mapa_cobertes != edifici) {
+                if (edifici) return false;
+                continue;
+            }
             if (v.r > 65534.5) continue;          // sense dades en aquesta peca: el nivell de sota
             resum = v; nivell = nv; coord = c;
             return true;

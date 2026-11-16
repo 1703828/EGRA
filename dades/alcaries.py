@@ -301,7 +301,7 @@ def preparar_alcades(zona, cel, avis=print):
 # ------------------------------------------------------------ superficie per al mapa de visibilitat
 
 def cami_superficie(clau, capa):
-    """data/alcaries/<clau>_<capa>_25830.tif (capa: superficie, ulls) i <clau>.json; clau = cel_<cx>_<cy>."""
+    """data/alcaries/<clau>_<capa>_25830.tif (capa: superficie, ulls, edifici) i <clau>.json; clau = cel_<cx>_<cy>."""
     return os.path.join(DIR_ALCARIES, f'{clau}_{capa}_25830.tif')
 
 
@@ -322,7 +322,9 @@ def preparar_superficie(cel, cami_mdt, parts=None, res_m=None, avis=print):
     from rasterio.transform import from_origin
     from rasterio.warp import reproject, Resampling
     meta_cami = os.path.join(DIR_ALCARIES, f'{clau}.json')
-    if os.path.exists(meta_cami) and all(os.path.exists(cami_superficie(clau, c)) for c in ('superficie', 'ulls')):
+    # (edifici: els pixels dins dels contorns del Catastro, on els ulls son al terrat; des del 16/11/2026, tasca 43.3)
+    if os.path.exists(meta_cami) and all(os.path.exists(cami_superficie(clau, c))
+                                         for c in ('superficie', 'ulls', 'edifici')):
         with open(meta_cami) as f:
             return json.load(f)
     a = alcaria_cel(cx, cy, avis)
@@ -357,11 +359,16 @@ def preparar_superficie(cel, cami_mdt, parts=None, res_m=None, avis=print):
         edifici = np.zeros((files, cols), bool)
     ulls = np.where(edifici, sup, terra)
     os.makedirs(DIR_ALCARIES, exist_ok=True)
-    for capa, dades in (('superficie', sup), ('ulls', ulls)):
+    # el mateix MDT de la superficie anterior: si ja hi era, no es reescriu (si no, el mapa d'aquesta cel·la, que en
+    # depen, es tornaria a calcular sense cap canvi)
+    capes = [('edifici', edifici.astype('u1'), 'uint8', 2)]
+    if not all(os.path.exists(cami_superficie(clau, c)) for c in ('superficie', 'ulls')):
+        capes = [('superficie', sup.astype('f4'), 'float32', 3), ('ulls', ulls.astype('f4'), 'float32', 3)] + capes
+    for capa, dades, tipus, predictor in capes:
         cami = cami_superficie(clau, capa)
-        with rasterio.open(cami + '.tmp', 'w', driver='GTiff', height=files, width=cols, count=1, dtype='float32',
-                           crs=CRS, transform=tr, compress='deflate', predictor=3, tiled=True) as f:
-            f.write(dades.astype('f4'), 1)
+        with rasterio.open(cami + '.tmp', 'w', driver='GTiff', height=files, width=cols, count=1, dtype=tipus,
+                           crs=CRS, transform=tr, compress='deflate', predictor=predictor, tiled=True) as f:
+            f.write(dades, 1)
         os.replace(cami + '.tmp', cami)
     meta = dict(clau=clau, rect=list(rect), res_m=res, font=a['font'], descripcio=FONTS[a['font']]['nom'],
                 mdt=os.path.abspath(cami_mdt), edificis_catastro=parts is not None and len(parts) > 0,

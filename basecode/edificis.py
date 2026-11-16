@@ -186,6 +186,12 @@ class Edificis:
         sp['sol_horitzontal'].write(app.sol_horitzontal)
         sp['amunt_camera'].write(app.amunt_camera)
         app.ombres.aplicar_edificis(sp, self)   # ombres del relleu i dels altres edificis (ombres.glsl)
+        mapes = getattr(app, 'mapes', None)     # mapa de l'eclipsi a les cobertes (terrats; basecode/mapes.py)
+        if mapes is not None:
+            if not getattr(self, '_uniforms_mapa', False):
+                mapes.uniforms_fixos(sp)
+                self._uniforms_mapa = True
+            mapes.aplicar_edificis(sp, self)
         self.tex_parts.use(UNITAT_PARTS)
         sp['tex_parts'].value = UNITAT_PARTS
         # les cares del darrere no es dibuixen (tots els triangles miren cap a fora, dades/edificis.malla_zona):
