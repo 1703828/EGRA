@@ -311,8 +311,9 @@ class Mapes:
         fov = math.radians(getattr(cam, 'fov', 50.0))
         px_rad = 2 * math.tan(fov / 2) / max(alt_px, 1)
         out = []
-        for y in np.linspace(-0.95, 0.95, n_y):
-            for x in np.linspace(-0.95, 0.95, n_x):
+        eixos = lambda n: np.linspace(-0.95, 0.95, n) if n > 1 else np.zeros(1)   # noqa: E731 (un sol raig: el centre)
+        for y in eixos(n_y):
+            for x in eixos(n_x):
                 q = inv * glm.vec4(x, y, 1.0, 1.0)
                 d = np.array([q.x, q.y, q.z]) / (q.w if abs(q.w) > 1e-12 else 1.0)
                 d /= np.linalg.norm(d)

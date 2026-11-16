@@ -141,6 +141,8 @@ Darrera actualització: 2026-11-16 (O4: pla de la segona entrega — mapes de vi
 | D91 | (O4, equip) Temps observable per defecte: el temps dins de [C1, C4] en què **qualsevol part** del disc solar queda lliure de l'horitzó i dels obstacles (marge > −r☉). Denominador: tot C4 − C1; després de la posta compta com a no observable. La fase central es mostra a part. És ocultació per obstacles: la totalitat (la Lluna tapa el Sol) **no** compta com a temps no observable. | 16/11 |
 | D92 | (O4, acta 05) Toon Shading: s'aplica com a **discretització dels resultats dels mapes** en bandes amb llindars explícits i fixos entre escales; el valor numèric es conserva. Cap mode d'estètica de dibuixos animats. | 16/11 |
 | D96 | (O4, equip) Colors: paleta seqüencial ordenada i llegible per al mapa de visibilitat; bandes fines per sobre del 90 % d'ocultació; classe pròpia per a la totalitat; el morat no té significats contradictoris entre mapes; els intervals d'O4.1 acceptats; les línies complementàries no han de saturar la vista local. D94 i D95 delegades al criteri tècnic de Claude, amb mesures (D95: comprovar que es conserven les interrupcions i la resolució temporal; D94: prioritat a les dades mesurades i diferència documentada entre obstacles calculats i representació visual). | 16/11 |
+| D94 | (O4, delegada; decidida amb mesures) El model d'obstacles dels mapes és sempre la superfície mesurada (terra + alçària LiDAR; carrer i terrat amb els contorns del Catastro). La vegetació dibuixada surt d'aquesta mateixa superfície (columnes del geometry shader): no s'inventen arbres. Les caixes simplificades dels edificis no es fan servir (canvien l'horitzó més d'un radi del Sol). Vegeu O4.4. | 16/11 |
+| D95 | (O4, delegada; decidida amb mesures) Per píxel: fracció observable (D91), la de la fase central, marge al màxim i fins a 4 intervals per a dos llindars (alguna part, Sol sencer). Detall amb obstacles (N3) amb l'horitzó cada 0,25° (transicions: mediana 15 s, 90 % 52 s contra un raig exacte cada 10 s); relleu (N0-N2) cada 1°. Vegeu O4.4. | 16/11 |
 | D93 | (O4, acta 05) Geometry shaders i instancing s'estudien primer per a la **vegetació** i els **edificis**; cada proposta té una prova acotada, una mesura i un criteri d'integració. Cap irregularitat inventada a l'horitzó ni soroll a les dimensions. Els mapes no queden bloquejats per aquests estudis. | 16/11 |
 | D89 | (F31) Les feines que passen molta estona dins de GDAL o en bucles de Python (Catastro, malla, altures, superfície) es fan en un **procés** separat: en un fil, el bloqueig global de Python (GIL) aturava el dibuix (5 min sense fotogrames llegint el Catastro de València). | 31/10 |
 | D47 | (F12) El gest de pessigar del trackpad no és disponible amb GLFW a macOS; l'alternativa és lliscar amb dos dits (el mateix esdeveniment que la roda). El gest natiu necessitaria una dependència nova (PyObjC), pendent d'autorització. | 26/10 |
@@ -152,10 +154,7 @@ Darrera actualització: 2026-11-16 (O4: pla de la segona entrega — mapes de vi
 - P14–P17 resoltes a D80.
 - P18 resolta a D83.
 - Aparcat (D78): la transició cap a l'espai.
-- O4 (16/11): D90, D91 i D96 confirmades per l'equip; D94 i D95 delegades (vegeu D96). **D94** model d'obstacles del mapa de detall i coherència amb la vegetació i
-  els edificis dibuixats (es tanca a la tasca 43.7, després dels estudis 45.1–45.2 i 46.1). Llindars de les bandes
-  (O4.1) a confirmar. **D95** format temporal de les textures dels mapes 2 i 3 (tasca 41.4). **D96** paleta del mapa
-  de visibilitat (la de la referència o una seqüencial ordenada; F44).
+- O4 (16/11): D90, D91 i D96 confirmades per l'equip; D94 i D95 decidides amb mesures (delegades). Cap pendent.
 
 ---
 
@@ -2590,6 +2589,75 @@ bloquejava els altres: ara s'atura; (5) quan calia N3 no es demanava N2, que és
 no es veu en cap moment (edificis i arbres); a menys de 500 m hi ha carrers amb 68 i 71 minuts visibles (de les 19:34
 a les 20:43–20:45: la serralada tapa el Sol abans de la posta, a les 20:55).
 
+**Nivell N1 (42.6).** `dades/blocs25.py`: blocs de 24 × 24 km del MDT de 25 m de l'IGN (WCS `Elevacion25830_25`, el
+mateix servei que el de 5 m), baixats amb 3 km de marge (~1,5 MB cadascun, com a molt 12). Es demanen quan un píxel de
+la pantalla fa menys de 150 m sobre el terra. *Comprovat automàticament* (R1, parades del Vallès): es baixen i es
+calculen en segon pla; amb el càlcul del 2027 en marxa alhora, un bloc tarda més de 4 min (falta mesurar-lo sol).
+
+**F46 — instancing: mesures (`scripts/estudi_instancing.py`, 16/11; temps de GPU amb consultes `GL_TIME_ELAPSED`).**
+- Cost per passada, forçant els mapes d'ombres a cada fotograma (al programa només es refan quan l'hora canvia 1 s):
+
+| Passada | UAB carrer | UAB aire | Vic carrer | Vic aire |
+|---|---|---|---|---|
+| Mapes d'ombres (relleu i edificis) | 16,9 ms | 18,0 ms | 13,6 ms | 13,7 ms |
+| Terreny (península + zona) | 16,6 ms | 12,3 ms | 18,5 ms | 12,2 ms |
+| Edificis | 5,4 ms | 3,7 ms | 4,4 ms | 3,2 ms |
+| Terra (globus) i cel | 2,5 ms | 3,8 ms | 2,5 ms | 3,7 ms |
+
+  Els edificis ja són **una sola crida** per zona (49.797 parts i 1,02 M de triangles a la UAB; 85,7 MB): l'instancing
+  no en pot reduir el nombre, i no són el coll d'ampolla (ho són els mapes d'ombres i el terreny).
+- Caixes (rectangle mínim orientat de cada part, de la cota del terra a la de la coberta) contra la malla, mateix
+  shader: GPU 3,0 → 2,4 ms (UAB, carrer) i 0,45 → 0,29 ms (Vic); memòria 36,7 → 2,4 MB. Instanciades o copiades costen
+  el mateix: el guany ve de simplificar la geometria, no de l'instancing.
+- Fidelitat: àrea de la caixa / àrea del contorn, mediana 1,02 i 90 % 1,45 (màxim 32). Horitzó dels edificis des de
+  10 punts del carrer, als azimuts de la posta: diferència màxima mediana 4,5° (UAB) i 11° (Vic), fins a 67°.
+  **No compleix el criteri** (< 0,05°): les caixes no poden substituir la malla ni per calcular ni per veure de prop.
+- Decisió: no s'integra als edificis. L'ús concret d'instancing és a la vegetació (a sota), com a comparació.
+
+**F45 — vegetació: dades i coherència (`scripts/estudi_vegetacio.py`; LiDAR d'1 m de la UAB, 9 km²).**
+- La vegetació (MDS − terra fora dels edificis, ≥ 2 m) ocupa el 31 % de l'àrea. Màxims locals: 32.880 capçades,
+  alçària mediana 8,2 m, radi mitjà 5,5 m. Només el 30 % són aïllades; el **78 % de la vegetació forma masses
+  contínues** (409 masses). Les captures `captures/proves/vegetacio_*.png` (alçària i capçades, amb la fotografia del
+  PNOA al costat) mostren capçades reconeixibles als arbres aïllats i blocs als boscos (*inspeccionat visualment*).
+- Substituir la vegetació per un con per capçada (el que dibuixaria un geometry shader que inventa arbres a partir
+  de punts) canvia l'horitzó de la posta, des de 20 punts del carrer, una mediana d'1,8° (90 %: 11,5°; màxim 27,5°):
+  20 de 20 punts tenen direccions amb més d'un radi del Sol de diferència. **No és coherent amb el càlcul.**
+- **Decisió D94:** el model d'obstacles de la visibilitat és sempre la superfície mesurada (terra + alçària LiDAR,
+  amb els contorns del Catastro per separar carrer i terrat). La vegetació es dibuixa amb un geometry shader a partir
+  d'**aquesta mateixa superfície**: un punt per cel·la de 2 m (fora dels edificis, objecte > 1,5 m) → una columna
+  fins a l'alçària mesurada. El que es veu és el que tapa el Sol al càlcul. Limitacions documentades: model 2,5D (una
+  capçada arriba fins a terra), l'ICGC no separa arbres d'altres objectes, aspecte de blocs. Els objectes a menys de
+  2 cel·les d'un edifici es pinten grisos: solen ser ràfecs, porxos o el desplaçament entre el Catastro i el LiDAR
+  (a la plaça Cívica, el punt d'observació efectiu és a ~1 m de la façana i el LiDAR hi mesura objectes de 3-10 m:
+  per això el mapa hi dona 0 minuts; el millor carrer a 500 m en dona 68).
+
+**45.3 i 46.3 — geometry shader i instancing amb les mateixes dades (`basecode/vegetacio.py`, `shaders/vegetacio.*`,
+`scripts/estudi_vegetacio_gpu.py`).** 1.031.309 columnes a la cel·la de la UAB (20,6 MB a la GPU; una malla amb les
+cares copiades en faria 371 MB). El geometry shader no emet res per als punts lluny (> 1,5 km), fora de la vista o
+darrere, ni les cares tapades per la columna del costat (calculat a la CPU) o d'esquena. GPU (mediana de 30):
+
+| Vista | Geometry shader, primera versió (tot) | Geometry shader amb descart | Instancing (tot) | Instancing amb el mateix descart |
+|---|---|---|---|---|
+| Carrer | — | 6,6 ms | 17,3 ms | 15,1 ms |
+| Aire, 400 m | 35,2 ms | 5,1–5,7 ms | 15,8 ms | 15,1 ms |
+
+L'instancing processa sempre els 36 vèrtexs de cada caixa (les cares descartades es fan degenerades); el geometry
+shader abandona el punt de seguida. Les dues imatges són idèntiques (10 píxels diferents de 700.000). El programa fa
+servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en directe. *Comprovat automàticament*
+(temps i imatges); *inspeccionat visualment*: `captures/proves/vegetacio_aire.png`.
+
+| Tasca | Estat |
+|---|---|
+| 40.3 cost per capes | `FET` (comprovat automàticament) |
+| 42.6 nivell N1 | `FET` (falta la mesura del temps sense altres càlculs) |
+| 43.7 obstacles (D94) | `FET` (decisió amb mesures) |
+| 45.1, 45.2 estudi de vegetació | `FET` |
+| 45.3 geometry shader | `FET` (casella *Vegetació i objectes (LiDAR)*, desactivada d'entrada) |
+| 45.4 normals | `PENDENT` (opcional) |
+| 46.1 estudi d'instancing als edificis | `FET`: no s'integra (no compleix el criteri de fidelitat) |
+| 46.2 edificis llunyans | Descartada: només hi ha edificis de les zones carregades i el guany mesurat és petit |
+| 46.3 instancing a la vegetació | `FET` (comparació; més lent que el geometry shader amb aquestes dades) |
+
 **Proves de l'equip pendents:** amb la finestra, obrir «Temps observable», volar de la península al Vallès amb la
 càmera inclinada i baixar fins als carrers de la UAB; comprovar que el color no desapareix mai, que la llegenda no
 canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i desar-lo.
@@ -2647,3 +2715,4 @@ canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i des
 | 16/11/2026 | O4 (segona entrega): revisió del codi dels mapes (forat a les zones i desaparició del detall confirmats al codi, no executats), definició dels quatre mapes, tasques F40–F47 amb dependències, acta 05 del 12/11/2026 incorporada (Toon Shading com a bandes de dades; geometry shaders per a vegetació; instancing per a edificis, amb estudi previ). D90, D92, D93; pendents D91, D94. Res implementat. Sense commit. |
 | 16/11/2026 | O4: revisades les imatges de referència de `puzzle/toon_shading.pdf` (F44). Requisit de l'equip: mapes durant tota l'exploració (O4.1.1): nivells N0–N3 (N1 nou, relleu de 25 m), preparació segons la petjada de la vista amb la càmera inclinada, precedència i conservació de nivells, llegenda fixa, mapa 1 al shader sense refinament, càmera i temps independents. F41 (41.3–41.4), F42 (42.4–42.8 i recorregut R1), F43 i F44 actualitzades. Pendents D95, D96. Res implementat. Sense commit. |
 | 16/11/2026 | O4 en curs: F40, F42 (menys N1) i F43.1–43.6 implementats i comprovats (O4.4). Commits `961bd60`, `611f251`. |
+| 16/11/2026 | O4: N1 (25 m), estudis d'instancing i de vegetació, D94, vegetació amb geometry shader i comparació amb instancing (`b77ccba`). |
