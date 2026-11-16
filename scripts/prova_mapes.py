@@ -37,7 +37,7 @@ W, H = 1100, 760
 UAB = (41.5009, 2.1055)
 # (nom, lat, lon, altura sobre el terra en km, rumb, inclinacio, segons d'espera maxims o None = --espera)
 PARADES = [
-    ('1_peninsula', 40.0, -3.7, 1300.0, 0.0, -89.0, 5),
+    ('1_peninsula', 40.0, -3.7, 1300.0, 0.0, -89.0, 20),
     ('2_valles_40km', 41.30, 2.10, 40.0, 10.0, -60.0, None),
     ('3_valles_10km_inclinada', 41.43, 2.06, 10.0, 40.0, -30.0, None),
     ('4_uab_500m', UAB[0] - 0.006, UAB[1], 0.5, 0.0, -40.0, None),
@@ -108,8 +108,14 @@ def main():
                     continue
                 q = app.camera.desprojectar(px + 0.5, py + 0.5, d, W, H)
                 lat, lon, _ = geodesia.geodesiques(q)
-                if app.peninsula.es_terra(float(lat), float(lon)):
-                    out.append((py, px))
+                if not app.peninsula.es_terra(float(lat), float(lon)):
+                    continue
+                # dins d'un edifici del Catastro el mapa del carrer no es pinta a proposit (el valor es el del terrat,
+                # a la coberta): aquests pixels no compten (la mesura es fa amb els edificis amagats)
+                obs = app.edificis.obstacles if app.edificis is not None else None
+                if obs is not None and obs.dins(*obs.utm(float(lat), float(lon))) is not None:
+                    continue
+                out.append((py, px))
         return out
 
     nova = hasattr(app, 'mapes')
@@ -159,7 +165,7 @@ def main():
         fotograma(10)
         while time.time() - t0 < espera:
             fotograma(5)
-            if time.time() - t0 > 3 and not ocupat():
+            if time.time() - t0 > 3 and not ocupat() and (not nova or any(k[0] == 0 for k in app.mapes.peces)):
                 break
         fotograma(3)
         segons = time.time() - t0

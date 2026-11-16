@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-11-16 (O4: pla de la segona entrega — mapes de visibilitat i tècniques del puzle, amb l'acta 05 del 12/11/2026; res implementat).
+Darrera actualització: 2026-11-16 (O4 implementat i comprovat automàticament: mapes durant l'exploració, consulta, vegetació amb geometry shader, instancing comparat; pendent de la prova de l'equip).
 
 ---
 
@@ -2680,6 +2680,29 @@ servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en di
 - 47.3 casos: Sol visible, en part i tapat (mapa *relleu*), interrupcions (`validar_temps_visibilitat.py`), carrer i
   terrat (`prova_consulta.py`: el millor terrat a < 500 m de la UAB, 72 min; el millor carrer, 68 min; la plaça, 0).
 
+**Mesures finals (16/11, sense altres càlculs en marxa; *comprovat automàticament*).**
+- Península amb el format nou: 2026 en 1.188 s (99 MB), 2027 en 5.459 s (32 MB; amb el Sol alt i 2 h 40 min
+  d'eclipsi calen moltes més direccions de l'horitzó), 2028 en 1.341 s (109 MB).
+- Temps per peça: bloc de 25 m (N1, 960 × 960 px) 79–84 s; cel·la de 5 m (N2) ~25 s; peça d'obstacles (N3, 1 km,
+  0,25°) ~55 s. Amb un altre càlcul alhora, 3–4 vegades més.
+- R1 final (`prova_mapes.py --etiqueta final`): cobertura del terreny d'Espanya amb color 99,4–100 % a les set
+  parades (s'exclouen els punts dins dels contorns del Catastro, on el mapa del carrer no es pinta a propòsit; la
+  primera parada espera que arribi el mapa de la península, ~5 s); fotogrames: mediana 21,9 ms, p99 43 ms, màxim
+  602 ms. Des de 40 km es veu el nivell N1 (25 m).
+- Regressió: `validar_model`, `prova_vistes` (102), `prova_controls` (69), `prova_eclipsis` (27), `prova_caminar` (26),
+  `prova_obstacles` (25), `prova_cel` (7), `prova_noms` (9), `validar_edificis` (22), `validar_ombres_relleu`,
+  `prova_llocs` (10), `prova_mosaic`, `prova_consulta` (21) i `prova_detall valencia tornar`: tot correcte. (La primera
+  vegada, «tornar-hi» de València fallava perquè el format nou invalida el mapa de detall desat i calia calcular-lo
+  amb el processador ocupat; ara, 0,1 s des del disc.)
+
+| Tasca | Estat final |
+|---|---|
+| 42.6 N1 | `FET` (temps mesurat) |
+| 43.4 blocs reutilitzables | `FET` (zona extensa de la plana de Vic sense mesurar: pendent si l'equip ho vol) |
+| 44.5, 44.6 isolínies i recorregut | `FET` (inspeccionat visualment: `captures/mapes/2026_resum*.png`) |
+| 45.4 normals | No fet (opcional) |
+| 47.1–47.6 | `FET` (validació i documentació: web O4, README, pla) |
+
 **Proves de l'equip pendents:** amb la finestra, obrir «Temps observable», volar de la península al Vallès amb la
 càmera inclinada i baixar fins als carrers de la UAB; comprovar que el color no desapareix mai, que la llegenda no
 canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i desar-lo.
@@ -2738,3 +2761,4 @@ canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i des
 | 16/11/2026 | O4: revisades les imatges de referència de `puzzle/toon_shading.pdf` (F44). Requisit de l'equip: mapes durant tota l'exploració (O4.1.1): nivells N0–N3 (N1 nou, relleu de 25 m), preparació segons la petjada de la vista amb la càmera inclinada, precedència i conservació de nivells, llegenda fixa, mapa 1 al shader sense refinament, càmera i temps independents. F41 (41.3–41.4), F42 (42.4–42.8 i recorregut R1), F43 i F44 actualitzades. Pendents D95, D96. Res implementat. Sense commit. |
 | 16/11/2026 | O4 en curs: F40, F42 (menys N1) i F43.1–43.6 implementats i comprovats (O4.4). Commits `961bd60`, `611f251`. |
 | 16/11/2026 | O4: N1 (25 m), estudis d'instancing i de vegetació, D94, vegetació amb geometry shader i comparació amb instancing (`b77ccba`). |
+| 16/11/2026 | O4: mesures finals (R1, temps per peça, penínsules del 2027 i el 2028), regressió completa correcta. Pendent: prova de l'equip. |
