@@ -2658,6 +2658,28 @@ servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en di
 | 46.2 edificis llunyans | Descartada: només hi ha edificis de les zones carregades i el guany mesurat és petit |
 | 46.3 instancing a la vegetació | `FET` (comparació; més lent que el geometry shader amb aquestes dades) |
 
+**F47 — validació (16/11).**
+- 47.1 mapes contra càlculs puntuals: `validar_visibilitat.py` (relleu, a 5 m i a 200 m: marge mediana 0,009–0,014°,
+  hores mediana 1–3 s, part tapada al màxim igual que el model), `validar_temps_visibilitat.py` (detall, a 0,25°) i
+  `prova_consulta.py` (punts del programa). Al terrat de Cerdanyola, el millor de milers de píxels dona 70,1 % contra
+  67,0 % del raig exacte: triar el màxim selecciona on el mapa sobreestima més (biaix de selecció); la prova ara
+  separa punts a l'atzar (tolerància 3 punts) i el millor (5 punts).
+- 47.2 contra el CNIG (2026, al màxim): a tota la península, a 200 m, el mateix que abans del format nou (classe
+  82,3 %, «mig Sol» 88,7 %; els desacords grans, confirmats pel raig exacte). Per escales a la UAB
+  (`scripts/comparar_cnig_escales.py`, 3 km²):
+
+| Font | Menys de mig Sol | Acord amb el CNIG («mig Sol») |
+|---|---|---|
+| CNIG (GMTED2010, ~200 m, només relleu) | 25 % | — |
+| N0 relleu 200 m | 5 % | 78 % |
+| N2 relleu 5 m | 34 % | 88 % |
+| N3 obstacles mesurats 2 m | 89 % | 32 % |
+
+  Amb el Sol a 4° al màxim, els obstacles propers decideixen: el CNIG no els té (ni nosaltres a N0 i N2). No és una
+  validació (dues fonts diferents); explica per què el detall canvia el resultat.
+- 47.3 casos: Sol visible, en part i tapat (mapa *relleu*), interrupcions (`validar_temps_visibilitat.py`), carrer i
+  terrat (`prova_consulta.py`: el millor terrat a < 500 m de la UAB, 72 min; el millor carrer, 68 min; la plaça, 0).
+
 **Proves de l'equip pendents:** amb la finestra, obrir «Temps observable», volar de la península al Vallès amb la
 càmera inclinada i baixar fins als carrers de la UAB; comprovar que el color no desapareix mai, que la llegenda no
 canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i desar-lo.

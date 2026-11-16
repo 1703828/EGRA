@@ -435,8 +435,9 @@ class Mapes:
             return
         if visibilitat.en_calcul(cami, eclipsi, r, pas):
             return      # un altre proces l'esta calculant (p. ex. scripts/preparar_visibilitat.py)
-        self.feines[('calcular', k)] = FeinaProces(k, _calcular_peca, cami, eclipsi, lluny, ulls, r, pas,
-                                                   descripcio=f'calcular el mapa {clau}')
+        f = FeinaProces(k, _calcular_peca, cami, eclipsi, lluny, ulls, r, pas, descripcio=f'calcular el mapa {clau}')
+        f.marca = visibilitat.cami_cache(eclipsi, cami, r, pas) + '.calculant'   # (es treu si el proces s'atura)
+        self.feines[('calcular', k)] = f
 
     def _preparar_relleu(self, rect):
         """El relleu de 5 m del lloc de la quadricula (la mateixa feina que basecode/detall.py), un de cada vegada."""
@@ -473,6 +474,9 @@ class Mapes:
             if f.error:
                 if not getattr(f, 'cancelada', False):
                     self.fallades[kf] = f.error
+                marca = getattr(f, 'marca', None)       # un proces aturat no l'ha pogut treure
+                if marca and os.path.exists(marca):
+                    os.remove(marca)
                 continue
             if tipus == 'llegir':
                 if f.resultat is None or k[2] != eclipsi:
