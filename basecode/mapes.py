@@ -19,7 +19,7 @@ el model del terreny). El shader fa servir, a cada punt, el mes detallat que hi 
   N2  cel·les de 3 x 3 km del relleu de 5 m (zones fetes a ma o llocs de la quadricula).
   N3  peces d'1 x 1 km de la superficie dels obstacles mesurats (terra + alcaria LiDAR: edificis i vegetacio, 2 m o
       2,5 m; dades/alcaries.py), amb l'horitzo cada 0,25 graus (D95: conserva les interrupcions curtes).
-  (N1, blocs de 25 m, es la tasca 42.6 del pla.)
+  N1  blocs de 24 x 24 km del relleu de 25 m (dades/blocs25.py): l'escala d'una comarca.
 Quin nivell cal surt de la mida d'un pixel de la pantalla sobre el terra (petjada de la vista, amb la camera
 inclinada o no): una graella de raigs des de la camera. Les peces es preparen en segon pla (llegir: un fil; calcular:
 un proces, D89), de mes a menys necessaries; mentrestant es veu el nivell de sota. Les peces carregades es
@@ -45,7 +45,7 @@ import moderngl as mgl
 import numpy as np
 from pyproj import Transformer
 
-from dades import alcaries, eclipsis, geodesia, llocs, visibilitat
+from dades import alcaries, blocs25, eclipsis, geodesia, llocs, visibilitat
 from dades.data_io import ZONES_DETALL
 from dades.feines import Feina, FeinaProces
 
@@ -64,8 +64,8 @@ K_GPU = {0: 1, 1: 2, 2: 2, 3: 2}          # intervals a la GPU (relleu ara); la 
 PAS_N2_M, PAS_N3_M = 3000.0, 1000.0
 PAS_AZIMUT_N3 = 0.25                       # D95 (scripts/validar_temps_visibilitat.py)
 # mida maxima del pixel de la pantalla sobre el terra (m) per a cada nivell: per sota d'aixo, cal el nivell
-PIXEL_MAX_M = {3: 4.0, 2: 30.0}
-MAX_DESITJADES = {2: 6, 3: 6}
+PIXEL_MAX_M = {3: 4.0, 2: 30.0, 1: 150.0}
+MAX_DESITJADES = {1: 4, 2: 6, 3: 6}
 REVISIO_S = 0.25
 MAX_LECTURES = 2
 
@@ -196,6 +196,10 @@ def _calcular_peca(cami, eclipsi, lluny, cami_ulls, rect, pas, avis):
 def _preparar_superficie(cel, cami_mdt, parts_zona, avis):
     from .detall import _preparar_superficie as preparar
     return preparar(cel, cami_mdt, parts_zona, avis)
+
+
+def _preparar_bloc(c, avis):
+    return blocs25.preparar(c, avis)
 
 
 def _preparar_relleu(c, avis):
@@ -339,11 +343,15 @@ class Mapes:
         xs, ys = _A_UTM.transform(np.asarray(lon), np.asarray(lat))
         centre = len(punts) // 2
         self.pixel_centre_m = float(mides[centre])
-        volgudes = {2: {}, 3: {}}
+        volgudes = {1: {}, 2: {}, 3: {}}
         for x, y, m in zip(xs, ys, mides):
-            for nivell in (3, 2):
+            for nivell in (3, 2, 1):
                 # on cal el detall dels obstacles, tambe el relleu de 5 m: es el que es veu mentre es calcula
-                if m < PIXEL_MAX_M[nivell]:
+                if m < PIXEL_MAX_M[nivell] and nivell == 1:
+                    c = blocs25.clau(x, y)
+                    if c not in volgudes[1] or volgudes[1][c][0] > m:
+                        volgudes[1][c] = (m, blocs25.rect(c))
+                elif m < PIXEL_MAX_M[nivell]:
                     pas = PAS_N3_M if nivell == 3 else PAS_N2_M
                     off = 500.0 if nivell == 3 else 0.0       # les peces d'1 km dins de les cel·les de 3 km
                     if nivell == 3:
@@ -355,10 +363,10 @@ class Mapes:
                     clau = f'n{nivell}_{x0:.0f}_{y0:.0f}'
                     if clau not in volgudes[nivell] or volgudes[nivell][clau][0] > m:
                         volgudes[nivell][clau] = (m, (x0, y0, x0 + pas, y0 + pas))
-        # ordre de preparacio: la peninsula (es veu sempre), despres les cel·les de 5 m (rapides: ~15 s) i despres les
-        # peces dels obstacles (~1 min cadascuna); dins de cada nivell, la que es veu mes gran primer
+        # ordre de preparacio: la peninsula (es veu sempre), despres les cel·les de 5 m (rapides: ~15 s), els blocs de
+        # 25 m (~1 min) i les peces dels obstacles (~1 min cadascuna); dins de cada nivell, la que es veu mes gran primer
         out = [(0, 'peninsula', None)]
-        for nivell in (2, 3):
+        for nivell in (2, 1, 3):
             v = sorted(volgudes[nivell].items(), key=lambda kv: kv[1][0])[:MAX_DESITJADES[nivell]]
             out += [(nivell, clau, rect) for clau, (m, rect) in v if _dins_peninsula(app, (rect[0] + rect[2]) / 2,
                                                                                          (rect[1] + rect[3]) / 2)]
@@ -388,6 +396,14 @@ class Mapes:
         pen = app.peninsula.cami
         if nivell == 0:
             cami, lluny, ulls, r, pas = pen, None, None, None, visibilitat.PAS_AZIMUT
+        elif nivell == 1:
+            cb = clau
+            if not blocs25.existeix(cb):
+                if ('bloc', cb) not in self.fallades and not any(t == 'bloc' for t, _ in self.feines) \
+                        and app.detall.preparar:
+                    self.feines[('bloc', cb)] = FeinaProces(cb, _preparar_bloc, cb, descripcio='relleu de 25 m')
+                return
+            cami, lluny, ulls, r, pas = blocs25.cami(cb), [pen], None, rect, visibilitat.PAS_AZIMUT
         elif nivell == 2:
             cami = self._mdt_5m(rect)
             if cami is None:
@@ -752,7 +768,7 @@ class Mapes:
         if not self.feines and self.feina_graella is None:
             return ''
         noms = {'llegir': 'llegint', 'calcular': 'calculant', 'relleu': 'baixant el relleu',
-                'superficie': 'preparant els obstacles'}
+                'superficie': 'preparant els obstacles', 'bloc': 'baixant el relleu de 25 m'}
         parts = []
         for (t, k), f in self.feines.items():
             nivell = k[0] if isinstance(k, tuple) else None

@@ -405,6 +405,7 @@ def panell_capes(app):
     _, app.edificis_aeris = imgui.checkbox('A la vista aeria', app.edificis_aeris)
     if app.mostrar_edificis or app.edificis_aeris:
         llegenda(COLOR_ALCADA_ESTIMADA, 'Blau: altura estimada (sense LiDAR)')
+    _, app.vegetacio.actiu = imgui.checkbox('Vegetacio i objectes (LiDAR)', app.vegetacio.actiu)
     _, app.ombres.actiu = imgui.checkbox('Ombres (relleu i edificis)', app.ombres.actiu)
     _, app.mostrar_noms = imgui.checkbox('Noms de lloc (vista aeria)', app.mostrar_noms)
 
@@ -466,6 +467,10 @@ def panell_tecles(app):
 
 def panell_avancat(app):
     imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
+    # comparacio didactica (tasca 46.3): les mateixes columnes de vegetacio amb instancing en lloc del geometry shader
+    _, app.vegetacio.instancing = imgui.checkbox('Vegetacio amb instancing (comparacio)', app.vegetacio.instancing)
+    if app.vegetacio.actiu:
+        imgui.text_disabled(f'Vegetacio: {app.vegetacio.n_punts} columnes')
     t = app.peninsula
     if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026: en un altre eclipsi enganyarien
         canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)

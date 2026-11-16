@@ -26,9 +26,14 @@ def incloure(font):
 
 
 def carregar_programa(ctx, nom, defines=()):
-    fonts = []
-    for ext in ('vert', 'frag'):
-        with open(os.path.join(SHADERS_DIR, f'{nom}.{ext}'), encoding='utf-8') as f:
+    """Vertex i fragment shader (nom.vert, nom.frag) i, si hi es, el geometry shader (nom.geom; OpenGL 3.2, dins del
+    3.3 core: entre el vertex i el fragment, rep primitives senceres i en pot emetre de noves)."""
+    fonts = {}
+    for ext in ('vert', 'geom', 'frag'):
+        cami = os.path.join(SHADERS_DIR, f'{nom}.{ext}')
+        if ext == 'geom' and not os.path.exists(cami):
+            continue
+        with open(cami, encoding='utf-8') as f:
             linies = incloure(f.read()).split('\n', 1)
-        fonts.append(linies[0] + '\n' + ''.join(f'#define {d}\n' for d in defines) + linies[1])
-    return ctx.program(vertex_shader=fonts[0], fragment_shader=fonts[1])
+        fonts[ext] = linies[0] + '\n' + ''.join(f'#define {d}\n' for d in defines) + linies[1]
+    return ctx.program(vertex_shader=fonts['vert'], geometry_shader=fonts.get('geom'), fragment_shader=fonts['frag'])

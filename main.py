@@ -98,6 +98,7 @@ from basecode.cel import Cel
 from basecode.mosaic import Mosaic
 from basecode.detall import Detall
 from basecode.mapes import Mapes
+from basecode.vegetacio import Vegetacio
 from dades import eclipse_data, eclipsis, geodesia, noms
 import ui
 
@@ -159,6 +160,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.vista = 1                     # index a ui.VISTES: 0 exploracio, 1 observador, 2 guiada
         self.camera_exploracio = None
         self.detall = Detall(self)
+        self.vegetacio = Vegetacio(self)   # vegetacio mesurada (LiDAR) amb un geometry shader; desactivada d'entrada
         self.terra = Terra(self)
         self.mosaic = Mosaic(self)         # fotografia aeria per al terreny i el globus (es baixa en segon pla)
         self.ombres = OmbresRelleu(self)   # ombres del relleu (shadow mapping) a la zona de 5 m
@@ -608,7 +610,7 @@ class GraphicsEngine(GraphicsEngineBase):
     def feina_en_curs(self):
         """Si alguna cosa pot canviar la imatge sense que l'usuari faci res: el temps avanca, o hi ha feines en
         segon pla (detall, mapes, teselles, nom del lloc)."""
-        return (self.reproduint or bool(self.detall.feines) or self.mapes.ocupat()
+        return (self.reproduint or bool(self.detall.feines) or self.mapes.ocupat() or bool(self.vegetacio.feines)
                 or self.consulta_nom is not None
                 or (self.mosaic.actiu and self.mosaic.descarregador.pendents() > 0))
 
@@ -616,7 +618,7 @@ class GraphicsEngine(GraphicsEngineBase):
         """El que determina la imatge i pot canviar d'un fotograma al seguent: vista, camera i hora."""
         cam = self.camera
         return (self.vista, cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapes.quin,
-                self.mapes.mode_actual(), len(self.mapes.peces))
+                self.mapes.mode_actual(), len(self.mapes.peces), self.vegetacio.actiu, len(self.vegetacio.cel_les))
 
     def repos(self):
         """Despres de cada fotograma: si fa REPOS_S que la imatge no canvia i no hi ha feina, espera esdeveniments
@@ -672,6 +674,7 @@ class GraphicsEngine(GraphicsEngineBase):
         self.teclat(dt)
         self.detall.actualitzar()   # detall segons la vista: es prepara i es carrega en segon pla
         self.mapes.actualitzar()    # mapes de l'eclipsi (les peces que vol la vista, en segon pla)
+        self.vegetacio.actualitzar()
         self.actualitzar_nom()
         self.actualitzar_edificis()
         self.avancar_temps(dt)
@@ -706,6 +709,7 @@ class GraphicsEngine(GraphicsEngineBase):
             t.render()
         if self.edificis is not None:
             self.edificis.render()   # opacs: escriuen la profunditat i tapen el Sol, el halo i el terreny
+        self.vegetacio.render()      # opaca, com els edificis
         self.cel.render()    # nomes on no hi ha res dibuixat (no tapa el Sol ni la Lluna) i sense profunditat
         self.terra.render_atmosfera()   # des de l'espai, la resplendor blava al voltant del disc
         self.paret.render()  # translucides: despres dels objectes opacs
@@ -728,6 +732,7 @@ class GraphicsEngine(GraphicsEngineBase):
     def on_destroy(self):
         self.detall.destroy()
         self.mapes.destroy()
+        self.vegetacio.destroy()
         self.mosaic.destroy()
         self.ombres.destroy()
         self.cel.destroy()
