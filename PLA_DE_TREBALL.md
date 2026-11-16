@@ -2520,6 +2520,80 @@ funció `color_mapa` i les UV que relacionen zona i península (`uv_de_utm`). Sa
 el panell indiqui "resolució 200 m" en aquelles zones, i `prova_vistes`, `prova_controls` i `prova_eclipsis` no
 canviïn.
 
+#### O4.4 Progrés de la implementació (16/11/2026)
+
+Estat de les tasques. Cap no és `VALIDAT`: l'equip encara no les ha provat amb la finestra.
+
+| Tasca | Estat | Com s'ha comprovat |
+|---|---|---|
+| 40.1 línia base | `FET` | *Comprovat automàticament:* `validar_model` (≤ 1,2 s), `prova_vistes` 102 OK, `prova_controls` 69, `prova_eclipsis` 27, `prova_caminar` 26, `prova_obstacles` 25, `prova_cel` 7, `prova_noms` 9, `validar_edificis` 22, `validar_ombres_relleu` correcte |
+| 40.2 captures «abans» | `FET` | `prova_mapes.py --etiqueta abans` (captures `captures/proves/mapes_abans_*`). *Inspeccionat visualment:* rectangle sense color al Vallès des de 40 km; a la UAB, cap mapa fins que acaba el càlcul de la cel·la; colors foscos per la llum de l'eclipsi. Cobertura del terreny d'Espanya amb color: 8–69 %; fotogrames de fins a 2,1 s |
+| 40.3 cost del dibuix per capes | `PENDENT` | (es fa amb F46) |
+| 41.1–41.4 definicions | `FET` | D90, D91 i D96 confirmades per l'equip; D95 decidida amb mesures (a sota) |
+| 42.1 prova de continuïtat | `FET` | `scripts/prova_mapes.py` (recorregut R1; la cobertura es mesura comparant la imatge amb i sense mapa, sense panell ni edificis i a plena llum) |
+| 42.2–42.5 nivells, petjada, precedència, resultats antics | `FET` | Vegeu «Mapes per nivells» |
+| 42.6 nivell N1 (25 m) | `PENDENT` | |
+| 42.7 ocultació al shader | `FET` | Sense textures ni càlculs nous en moure's: la Lluna es calcula per a cada punt; «al màxim», de la graella de circumstàncies |
+| 42.8 resposta | `FET` | R1 (*comprovat automàticament*): mediana 21 ms, p99 33 ms, màxim 382 ms (abans 2,1 s) |
+| 43.1 format temporal (D95) | `FET` | `validar_temps_visibilitat.py` i `validar_visibilitat.py` (a sota) |
+| 43.2 mesura UAB | `FET` | 1 × 1 km a 2 m: 17 s a 1°, 29 s a 0,5°, 55 s a 0,25° |
+| 43.3 carrer i terrat | `FET` | Capa `edifici` de la superfície; el terreny mostra el carrer i les cobertes, el terrat. *Inspeccionat visualment:* `captures/proves/consulta_uab.png` |
+| 43.4 blocs reutilitzables | `FET` (parcial) | Peces d'1 km (N3) i cel·les de 3 km (N2) desades per separat; falta mesurar una zona extensa (plana de Vic) |
+| 43.5–43.6 consulta i exportació | `FET` | `scripts/prova_consulta.py` (*comprovat automàticament*): consulta contra el raig exacte, diferència ≤ 0,4 punts; CSV amb metadades |
+| 43.7 obstacles (D94) | `PENDENT` | després de F45 i F46 |
+| 44.1–44.4 bandes, llegenda fixa, color sense llum | `FET` | Llindars i colors a `basecode/mapes.py` (una sola taula per al shader i el panell); el mapa es pinta després de la llum i de la boira |
+| 44.5–44.6 isolínies i recorregut | `FET` (pendent de revisar captures) | `shaders/mapes.glsl` |
+
+**Mapes per nivells (F42).** `basecode/mapes.py` i `basecode/shaders/mapes.glsl` substitueixen el mapa lligat a cada
+terreny (`Terrain.posar_visibilitat`, `main.actualitzar_mapa`, `Detall.preparar_mapa_detall`). Les dades són peces
+en coordenades UTM, independents del terreny que es dibuixa: N0 (península, 200 m), N2 (cel·les de 3 km del relleu de
+5 m) i N3 (peces d'1 km de la superfície dels obstacles mesurats, 2 m). Cada nivell és una textura array (OpenGL 3.0,
+dins del 3.3 core) i el shader fa servir, a cada punt, la peça més detallada que hi té dades. Quines peces calen surt
+d'una graella de 9 × 7 raigs des de la càmera (també inclinada): la mida d'un píxel sobre el terra decideix el nivell.
+Les peces es llegeixen en un fil i es calculen en un procés, d'una en una, primer N2 (≈ 15 s) i després N3 (≈ 1 min).
+Les claus no depenen de la càmera; les feines d'un altre eclipsi s'aturen.
+
+**Format temporal (D95, decidit amb mesures).** Per píxel: fracció de C1–C4 amb alguna part del Sol lliure (D91),
+la de la fase central, el marge al màxim i fins a 4 intervals per a dos llindars (alguna part i Sol sencer).
+- Intervals que calen (UAB, 1 km², 2 m): 0 intervals en el 61 % dels píxels, 1 en el 38 %, 2 en l'1,1 %, 3 en el
+  0,04 % i 4 en 11 píxels; cap en necessita més. Al disc se'n desen 4. A la GPU se'n carreguen 2 (N0: 1); els que
+  sobren s'ajunten a l'últim (el temps observable es calcula a part i és exacte).
+- Resolució temporal contra un raig exacte cada 10 s (`validar_temps_visibilitat.py`, 40 píxels, la meitat amb
+  interrupcions):
+
+| Pas d'azimut | Temps observable (mediana / 90 %) | Transicions (mediana / 90 %) | Interrupcions perdudes | Cost |
+|---|---|---|---|---|
+| 1° | 0,63 % / 2,8 % | 26 s / 151 s | 4 (fins a 375 s) | 17 s/km² |
+| 0,25° | 0,37 % / 1,2 % | 15 s / 52 s | 2 (fins a 91 s) | 55 s/km² |
+
+  Decisió: N3 a 0,25°; N0 i N2 (relleu, que varia a poc a poc) a 1°. Al relleu de 5 m, `validar_visibilitat`
+  dona marge al màxim amb mediana de 0,014°, hores amb mediana de 3 s i part tapada al màxim idèntica a la del model.
+
+**Errors trobats i corregits en provar-ho:** (1) la unitat de textura 12 ja era del mapa d'ombres fi: compartir-la
+donava `GL_INVALID_OPERATION` (ara 10, 11, 13, 14, 15); (2) un `sampler2DArray` sense textura del seu tipus feia el
+mateix encara que no hi hagués mapa; (3) llegir el mapa de la península en un fil tardava 108 s (el bloqueig global
+de Python, GIL, amb el bucle de dibuix; `np.load` descomprimeix a trossets): ara `visibilitat.llegir_npz` el
+descomprimeix d'un sol cop, 5 s; (4) en canviar d'eclipsi, el càlcul de la península de l'anterior continuava 40 min i
+bloquejava els altres: ara s'atura; (5) quan calia N3 no es demanava N2, que és el que es veu mentrestant.
+
+**Recorregut R1 després (`prova_mapes.py --etiqueta despres1`, eclipsi 2026, màxim − 10 min):**
+
+| Parada | Cobertura abans | Cobertura després | Dades al centre |
+|---|---|---|---|
+| Península, 1.300 km | 8 % (mapa encara no llegit) | 42 % als 5 s (llegint); 99,6 % en tornar-hi | 200 m |
+| Vallès, 40 km | 69 % (forat de la zona) | 95 % (la resta, sota el panell; mesura corregida després) | 200 m |
+| Vallès, 10 km inclinada | 28 % | 91 % | 200 m (N2 calculant-se) |
+| UAB, 500 m | 10 % | 89 % | obstacles mesurats (2 m) |
+| Cel·la veïna | 10 % | 90 % | obstacles mesurats (2 m) |
+
+**Comparació de llocs (`prova_consulta.py`):** a la plaça Cívica de la UAB i a l'ajuntament de Cerdanyola, el Sol
+no es veu en cap moment (edificis i arbres); a menys de 500 m hi ha carrers amb 68 i 71 minuts visibles (de les 19:34
+a les 20:43–20:45: la serralada tapa el Sol abans de la posta, a les 20:55).
+
+**Proves de l'equip pendents:** amb la finestra, obrir «Temps observable», volar de la península al Vallès amb la
+càmera inclinada i baixar fins als carrers de la UAB; comprovar que el color no desapareix mai, que la llegenda no
+canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i desar-lo.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -2572,3 +2646,4 @@ canviïn.
 | 31/10/2026 | Commits de l'estat de l'O3 (`6aa3e38`, `864a3df`). F31 (petició de l'equip): detall segons la vista a tot Espanya, altures mesurades (ICGC, IGN), mapa de detall per cel·les, nom del lloc, feines en processos. D84–D89. Sense commit. |
 | 16/11/2026 | O4 (segona entrega): revisió del codi dels mapes (forat a les zones i desaparició del detall confirmats al codi, no executats), definició dels quatre mapes, tasques F40–F47 amb dependències, acta 05 del 12/11/2026 incorporada (Toon Shading com a bandes de dades; geometry shaders per a vegetació; instancing per a edificis, amb estudi previ). D90, D92, D93; pendents D91, D94. Res implementat. Sense commit. |
 | 16/11/2026 | O4: revisades les imatges de referència de `puzzle/toon_shading.pdf` (F44). Requisit de l'equip: mapes durant tota l'exploració (O4.1.1): nivells N0–N3 (N1 nou, relleu de 25 m), preparació segons la petjada de la vista amb la càmera inclinada, precedència i conservació de nivells, llegenda fixa, mapa 1 al shader sense refinament, càmera i temps independents. F41 (41.3–41.4), F42 (42.4–42.8 i recorregut R1), F43 i F44 actualitzades. Pendents D95, D96. Res implementat. Sense commit. |
+| 16/11/2026 | O4 en curs: F40, F42 (menys N1) i F43.1–43.6 implementats i comprovats (O4.4). Commits `961bd60`, `611f251`. |
