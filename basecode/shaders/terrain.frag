@@ -192,6 +192,7 @@ void main() {
 #ifdef PROFUNDITAT_LOG
     gl_FragDepth = log2(logz) * coef_log * 0.5;   // nomes al mode globus (main.py)
     float tapat = tapat_des_de(pos_mon), d_tapat = fwidth(tapat);   // abans de cap discard
+    px_uv = fwidth(uv);                                              // (mapes.glsl)
     vec2 merc_dx = dFdx(merc_rel), merc_dy = dFdy(merc_rel);
 #endif
     float d = texture(tex_costa, uv).r;          // km a la costa (mar > 0, terra < 0)

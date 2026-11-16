@@ -43,6 +43,18 @@ uniform vec3 color_posta;
 uniform vec3 color_limits_central;
 uniform vec3 color_sense_eclipsi;
 
+// mida d'un pixel de la pantalla en coordenades del mapa (uv): l'ha de posar el shader que inclou aquest fitxer al
+// principi de main, abans de cap discard (despres, les derivades de la pantalla no estan definides a les vores dels
+// terrenys i dibuixaven linies falses)
+vec2 px_uv;
+
+// la graella de circumstancies (tapat al maxim, durada de la fase central) i quant canvia en un pixel, amb diferencies
+// finites (sense derivades de la pantalla)
+vec2 graella(vec2 q) { return texture(tex_graella, (q - rect_graella.xy) / (rect_graella.zw - rect_graella.xy)).rg; }
+vec2 canvi_graella(vec2 g) {
+    return abs(graella(uv + vec2(px_uv.x, 0.0)) - g) + abs(graella(uv + vec2(0.0, px_uv.y)) - g);
+}
+
 vec4 mostra_nivell(int nivell, vec3 c) {
     if (nivell == 3) return texture(mapa_n3, c);
     if (nivell == 2) return texture(mapa_n2, c);
@@ -121,13 +133,13 @@ vec4 color_mapa(float tapat, float d_tapat, vec3 up) {
             if (f <= 0.0) return vec4(color_sense_eclipsi, 0.35);
         } else {
             if (!hi_ha_graella) return vec4(0.0);
-            vec2 g = texture(tex_graella, (uv - rect_graella.xy) / (rect_graella.zw - rect_graella.xy)).rg;
+            vec2 g = graella(uv);
             if (g.r < 0.0) return vec4(color_sense_eclipsi, 0.35);
             f = g.r; central = g.g > 0.0;
         }
         vec3 c = central ? (mapa_anular ? mapa_color_anular : mapa_color_total) : ocult_colors[banda_ocult(f)];
         // isolinies cada 1 % per sobre del 90 % (com el mapa del CNIG), suaus
-        float df = max(fwidth(f), 1e-6);
+        float df = max(mapa_mode == 1 ? d_tapat : canvi_graella(vec2(f, 0.0)).r, 1e-6);
         if (f > 0.9 && !central) c = mix(c, vec3(1.0), 0.35 * isolinia(f, 0.01, df));
         return vec4(c, 0.82);
     }
@@ -139,8 +151,8 @@ vec4 color_mapa(float tapat, float d_tapat, vec3 up) {
         float l = isolinia(tapat, 0.2, max(d_tapat, 1e-6)) * step(0.01, tapat) * step(tapat, 0.99);
         c = mix(c, vec3(1.0, 0.92, 0.70), l); a = max(a, 0.7 * l);
         if (hi_ha_graella) {
-            vec2 g = texture(tex_graella, (uv - rect_graella.xy) / (rect_graella.zw - rect_graella.xy)).rg;
-            float dg = max(fwidth(g.g), 1e-6);
+            vec2 g = graella(uv);
+            float dg = max(canvi_graella(g).g, 1e-6);
             float lim = 1.0 - smoothstep(0.5, 1.8, abs(g.g - 0.5) / dg);       // on la durada passa per 0
             float iso = g.g > 1.0 ? 0.5 * isolinia(g.g, 30.0, dg) : 0.0;
             c = mix(c, color_limits_central, max(lim, iso)); a = max(a, max(lim, iso));

@@ -968,7 +968,8 @@
 <!-- ======================================================================= O3 -->
 <section class="objectiu" id="o3">
 <h2>O3 · On es veurà l'eclipsi (aplicació de dades)</h2>
-<p class="intro-objectiu">Proposta del 30/10/2026 (D79), encara sense implementar. Un mapa de calor de com de bé
+<p class="intro-objectiu">Proposta del 30/10/2026 (D79); la primera implementació (F24–F31) és la de l'informe
+  intermedi, i la segona entrega la continua a O4. Un mapa de calor de com de bé
   es veurà un eclipsi des de cada punt (un turó, un carrer, un terrat), perquè la gent pugui decidir on anar.
   Per al 2026 (ja passat: serveix per validar), el 2027 (total, al sud, a mig matí)
   i el 2028 (<em>anular</em>, a la posta). El criteri és geomètric: un punt veu l'eclipsi si en la direcció del
@@ -1060,6 +1061,163 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="pendent">Les sis ubicacions donen el resultat esperat (casos coneguts).</li>
+    </ul>
+  </div>
+</div></details>
+
+<h2>O4 · Segona entrega: mapes durant l'exploració i tècniques del puzle</h2>
+<p class="intro-objectiu">Acta 05 (12/11/2026): els mapes de visibilitat són la prioritat, i les tècniques del puzle
+  s'hi apliquen si aporten alguna cosa mesurable. Els mapes han de funcionar mentre s'explora (de la península als
+  carrers, amb la càmera inclinada), amb dades més precises en apropar-se i una llegenda que no canvia.
+  Detall i mesures al pla (O4). <span class="progres-objectiu"></span></p>
+
+<details class="sub" id="o4-1">
+<summary><span class="cap"><span class="titol">O4.1 · Quatre mapes amb bandes de color (Toon Shading aplicat)</span></span>
+  <span class="frase">Ocultació per la Lluna, temps observable, Sol tapat pel relleu i ombra de la Lluna.</span></summary>
+<div class="cos">
+  <p><strong>Què es vol.</strong> Quatre mapes que no es confonguin: l'<dfn>ocultació</dfn> (part del Sol tapada
+    per la Lluna), el <dfn>temps observable</dfn> (part de l'eclipsi amb alguna part del Sol lliure d'obstacles; la
+    totalitat compta com a observable), el <dfn>Sol tapat pel relleu</dfn> en un instant i l'<dfn>ombra de la
+    Lluna</dfn> (on és ara i per on passa). «Visible» vol dir només «no tapat pels obstacles calculats»: no hi ha
+    meteorologia.</p>
+  <p><strong>Teoria.</strong> El <em>Toon Shading</em> agafa una magnitud contínua de la il·luminació
+    (<code>dot(N, L)</code>), la parteix en uns quants nivells i pinta cada nivell d'un color pla, amb contorns
+    entre regions. Aquí fem el mateix amb <em>dades</em>: minuts, percentatges i classes, amb llindars que tenen
+    significat. La diferència important: al Toon Shading els llindars són estètics i el valor es perd; aquí el valor
+    es conserva a la textura (la consulta d'un punt el mostra) i només en canvia la representació. Les vores entre
+    bandes són isolínies d'un píxel d'amplada a qualsevol zoom (<code>fwidth</code>).</p>
+  <figure class="costat"><img src="img/o4_ocultacio_peninsula.jpg" alt="Ocultació al màxim sobre la península" loading="lazy">
+    <figcaption>Ocultació al màxim (2026): bandes fines per sobre del 90 %, la totalitat a part i isolínies cada 1 % (<code>scripts/captura_mapes.py</code>).</figcaption></figure>
+  <figure class="costat"><img src="img/o4_durada_panell.jpg" alt="Temps observable a la UAB amb la llegenda" loading="lazy">
+    <figcaption>La llegenda (llindars fixos) i d'on surten les dades al centre de la pantalla.</figcaption></figure>
+  <p><strong>Implementació.</strong> <code>basecode/mapes.py</code> (una sola taula de llindars i colors per al shader
+    i la llegenda) i <code>basecode/shaders/mapes.glsl</code>. El color es pinta després de la llum i de la boira,
+    amb un ombrejat fix del relleu: a la totalitat el mateix valor es veu del mateix color. Paleta del temps
+    observable seqüencial (de blau fosc a groc), sense morat: el morat és de l'ocultació.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Llindars fixos (ocultació: de 10 en 10 % i 90–95, 95–99, 99–&lt;100 %, totalitat a part; temps observable: 0, &lt;20 ... ≥95 %): no depenen de l'escala ni de l'eclipsi.</li>
+      <li data-estat="fet">«Sense dades» (sense color), «sense eclipsi» (gris) i el valor 0 (color de l'escala) es distingeixen.</li>
+      <li data-estat="fet">El color es llegeix igual amb la llum de l'eclipsi: es pinta després de la llum (comprovat amb la lectura de píxels: el color de la banda × l'ombrejat fix de 0,8–1,0).</li>
+      <li data-estat="pendent">L'equip llegeix els quatre mapes amb les llegendes i la barra del temps sense confondre'ls.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o4-2">
+<summary><span class="cap"><span class="titol">O4.2 · Mapes durant l'exploració</span></span>
+  <span class="frase">De la península als carrers, sense forats i amb dades més precises en apropar-se.</span></summary>
+<div class="cos">
+  <p><strong>Què es vol.</strong> Continuar veient el mapa en acostar-se a una comarca, un municipi o uns carrers,
+    amb la càmera inclinada, sense triar cap punt: de lluny, els patrons generals; de prop, el relleu local i els
+    edificis i la vegetació mesurats.</p>
+  <p><strong>Com.</strong> Les dades són peces en coordenades UTM, independents del terreny que es dibuixa, en
+    quatre nivells: N0 península (200 m), N1 blocs de 24 km (25 m), N2 cel·les de 3 km (5 m) i N3 peces d'1 km
+    amb els obstacles mesurats (2 m). Cada nivell és una <dfn>textura array</dfn> (moltes capes de la mateixa mida
+    en un sol objecte; OpenGL 3.0) i el shader fa servir, a cada punt, la peça més detallada que hi té dades. Quines
+    peces calen surt d'una graella de raigs des de la càmera: la mida d'un píxel sobre el terra decideix el nivell.
+    La càmera només decideix què es prepara; el temps (la barra) només canvia el que el shader treu de les dades.</p>
+  <figure class="costat"><img src="img/o4_durada_escales.jpg" alt="Temps observable a tres escales" loading="lazy">
+    <figcaption>El mateix mapa (temps observable, 2026) a la península (200 m), al Vallès des de 40 km i a la UAB des de 500 m (obstacles mesurats, 2 m). La llegenda és la mateixa.</figcaption></figure>
+  <p><strong>Error que hi havia.</strong> Abans el mapa anava lligat a cada terreny: dins d'una zona de 5 m sense mapa
+    propi quedava un forat, i el de detall desapareixia a 50 m de la vora de la seva cel·la.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <code>basecode/mapes.py</code>, <code>basecode/shaders/mapes.glsl</code>, <code>dades/blocs25.py</code>, <code>dades/visibilitat.py</code>, <code>scripts/prova_mapes.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Recorregut península → Vallès (40 km i 10 km inclinada) → UAB (500 m) → cel·la veïna → tornar: terreny d'Espanya amb color del 89–99,9 % (abans 8–69 %) (<code>scripts/prova_mapes.py</code>).</li>
+      <li data-estat="fet">La càmera no s'encalla mentre es preparen les dades: mediana 21 ms, fotograma més lent 382 ms (abans 2,1 s).</li>
+      <li data-estat="fet">El mapa de la península es llegeix en 5 s sense aturar el dibuix (abans 108 s: el bloqueig global de Python).</li>
+      <li data-estat="pendent">L'equip fa el recorregut amb el ratolí i el teclat.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o4-3">
+<summary><span class="cap"><span class="titol">O4.3 · Temps observable i interrupcions</span></span>
+  <span class="frase">Si un edifici tapa el Sol cinc minuts al mig, compta.</span></summary>
+<div class="cos">
+  <p>Per a cada píxel es desa la fracció de C1–C4 amb alguna part del Sol lliure, la de la fase central, el marge al
+    màxim i els intervals amb alguna part i amb tot el Sol lliure (abans només el primer i l'últim moment). La
+    resolució es va mesurar contra un raig exacte cada 10 s: amb l'horitzó cada 1° es perdien interrupcions de fins
+    a 6 minuts; cada 0,25° (el que fa servir el detall amb obstacles), transicions amb mediana de 15 s.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Temps observable contra el raig exacte: diferència mediana 0,37 %, 90 % 1,2 % (<code>scripts/validar_temps_visibilitat.py</code>).</li>
+      <li data-estat="fet">Intervals que calen a la UAB: cap píxel en té més de 4 (es desen 4).</li>
+      <li data-estat="fet">Relleu de 5 m contra el raig exacte: marge mediana 0,014°, hores mediana 3 s; part tapada al màxim igual que el model (<code>scripts/validar_visibilitat.py</code>).</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o4-4">
+<summary><span class="cap"><span class="titol">O4.4 · Carrer, terrat i consulta d'un punt</span></span>
+  <span class="frase">Per què aquí es veu més temps que allà.</span></summary>
+<div class="cos">
+  <figure class="costat"><img src="img/o4_terrats_uab.jpg" alt="Temps observable als carrers i als terrats de la UAB" loading="lazy">
+    <figcaption>UAB des de 500 m: carrers foscos (poc temps visible) i terrats clars.</figcaption></figure>
+  <p>El terreny mostra el valor del carrer (ulls a 1,7 m del terra) i les cobertes dels edificis, el del terrat
+    (ulls a 1,7 m de la coberta, «si és accessible»). La consulta del punt d'observació diu el temps visible, la fase
+    central, els intervals, d'on surten les dades i quins obstacles s'hi han tingut en compte, i es pot desar en CSV.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Consulta contra el raig exacte a la UAB i a Cerdanyola: diferència ≤ 0,4 punts (<code>scripts/prova_consulta.py</code>).</li>
+      <li data-estat="fet">Comparació: a la plaça Cívica i a l'ajuntament de Cerdanyola el Sol no es veu (façanes i objectes a tocar); a menys de 500 m hi ha carrers amb 68 i 71 minuts.</li>
+      <li data-estat="fet">Exportació CSV amb l'eclipsi, el tipus d'observació, les dades, els obstacles i el criteri.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o4-5">
+<summary><span class="cap"><span class="titol">O4.5 · Geometry shader: la vegetació mesurada</span></span>
+  <span class="frase">Un punt per cel·la del LiDAR, una columna a la GPU.</span></summary>
+<div class="cos">
+  <p><strong>Teoria.</strong> Un <dfn>geometry shader</dfn> és una etapa opcional entre el vertex i el fragment
+    shader: rep una primitiva sencera (aquí, un punt) i en pot emetre de noves (<code>EmitVertex</code>,
+    <code>EndPrimitive</code>), com l'exemple de les cases de Learn OpenGL.</p>
+  <p><strong>Per què columnes i no arbres.</strong> A la UAB, el 78 % de la vegetació del LiDAR forma masses
+    contínues, i posar un con per capçada canviava l'horitzó de la posta una mediana d'1,8° (fins a 27°): el que es
+    veuria no seria el que calcula el mapa. Les columnes són exactament la superfície del càlcul. No s'inventen arbres
+    ni irregularitats a l'horitzó.</p>
+  <figure class="costat"><img src="img/o4_capcades.jpg" alt="Capçades detectades al LiDAR i fotografia aèria" loading="lazy">
+    <figcaption>Estudi de dades: alçària de la vegetació amb les capçades detectades (esquerra) i el PNOA (dreta).</figcaption></figure>
+  <figure class="costat"><img src="img/o4_vegetacio_uab.jpg" alt="Vegetació mesurada a la UAB" loading="lazy">
+    <figcaption>La vegetació del LiDAR dibuixada amb el geometry shader (gris: objectes a tocar dels edificis).</figcaption></figure>
+  <p><strong>Cost.</strong> 1 milió de columnes: 35 ms de GPU la primera versió; 5–7 ms sense emetre els punts
+    lluny, fora de la vista o darrere, ni les cares tapades o d'esquena.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <code>basecode/vegetacio.py</code>, <code>basecode/shaders/vegetacio.vert</code>, <code>.geom</code>, <code>.frag</code>, <code>scripts/estudi_vegetacio.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Integrat i activable (<em>Vegetació i objectes (LiDAR)</em>), compatible amb OpenGL 3.3 core.</li>
+      <li data-estat="fet">Coherent amb el càlcul: la mateixa superfície (D94); limitació 2,5D documentada.</li>
+      <li data-estat="pendent">L'equip ho prova des del carrer i des de l'aire.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o4-6">
+<summary><span class="cap"><span class="titol">O4.6 · Instancing: on té sentit i on no</span></span>
+  <span class="frase">Mesurat abans de dir que millora res.</span></summary>
+<div class="cos">
+  <p><strong>Teoria.</strong> L'<dfn>instancing</dfn> dibuixa moltes còpies d'una sola malla en una crida; les dades
+    de cada còpia van en un buffer amb <code>glVertexAttribDivisor</code> (a ModernGL, el sufix <code>/i</code>).</p>
+  <p><strong>Edificis.</strong> Ja eren una sola crida per zona (49.797 parts a la UAB): l'instancing no en podia
+    reduir el nombre, i el cost principal són els mapes d'ombres i el terreny. Substituir-los per caixes estalviava
+    memòria (37 → 2,4 MB) i una mica de GPU, però canviava l'horitzó de la posta fins a desenes de graus: no
+    s'integra.</p>
+  <p><strong>Vegetació.</strong> Les mateixes columnes amb instancing (un cub compartit i 20 bytes per columna)
+    donen la mateixa imatge, però costen 15–17 ms contra 6–7 ms del geometry shader: l'instancing processa sempre
+    els 36 vèrtexs de cada caixa. Es pot activar a <em>Avançat</em> per comparar-ho en directe.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <code>basecode/shaders/vegetacio_inst.vert</code>, <code>scripts/estudi_instancing.py</code>, <code>scripts/estudi_vegetacio_gpu.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Ús concret i explicable amb el nostre codi (vegetació), amb comparació mesurada.</li>
+      <li data-estat="no-compleix">Caixes en lloc de les malles del Catastro: canvien l'ocultació del Sol (criteri &lt; 0,05°).</li>
     </ul>
   </div>
 </div></details>

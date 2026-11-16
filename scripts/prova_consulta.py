@@ -30,6 +30,9 @@ from PIL import Image  # noqa: E402
 SORTIDA = os.path.join(ARREL, 'captures', 'proves')
 W, H = 1000, 700
 TOL_PUNTS = 3.0
+# el millor de milers de pixels tendeix a ser on el mapa sobreestima mes (biaix de seleccio): mes tolerancia, i els
+# punts a l'atzar mesuren l'error de debo
+TOL_MILLOR = 5.0
 
 
 def main():
@@ -92,17 +95,23 @@ def main():
             continue
         # el punt del lloc i el millor punt de carrer a menys de 500 m (el mapa ho permet comparar)
         punts = [(nom, o.lat, o.lon, r)]
-        millor = millor_proper(app, o.lat, o.lon, 500.0)
-        if millor is not None:
-            la, lo = millor
-            rm = app.mapes.consulta(la, lo, ModelEclipsi(la, lo, app.altitud_terra_km(la, lo)))
-            if rm is not None:
-                punts.append((f'{nom}: millor carrer a < 500 m', la, lo, rm))
-        for etiqueta, la, lo, rr in punts:
+        for terrat in (False, True):
+            tipus = 'terrat' if terrat else 'carrer'
+            millor = millor_proper(app, o.lat, o.lon, 500.0, terrat)
+            if millor is not None:
+                la, lo = millor
+                rm = app.mapes.consulta(la, lo, ModelEclipsi(la, lo, app.altitud_terra_km(la, lo)))
+                if rm is not None:
+                    punts.append((f'{nom}: millor {tipus} a < 500 m', la, lo, rm, TOL_MILLOR))
+            for k, (la, lo) in enumerate(punts_atzar(app, o.lat, o.lon, 500.0, terrat, 3)):
+                rm = app.mapes.consulta(la, lo, ModelEclipsi(la, lo, app.altitud_terra_km(la, lo)))
+                if rm is not None:
+                    punts.append((f'{nom}: {tipus} a l\'atzar {k + 1}', la, lo, rm, TOL_PUNTS))
+        for etiqueta, la, lo, rr, tol in [(*p_, TOL_PUNTS) if len(p_) == 4 else p_ for p_ in punts]:
             frac_e = exacte(app, la, lo)
-            ok(abs(frac_e - rr['frac']) * 100 < TOL_PUNTS,
+            ok(abs(frac_e - rr['frac']) * 100 < tol,
                f"{etiqueta}: temps visible del mapa {100 * rr['frac']:.1f} % ({rr['minuts']:.0f} min) contra el raig "
-               f"exacte {100 * frac_e:.1f} % (tolerancia {TOL_PUNTS:.0f} punts); {rr['tipus']}")
+               f"exacte {100 * frac_e:.1f} % (tolerancia {tol:.0f} punts); {rr['tipus']}")
             app.mapes.exportar(rr, cami_csv)
             resum.append((etiqueta, rr))
     with open(cami_csv, encoding='utf-8') if os.path.exists(cami_csv) else open(os.devnull) as fh:
@@ -117,8 +126,34 @@ def main():
     return 1 if errors else 0
 
 
-def millor_proper(app, lat, lon, radi_m):
-    """El pixel de carrer (fora dels edificis) amb mes temps observable a menys de radi_m, de les peces carregades."""
+def punts_atzar(app, lat, lon, radi_m, terrat, n, llavor=11):
+    """n pixels a l'atzar de carrer (o de terrat) a menys de radi_m, de les peces N3 carregades: [(lat, lon)]."""
+    from basecode.mapes import BIT_EDIFICI, _A_UTM, _A_LATLON
+    from dades import visibilitat as vis
+    x, y = _A_UTM.transform(lon, lat)
+    cand = []
+    for p in app.mapes.peces.values():
+        if p.nivell != 3:
+            continue
+        c0 = p.dades['capa0']
+        files, cols = c0.shape[:2]
+        cc, ff = np.meshgrid(p.rect[0] + (np.arange(cols) + 0.5) * p.res, p.rect[3] - (np.arange(files) + 0.5) * p.res)
+        dins = (c0[..., 3] & BIT_EDIFICI) != 0
+        ok = (np.hypot(cc - x, ff - y) < radi_m) & (c0[..., 0] != vis.SENSE) & (dins if terrat else ~dins)
+        cand += list(zip(cc[ok], ff[ok]))
+    if not cand:
+        return []
+    rng = np.random.default_rng(llavor)
+    tria = rng.choice(len(cand), size=min(n, len(cand)), replace=False)
+    out = []
+    for i in tria:
+        lo, la = _A_LATLON.transform(*cand[i])
+        out.append((float(la), float(lo)))
+    return out
+
+
+def millor_proper(app, lat, lon, radi_m, terrat=False):
+    """El pixel de carrer (o de terrat) amb mes temps observable a menys de radi_m, de les peces carregades."""
     from basecode.mapes import BIT_EDIFICI, _A_UTM, _A_LATLON
     from dades import visibilitat as vis
     x, y = _A_UTM.transform(lon, lat)
@@ -130,7 +165,8 @@ def millor_proper(app, lat, lon, radi_m):
         files, cols = c0.shape[:2]
         x0, y1 = p.rect[0], p.rect[3]
         cc, ff = np.meshgrid(x0 + (np.arange(cols) + 0.5) * p.res, y1 - (np.arange(files) + 0.5) * p.res)
-        ok = (np.hypot(cc - x, ff - y) < radi_m) & (c0[..., 0] != vis.SENSE) & ((c0[..., 3] & BIT_EDIFICI) == 0)
+        dins = (c0[..., 3] & BIT_EDIFICI) != 0
+        ok = (np.hypot(cc - x, ff - y) < radi_m) & (c0[..., 0] != vis.SENSE) & (dins if terrat else ~dins)
         if ok.any():
             v = np.where(ok, c0[..., 0].astype(int), -1)
             k = np.unravel_index(np.argmax(v), v.shape)

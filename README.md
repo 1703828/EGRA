@@ -185,7 +185,8 @@ falta (`basecode/detall.py`), sense aturar la navegació:
 2. **Edificis** (Catastro, la cel·la de 3 × 3 km), si es veuen a la vista actual: primer amb altures
    **estimades** (plantes × 3 m) i, quan arriben les dades, amb altures **mesurades** amb LiDAR (secció
    *Edificis*).
-3. **Mapa de visibilitat de detall**, si el mapa es mostra (secció *Mapa de visibilitat*).
+3. Les dades dels **mapes de l'eclipsi**, si se'n mostra un: les prepara `basecode/mapes.py` segons tota la vista
+   (secció *Mapes de l'eclipsi*).
 La fotografia aèria ja arribava a tot arreu i no canvia (secció *Fotografia aèria*).
 
 Les dades es desen al disc i es reutilitzen (tornar a un lloc és immediat). Llegir-les i preparar-les es fa en
@@ -325,27 +326,32 @@ l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
 - **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar. Marques al punt triat:
   inici i final (groc), fase central (lila), màxim (blanc) i posta (taronja); a sota, les hores.
 
-### Mapa de visibilitat de l'eclipsi (on anar a veure'l)
+### Mapes de l'eclipsi (on anar a veure'l)
 
-Per a cada punt del relleu, si el relleu tapa el Sol durant l'eclipsi: el centre del Sol es veu si queda per
-sobre de l'horitzó en la seva direcció (des dels ulls, a 1,7 m; amb la curvatura de la Terra i el relleu llunyà
-fins a 200 km). No depèn de la llum. Tres opcions al panell:
-- **Al màxim**: tapat, menys de mig Sol, més de mig Sol o sencer (les classes de la capa del CNIG).
-- **Totalitat visible**: segons de totalitat (o anularitat) que es veuen sense que el relleu tapi el Sol.
-- **Instant actual**: segueix la barra de temps: on el relleu tapa el Sol, la part que en tapa la Lluna i la
-  fase central.
+Panell *Eclipsi*, secció *Mapes* (definicions completes al pla, O4.1). Llegendes amb llindars fixos: no canvien amb
+el zoom ni amb l'eclipsi; «sense color» vol dir sense dades. Cap mapa té en compte la meteorologia.
+- **Ocultació (Lluna)**: part del Sol tapada per la Lluna, *al màxim* (graella de 2 km) o *ara* (calculada a cada
+  punt). Bandes de 10 en 10 % i més fines per sobre del 90 %; la totalitat (o l'anularitat), a part.
+- **Temps observable**: part de C1–C4 amb alguna part del Sol lliure d'obstacles (després de la posta no compta; la
+  totalitat sí que compta), o el mateix per a la fase central. És un resum de tot l'eclipsi: no canvia amb l'hora.
+- **Sol tapat pel relleu**: *ara* (sencer, en part, tapat pel relleu o els obstacles, sota l'horitzó) o *al màxim*
+  (les classes de la capa del CNIG).
+- **Ombra de la Lluna**: la fase central ara, les corbes de la penombra i el recorregut de la fase central.
 
-Es calcula la primera vegada que es demana per a cada terreny i eclipsi (en segon pla; la península, ~20 min; una
-zona de 5 m feta a mà, 15–30 min; un lloc de 6 × 6 km, ~1 min) i es desa a `data/cache/visibilitat_*.npz`. Per
-tenir-los preparats: `python scripts/preparar_visibilitat.py [2026 2027 2028]`. Comprovació:
-`python scripts/validar_visibilitat.py <MDT> [--cnig]`. Aquest mapa només té el relleu del MDT.
+Les dades dels mapes del temps observable i del relleu són peces per nivells, independents del terreny que es
+dibuixa: N0 la península (200 m), N1 blocs de 24 km (25 m, `dades/blocs25.py`), N2 cel·les de 3 km (5 m) i N3 peces
+d'1 km amb els obstacles mesurats (terra + alçària LiDAR: edificis i vegetació, 2 m). A cada punt es veu la més
+detallada que hi ha; quines calen surt de la mida d'un píxel de la pantalla sobre el terra (també amb la càmera
+inclinada). Es preparen en segon pla i queden al disc (`data/cache/visibilitat_*.npz`). El terreny mostra el valor
+del carrer i les cobertes dels edificis, el del terrat (casella *Terrats*). *Mapa al punt d'observació* mostra la
+consulta del punt (temps visible, fase central, intervals, dades i obstacles) i la desa a
+`data/exportacions/consultes.csv`. Per tenir la península preparada: `python scripts/preparar_visibilitat.py
+[2026 2027 2028]` (~20 min per eclipsi; el 2027, més). Comprovacions: `prova_mapes.py`, `prova_consulta.py`,
+`validar_visibilitat.py`, `validar_temps_visibilitat.py`. Captures: `python scripts/captura_mapes.py`.
 
-**Mapa de detall (edificis i vegetació).** Mentre el mapa es mostra, a la cel·la de 3 × 3 km del punt de detall es
-calcula el mateix amb els obstacles mesurats: terra + alçària LiDAR (ICGC a 2 m a Catalunya, IGN a 2,5 m a la resta;
-els arbres compten si la font els té) i els ulls sobre els terrats a les cel·les d'edifici. Mentrestant es veu el
-mapa del relleu, i el panell diu què s'està calculant. La UAB es tracta igual que la resta (model d'alçàries de
-l'ICGC); el núvol de punts de la UAB (`scripts/visibilitat_lidar.py`, 1 m) només serveix per validar-lo. Les altures estimades per plantes **no** hi entren. Limitacions: fora d'Espanya el
-MDT val 0; les dates de les fonts (IGN, fins a 15 anys); sense refracció terrestre.
+**Vegetació i objectes (LiDAR)** (panell *Càmera*): la mateixa superfície dels obstacles dibuixada amb un geometry
+shader (`basecode/vegetacio.py`): una columna per cel·la de 2 m. A *Avançat*, la mateixa vegetació amb instancing,
+per comparar-ne el cost (més lent).
 
 ### Com es calcula l'eclipsi (`dades/`)
 
@@ -391,6 +397,8 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   terrain.py             Relleu d'un MDT: mode globus (posat sobre la Terra) i mode pla (scripts)
   astres.py              El Sol (amb limbe i granulació), el seu halo i la Lluna (amb textura)
   ombres_relleu.py       Ombres del relleu (shadow mapping) a la zona de 5 m
+  mapes.py               Mapes de l'eclipsi: peces per nivells, petjada de la vista, llegendes i consulta
+  vegetacio.py           Vegetacio mesurada (LiDAR) amb un geometry shader (i el mode d'instancing)
   paret_cub.py           Les parets translúcides del cub de navegació
   edificis.py            Els edificis (volums opacs) de la zona de detall
   control_ratoli.py      Ratolí capturat per mirar (Tab), sensibilitat, roda i trackpad
@@ -416,6 +424,7 @@ dades/                   Lectura i càlcul de dades, sense OpenGL:
   llocs.py               Llocs nous amb detall (doble clic): relleu i edificis en segon pla
   eclipsis.py            Els tres eclipsis (data, tipus, efemèrides, hora local)
   visibilitat.py         Mapa de visibilitat: circumstàncies en graella i horitzó cap al Sol per a cada píxel
+  blocs25.py             Blocs del relleu de 25 m (nivell N1 dels mapes)
   teselles.py            Fotografia aèria: coordenades Web Mercator, descàrrega en fils i memòria cau
   eclipse_data.py        Lectura de les dades de l'eclipsi del CNIG
 scripts/                 Descàrregues, captures, comprovacions i l'exercici 1.0 (veure secció 5)
@@ -514,7 +523,14 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `validar_visibilitat.py` | Mapa de visibilitat d'un MDT: circumstàncies de la graella contra el model punt a punt, marge al màxim i hores contra un raig exacte; amb `--cnig`, classes contra la capa del CNIG |
 | `descarregar_lidar.py` | Baixa el LiDAR de l'ICGC al voltant d'un punt (`uab`: 3 × 3 km) i en fa rasters d'1 m (superfície, terra, edificis); els LAZ s'esborren (`data/lidar/`) |
 | `comparar_altures.py` | Altures dels edificis estimades amb el Catastro contra les del LiDAR, i terra del LiDAR contra el MDT de l'IGN |
-| `preparar_visibilitat.py` | Precalcula els mapes de visibilitat de la península i les zones de detall (per eclipsi) |
+| `preparar_visibilitat.py` | Precalcula el mapa de la península (N0) per eclipsi; `--zones`, les zones de 5 m senceres |
+| `prova_mapes.py` | Recorregut R1 (península, Vallès a 40 i 10 km inclinada, UAB a 500 m, cel·la veïna, tornar): cobertura del mapa, nivell de dades i temps per fotograma; `--etiqueta` per comparar |
+| `prova_consulta.py` | Consulta d'un punt contra el raig exacte (UAB, Cerdanyola i el millor carrer a 500 m) i exportació CSV |
+| `validar_temps_visibilitat.py` | Resolució temporal dels intervals del mapa contra un raig exacte cada 10 s (interrupcions, transicions) |
+| `captura_mapes.py` | Captures dels quatre mapes i modes a tres escales (`captures/mapes/`) |
+| `estudi_instancing.py` | Cost de cada passada (GPU) i malla del Catastro contra caixes instanciades (temps, memòria, fidelitat de l'horitzó) |
+| `estudi_vegetacio.py` | Capçades al LiDAR de la UAB i coherència de formes simplificades amb el càlcul (horitzó) |
+| `estudi_vegetacio_gpu.py` | Vegetació amb geometry shader contra instancing (temps de GPU i memòria) |
 | `prova_llocs.py` | Llocs nous amb doble clic: claus, cobertura i esborrat dels antics; UAB i mar sense lloc nou; Manresa (o, amb `--xarxa`, Igualada preparada de nou) en segon pla, observador sobre el relleu de 5 m, espera a la pausa |
 | `prova_trajectoria.py` | Sense finestra: la trajectòria guiada no travessa la Terra, la Lluna ni el Sol, és contínua, enquadra cada tram i és reversible, a les sis ubicacions i 16 hores; límits de la mirada |
 | `comparar_nasa.py` | Compara el model amb el calculador de circumstàncies locals de la NASA (`--calcular`: torna a executar el calculador, macOS i xarxa; sense opcions: fa servir `data/nasa/circumstancies_nasa.csv`) |
