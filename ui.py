@@ -7,13 +7,14 @@ GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. imgui es una
 
 Els panells nomes tenen controls (sense textos d'explicacio, peticio de l'equip del 30/10), separats en dos (peticio
 de l'equip de l'1/11):
-  - "Eclipsi": quin eclipsi, fase i velocitat, punt d'observacio (amb el nom del lloc), mapa de visibilitat, linies
-    de l'ombra de la Lluna i capes del CNIG.
-  - "Camera": vista, on es la camera (alcada sobre el terra i altitud), que es dibuixa (foto, edificis, ombres del
-    relleu) i l'estat del detall del lloc; les tecles i les opcions de depuracio en desplegables tancats.
+  - "Eclipsi" (simplificat el 18/11/2026): quin eclipsi, el punt d'observacio (lloc, coordenades, nucli i municipi)
+    i el selector de Mapes (amb els limits de la totalitat del CNIG). L'hora i reproduir son a la barra de temps.
+  - "Camera" (simplificat el 17/11/2026, una sola vista): el boto "Mirar el Sol", les descarregues en segon pla (que
+    es baixa i de quin lloc) amb els FPS, i dos desplegables tancats: que es dibuixa i les tecles.
 Reproduir i pausar es a la barra de temps (a baix).
 Textos sense accents: la font de slimgui no els mostra be (els noms dels serveis, p. ex. Valencia, es mostren sense).
 """
+import re
 import unicodedata
 
 import glfw
@@ -21,23 +22,23 @@ import glm
 import numpy as np
 from slimgui import imgui
 
-from basecode.terrain import (OVERLAYS, ENFOSQUIMENT_MIN, COLORS_ENFOSQUIMENT, COLOR_TOTALITAT,
-                              COLORS_DURADA, COLORS_OMBRES)
+from basecode.terrain import COLOR_TOTALITAT
 from basecode import mapes as M
+from basecode.detall import ALCADA_DETALL_KM
 from dades import eclipse_data, eclipsis, geodesia, noms
 from dades.observador import UBICACIONS
 
-VISTES = ['Explorar', 'Des del terra', 'Espai (guiat)']
 AMPLADA_PANELL = 300
+LLIMITS_TOTALITAT = ('limits', 'Limits de totalitat (CNIG)')   # entrada del selector de Mapes (capa del terreny)
+LLOC_A_PROP_KM = 15.0     # descarregues: "de Cadis" fins a aquesta distancia del nom mes proper; mes enlla, "prop de"
+LLOC_MAX_KM = 150.0       # mes enlla, sense nom (mar, fora d'Espanya)
 # Noms de lloc sobre el mapa (noms_al_mapa): cada nivell es veu amb la camera entre aquestes altures sobre el terra
 # (km): de lluny, nomes els mes importants; de prop, desapareixen (el terreny ja es reconeix i taparien la vista)
 ALCADES_NOMS = {0: (25.0, 4000.0),    # capital de l'Estat i capitals de comunitat autonoma
                 1: (12.0, 1500.0),    # capitals de provincia
                 2: (3.0, 200.0)}      # capitals de comarca de Catalunya
 MIDA_NOMS = {0: 19.0, 1: 16.0, 2: 14.0}          # mida de la lletra (punts)
-VELOCITATS = [1, 10, 60, 300, 1000]   # x temps real ('Auto' a mes: lent a la totalitat)
-COLOR_FASE = {'TOTALITAT': (1.0, 0.45, 0.9, 1.0), 'ANULARITAT': (1.0, 0.6, 0.2, 1.0),
-              'Eclipsi parcial': (1.0, 0.8, 0.3, 1.0)}
+SENSE_DADA = '-'          # dada no disponible (el guio llarg, la font del panell el dibuixa '?': comprovat 18/11)
 COLOR_SUAU = (0.65, 0.68, 0.72, 1.0)
 COLOR_AVIS = (1.0, 0.8, 0.4, 1.0)
 COLOR_ALCADA_ESTIMADA = (0.30, 0.50, 0.95)   # el mateix que BLAU_ESTIMADA (shaders/edifici.frag)
@@ -54,13 +55,10 @@ def build_ui(app):
     imgui.set_window_size((AMPLADA_PANELL, 0), imgui.Cond.ALWAYS)   # amplada fixa, alcada segons el contingut
     imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
     panell_eclipsi(app)
-    panell_temps(app)
     imgui.separator_text("Punt d'observacio")
     panell_punt(app)
     imgui.separator_text('Mapes')
     panell_mapa(app)
-    panell_capes_eclipsi(app)
-    imgui.text_disabled('IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')
     imgui.pop_item_flag()
 
     noms_al_mapa(app)
@@ -70,23 +68,23 @@ def build_ui(app):
 
 
 def panell_camera(app):
-    """Finestra "Camera", a dalt a la dreta: com es mira, on es la camera, que es dibuixa i el detall del lloc."""
+    """Finestra "Camera", a dalt a la dreta: Mirar el Sol, descarregues en segon pla i FPS, que es dibuixa i les
+    tecles (desplegables tancats en arrencar)."""
     w, _ = imgui.get_io().display_size
     imgui.set_next_window_pos((w - 10, 10), imgui.Cond.FIRST_USE_EVER, (1.0, 0.0))
     imgui.set_next_window_size((AMPLADA_PANELL, 0), imgui.Cond.ALWAYS)
     imgui.begin('Camera', False, imgui.WindowFlags.NO_SAVED_SETTINGS)   # sempre a la dreta i desplegat en arrencar
     imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
-    panell_vista(app)
-    imgui.separator_text('On es la camera')
-    panell_posicio(app)
-    imgui.separator_text('Que es dibuixa')
-    panell_capes(app)
-    imgui.separator_text('Detall del lloc')
-    panell_detall(app)
+    imgui.separator_text('Descarregues en segon pla')
+    panell_descarregues(app)
+    if imgui.button('Mirar el Sol', amplada_completa()):
+        app.mirar_el_sol()
+    if glfw.get_time() < app.avis_fins:
+        imgui.text_colored(COLOR_AVIS, sense_accents(app.avis))
+    if imgui.collapsing_header('Que es dibuixa')[0]:
+        panell_capes(app)
     if imgui.collapsing_header('Tecles')[0]:
         panell_tecles(app)
-    if imgui.collapsing_header('Avancat')[0]:
-        panell_avancat(app)
     imgui.pop_item_flag()
     imgui.end()
 
@@ -104,10 +102,10 @@ def preparar_noms(app):
 
 def noms_al_mapa(app):
     """Escriu els noms de lloc importants sobre l'escena (fons d'imgui, sota els panells), segons l'altura de la
-    camera sobre el terra (ALCADES_NOMS), com a Google Maps. Nomes a les vistes aeries (explorar en vol lliure i
-    espai). No s'escriuen els que queden darrere de l'horitzo de la Terra ni els que en taparien un de mes
+    camera sobre el terra (ALCADES_NOMS), com a Google Maps: a prop del terra (per sota de 3 km) no se n'escriu cap.
+    No s'escriuen els que queden darrere de l'horitzo de la Terra ni els que en taparien un de mes
     important (o, a igual nivell, un de mes proper)."""
-    if not app.mostrar_noms or app.vista == 1 or (app.vista == 0 and app.camera_exploracio.caminar):
+    if not app.mostrar_noms:
         return
     if app.noms_mapa is None:
         app.noms_mapa = preparar_noms(app)
@@ -149,27 +147,6 @@ def noms_al_mapa(app):
         dl.add_text(font, mida, (r[0], r[1]), imgui.get_color_u32((1.0, 1.0, 1.0, 1.0)), nom)
 
 
-def distancia(km):
-    """Text d'una distancia: en metres per sota d'1 km, en km per sobre (amb separador de milers)."""
-    if abs(km) < 0.01:
-        return f'{km * 1000:.1f} m'
-    if abs(km) < 1:
-        return f'{km * 1000:.0f} m'
-    if abs(km) < 100:
-        return f'{km:.1f} km'
-    return f'{km:,.0f} km'.replace(',', '.')
-
-
-def panell_posicio(app):
-    """Alcada de la camera sobre la superficie dibuixada (el relleu que hi ha a sota), altitud sobre l'el·lipsoide
-    (aproximadament, sobre el nivell del mar) i coordenades."""
-    lat, lon, alt = (float(v) for v in geodesia.geodesiques(app.camera.posicio))
-    terra = app.altitud_terra_km(lat, lon)
-    linia('Sobre el terra', distancia(alt - terra))
-    linia('Altitud', distancia(alt) + ' (sobre el mar)')
-    linia('Posicio', f"{abs(lat):.4f} {'N' if lat >= 0 else 'S'}, {abs(lon):.4f} {'E' if lon >= 0 else 'O'}")
-
-
 def amplada_completa():
     return (-1.0, 0.0)
 
@@ -203,90 +180,46 @@ def panell_eclipsi(app):
 
 def titol_eclipsi(clau):
     e = eclipsis.dades(clau)
-    return f"{e['titol']}  ({e['tipus']})"
-
-
-def panell_temps(app):
-    fase = app.model.fase(app.hora)
-    imgui.text(eclipse_data.hora_local(app.hora))
-    imgui.same_line()
-    imgui.text_colored(COLOR_FASE.get(fase, (0.8, 0.8, 0.8, 1.0)), fase)
-    imgui.progress_bar(app.tapada, amplada_completa(), f'Sol tapat {app.tapada * 100:.1f} %')
-    if imgui.radio_button('Auto', app.velocitat_auto):
-        app.velocitat_auto = True
-    for k, v in enumerate(VELOCITATS):
-        if k != 3:      # dues files: Auto x1 x10 / x60 x300 x1000
-            imgui.same_line()
-        if imgui.radio_button(f'x{v}', not app.velocitat_auto and app.velocitat == v):
-            app.velocitat, app.velocitat_auto = v, False
-
-
-def panell_vista(app):
-    for i, nom in enumerate(VISTES):
-        if i == 1:
-            imgui.same_line()
-        if imgui.radio_button(nom, app.vista == i):
-            app.canviar_vista(i)
-    if app.vista == 0:
-        cam = app.camera_exploracio
-        if imgui.radio_button('Vol lliure', not cam.caminar):
-            cam.caminar = False
-        imgui.same_line()
-        if imgui.radio_button('Caminar', cam.caminar) and not cam.caminar:
-            app.passar_a_caminar()
-        if glfw.get_time() < app.avis_caminar_fins:
-            imgui.text_colored(COLOR_AVIS, app.avis_caminar)
-            if not cam.caminar and imgui.button("Caminar des del punt", amplada_completa()):
-                app.caminar_des_del_punt()
-    if app.vista == 2:
-        cam = app.camera_guiada
-        imgui.push_item_width(-1.0)
-        canviat, progres = imgui.slider_float('##progres', cam.progres, 0.0, 1.0, cam.tram())
-        imgui.pop_item_width()
-        if canviat:
-            cam.progres = progres
-        if imgui.button('Recentrar', amplada_completa()):
-            cam.recentrar()
-    if imgui.button('Mirar el Sol', amplada_completa()):
-        app.mirar_el_sol()
-    if imgui.button("Ombra de la Lluna des de l'espai", amplada_completa()):
-        app.veure_ombra_des_de_lespai()
+    return f"{e['titol']} ({e['tipus']})"
 
 
 def panell_punt(app):
+    """El punt d'observacio actual (tambe si s'ha triat amb doble clic): el lloc de la llista i, a sota, coordenades,
+    nucli i municipi (dades/noms.py, consultats en un fil quan el punt canvia). El que no se sap, SENSE_DADA."""
     o = app.observador
     noms = [n for n, _, _ in UBICACIONS]
     actual = noms.index(o.nom) if o.nom in noms else -1
     imgui.push_item_width(-1.0)
-    if imgui.begin_combo('##ubicacio', o.nom if actual >= 0 else f'{o.lat:.4f}, {o.lon:.4f}'):
+    if imgui.begin_combo('##ubicacio', o.nom if actual >= 0 else 'Punt triat al terreny'):
         for i, (nom, lat, lon) in enumerate(UBICACIONS):
             if imgui.selectable(nom, i == actual)[0]:
                 app.triar_ubicacio(lat, lon, nom)
         imgui.end_combo()
     imgui.pop_item_width()
+    columna = imgui.calc_text_size('Coordenades: ')[0]
+    for etiqueta, valor in zip(('Coordenades:', 'Nucli:', 'Municipi:'), dades_punt(app)):
+        x0 = imgui.get_cursor_pos_x()
+        imgui.text_disabled(etiqueta)
+        imgui.same_line(x0 + columna)
+        imgui.text_wrapped(sense_accents(valor))
+
+
+def dades_punt(app):
+    """(coordenades, nucli, municipi) del punt d'observacio actual; SENSE_DADA el que no se sap (o es consulta)."""
+    o = app.observador
     lat_ref = o.lat_ref if o.lat_ref is not None else o.lat
     lon_ref = o.lon_ref if o.lon_ref is not None else o.lon
-    linia('Coordenades', f"{lat_ref:.5f} N, {abs(lon_ref):.5f} {'E' if lon_ref >= 0 else 'O'}")
-    if app.consulta_nom is not None:
-        linia('Nom', app.consulta_nom.estat, COLOR_SUAU)
-    elif app.nom_punt is not None:
+    coordenades = SENSE_DADA if lat_ref is None or lon_ref is None else \
+        f"{abs(lat_ref):.5f} {'N' if lat_ref >= 0 else 'S'}, {abs(lon_ref):.5f} {'E' if lon_ref >= 0 else 'O'}"
+    nucli = municipi = SENSE_DADA
+    if app.consulta_nom is None and app.nom_punt is not None:     # mentre es consulta, encara no se sap
         r = app.nom_punt[1]
         n, m = r.get('nucli'), r.get('municipi')
-        if n is None:
-            linia('Nucli', 'cap a prop' if not r.get('errors') else 'no disponible (servei)')
-        elif n[1] == 'dins del nucli':
-            linia('Nucli', f'dins de {n[0]}')
-        else:
-            linia('Nucli', f'{n[0]} (el mes proper, a {n[2]:.1f} km)')
+        if n is not None:
+            nucli = n[0] if n[1] == 'dins del nucli' else f'{n[0]} (a {n[2]:.1f} km)'
         if m is not None:
-            linia('Municipi', f'{m[0]} ({m[1]})')
-        else:
-            linia('Municipi', 'no disponible' + (' (servei)' if any('municipi' in e for e in r.get('errors', [])) else ''))
-    if imgui.button('Tornar al punt', (140, 0)):
-        app.tornar_al_punt()
-    imgui.same_line()
-    if imgui.button('Anar al maxim', amplada_completa()):
-        app.anar_al_maxim()
+            municipi = f'{m[0]} ({m[1]})'
+    return coordenades, nucli, municipi
 
 
 def llegenda(color, text):
@@ -312,16 +245,22 @@ def llegenda_columnes(entrades, columnes=2):
 
 def panell_mapa(app):
     """Quin mapa (basecode/mapes.py), el seu mode, la llegenda (llindars fixos: no canvien amb el zoom) i d'on surten
-    les dades que es veuen."""
+    les dades que es veuen. Al 2026, el selector inclou tambe els limits de la totalitat del CNIG (linies sobre el
+    terreny, basecode/terrain.py): s'hi tria com un mapa mes i en treu els altres."""
     m = app.mapes
-    noms = [n for _, n in M.MAPES]
-    claus = [c for c, _ in M.MAPES]
-    actual = claus.index(m.quin) if m.quin else 0
+    opcions = list(M.MAPES) + ([LLIMITS_TOTALITAT] if eclipsis.actiu() == '2026' else [])
+    noms = [n for _, n in opcions]
+    claus = [c for c, _ in opcions]
+    t = app.peninsula
+    actual = claus.index(m.quin) if m.quin else (claus.index('limits') if t.limits_totalitat and 'limits' in claus else 0)
     imgui.push_item_width(-1.0)
     canviat, nou = imgui.combo('##mapa', actual, noms)
     imgui.pop_item_width()
     if canviat:
-        m.mostrar(claus[nou])
+        limits = claus[nou] == 'limits'
+        m.mostrar('cap' if limits else claus[nou])
+        for terreny in app.terrenys():
+            terreny.limits_totalitat = limits
     if not m.quin:
         return
     modes = M.MODES[m.quin]
@@ -394,7 +333,7 @@ def consulta_mapa(app):
     if r['posta'] is not None:
         imgui.text_disabled(f"Posta {hl(r['posta'])[:5]}: despres no compta.")
     if imgui.button('Desar la consulta (CSV)', amplada_completa()):
-        app.avis_caminar, app.avis_caminar_fins = f'Desada a {app.mapes.exportar(r)}', glfw.get_time() + 4.0
+        app.avis, app.avis_fins = f'Desada a {app.mapes.exportar(r)}', glfw.get_time() + 4.0
     imgui.tree_pop()
 
 
@@ -407,109 +346,123 @@ def panell_capes(app):
         llegenda(COLOR_ALCADA_ESTIMADA, 'Blau: altura estimada (sense LiDAR)')
     _, app.vegetacio.actiu = imgui.checkbox('Vegetacio i objectes (LiDAR)', app.vegetacio.actiu)
     _, app.ombres.actiu = imgui.checkbox('Ombres (relleu i edificis)', app.ombres.actiu)
-    _, app.mostrar_noms = imgui.checkbox('Noms de lloc (vista aeria)', app.mostrar_noms)
+    _, app.mostrar_noms = imgui.checkbox('Noms de lloc (des de l\'aire)', app.mostrar_noms)
+    imgui.text_disabled('Dades: IGN/CNIG, Catastro, NASA/JPL, PNOA, EOX')   # atribucio de les fonts (CLAUDE.md)
 
 
-def panell_capes_eclipsi(app):
-    _, app.ressaltar_ombra = imgui.checkbox("Linies de l'ombra de la Lluna", app.ressaltar_ombra)
-    if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026
-        t = app.peninsula
-        imgui.push_item_width(-1.0)
-        if imgui.begin_combo('##cnig', f'CNIG: {OVERLAYS[t.overlay]}'):
-            for i, nom in enumerate(OVERLAYS):
-                if imgui.selectable(nom, t.overlay == i)[0]:
-                    for terreny in app.terrenys():
-                        terreny.overlay = i
-            imgui.end_combo()
-        imgui.pop_item_width()
-        llegenda_cnig(app)
+def nom_proper(lat, lon):
+    """"de Cadis" / "prop de Cadis": el nom de lloc del mapa (dades/noms.noms_mapa: capitals de comunitat, de provincia
+    i de comarca de Catalunya) mes proper al punt. Es una aproximacio sense xarxa: el lloc on es treballa es dins de la
+    cel·la de 3 x 3 km del punt, no necessariament dins d'aquell municipi."""
+    if not hasattr(nom_proper, 'llista'):
+        nom_proper.llista = [(sense_accents(n), la, lo) for n, _, la, lo in noms.noms_mapa()]
+    if not nom_proper.llista:
+        return f'{lat:.2f}, {lon:.2f}'
+    d, nom = min((noms.distancia_km(lat, lon, la, lo), n) for n, la, lo in nom_proper.llista)
+    if d > LLOC_MAX_KM:
+        return f'{lat:.2f}, {lon:.2f}'
+    de = f"d'{nom}" if nom[0].upper() in 'AEIOU' else f'de {nom}'
+    return de if d < LLOC_A_PROP_KM else f'prop {de}'
 
 
-def panell_detall(app):
-    """Quin detall hi ha al punt de detall (el que es mira explorant, o el punt d'observacio), per separat."""
+def descarregues(app):
+    """Que es fa en segon pla ara mateix: [(text, fraccio)], una entrada per feina, a partir de les feines reals:
+    basecode/detall.py (relleu de 5 m, edificis, altures LiDAR), basecode/mosaic.py (teselles de foto que s'estan
+    baixant de la xarxa), basecode/mapes.py, basecode/vegetacio.py i la consulta del nom del lloc. "Descarregant" vol
+    dir que la feina baixa dades d'un servei (IGN, Catastro, PNOA...); "Preparant" o "Calculant", que treballa amb
+    dades del disc. fraccio (0..1) es el progres real quan se sap: teselles del lot de fotografies, o el "2/5" o
+    "3 de 8" que la feina escriu al seu estat (fraccio_feina); si la feina no en dona, None (barra indeterminada)."""
+    punt = app.detall.punt
+    on = lambda f: nom_proper(*(getattr(f, 'lloc', None) or punt)) if (getattr(f, 'lloc', None) or punt) else ''
+    linies = []
+    d = app.detall.feines
+    textos = {'relleu': 'Descarregant el relleu (5 m) {}', 'edificis': 'Descarregant edificis {}',
+              'alcades': 'Descarregant les altures dels edificis (LiDAR) {}', 'zona': 'Carregant el relleu {}',
+              'malla': 'Preparant edificis {}', 'carregar_edificis': 'Carregant edificis {}',
+              'cobertes': 'Preparant les cobertes dels edificis {}'}
+    for tipus, text in textos.items():
+        if tipus in d:
+            linies.append((text.format(on(d[tipus])) + '...', fraccio_feina(d[tipus])))
+    mosaic = app.mosaic
+    if mosaic.actiu and mosaic.descarregador.baixant:
+        lloc = punt or app.camera.geodesiques()[:2]
+        linies.append((f'Descarregant fotografies {nom_proper(*lloc)}...', mosaic.descarregador.progres()))
+    m = app.mapes
+    textos = {'relleu': 'Descarregant el relleu del mapa {}', 'bloc': 'Descarregant el relleu (25 m) del mapa {}',
+              'superficie': 'Preparant els obstacles del mapa {}', 'calcular': 'Calculant el mapa de visibilitat {}',
+              'llegir': 'Llegint el mapa de visibilitat'}
+    vistos = set()
+    for (tipus, _), f in m.feines.items():
+        if tipus in textos and tipus not in vistos:
+            vistos.add(tipus)
+            linies.append((textos[tipus].format(on(f)).strip() + '...', fraccio_feina(f)))
+    if m.feina_graella is not None:
+        linies.append(("Calculant les circumstancies de l'eclipsi...", fraccio_feina(m.feina_graella)))
+    if app.vegetacio.feines:
+        linies.append((f'Preparant la vegetacio {on(next(iter(app.vegetacio.feines.values())))}...', None))
+    if app.consulta_nom is not None:
+        linies.append(('Consultant el nom del punt d\'observacio (IGN)...', None))
+    return linies
+
+
+def fraccio_feina(f):
+    """Progres d'una feina a partir del seu estat: "(2/5, Catastro)" o "tros 3 de 8" -> la part ja acabada (1/5,
+    2/8: la que s'esta fent encara no compta). None si l'estat no porta cap comptador."""
+    r = re.search(r'(\d+)\s*(?:/|de)\s*(\d+)', getattr(f, 'estat', '') or '')
+    if r is None or int(r.group(2)) == 0:
+        return None
+    return min(max((int(r.group(1)) - 1) / int(r.group(2)), 0.0), 1.0)
+
+
+def motiu_sense_edificis(app):
+    """Per que no es veuen edificis al punt de detall (el que mira la camera), o '' si n'hi ha o s'estan preparant.
+    Surt de l'estat de basecode/detall.py: descarrega fallada (no es torna a provar sola en aquesta sessio), zona sense
+    Catastro estatal, camera massa amunt (el detall es prepara a menys de 15 km), mar, o l'opcio desactivada."""
     e = app.detall.estat
-    for etiqueta, clau in (('Terreny', 'terreny'), ('Foto', 'foto'), ('Edificis', 'edificis'), ('Mapa', 'mapa')):
-        text = e.get(clau, '')
-        actiu = any(p in text for p in ('preparant', 'Baixant', 'Llegint', 'calculant', 'mesurant', 'Horitzo',
-                                        'Circumst', 'baixant'))
-        linia(etiqueta, text or '-', COLOR_AVIS if actiu else None)
+    text = e.get('edificis', '')
+    terreny = e.get('terreny', '')
+    if app.camera.alcada_sobre_terra() > ALCADA_DETALL_KM:     # basecode/detall.py: per sobre no es prepara res
+        return f'la camera es massa amunt (es carreguen a menys de {ALCADA_DETALL_KM:.0f} km del terra)'
+    if any(text.startswith(p) for p in ('estimades', 'mesurades', 'preparant', 'llegint')) and \
+            app.edificis is not None and app.edificis.visible:
+        return ''
+    if any(t in app.detall.feines for t in ('relleu', 'edificis', 'zona', 'malla', 'carregar_edificis')):
+        return ''
+    if terreny.startswith('200 m'):    # sense relleu de 5 m: mar, fora d'Espanya o error del relleu
+        return terreny
+    return text
 
 
-def llegenda_cnig(app):
-    t = app.peninsula
-    if t.overlay == 1:
-        passos = [ENFOSQUIMENT_MIN + (1 - ENFOSQUIMENT_MIN) * k / 3 for k in range(4)]
-        for color, valor in zip(COLORS_ENFOSQUIMENT, passos):
-            llegenda(color, f'{valor * 100:.1f} %')
-        llegenda(COLOR_TOTALITAT, '100 %')
-    elif t.overlay == 2:
-        for k, color in enumerate(COLORS_DURADA):
-            llegenda(color, f'{t.durada_min + (t.durada_max - t.durada_min) * k / 4:.0f} s')
-    elif t.overlay == 3:
-        for classe, color in enumerate(COLORS_OMBRES):
-            llegenda(color, eclipse_data.CLASSES_OMBRES[classe])
+def panell_descarregues(app):
+    """Les feines en segon pla (descarregues()), cadascuna amb la seva barra de progres, i els FPS. Sense progres
+    conegut, la barra es indeterminada (fraccio negativa: imgui la mou d'un costat a l'altre, sense percentatge).
+    Una feina fallada no es torna a provar en aquesta sessio."""
+    linies = descarregues(app)
+    for text, fraccio in linies:
+        imgui.text_wrapped(sense_accents(text))
+        imgui.progress_bar(-glfw.get_time() if fraccio is None else fraccio, (-1.0, 6.0), '')
+    if not linies:
+        imgui.text_disabled('Cap descarrega en curs')
+    motiu = motiu_sense_edificis(app)
+    if motiu:
+        imgui.text_colored(COLOR_AVIS, sense_accents(f'Sense edificis aqui: {motiu}'))
+        if app.detall.fallades and imgui.button('Tornar a provar', amplada_completa()):
+            app.detall.fallades.clear()
+    imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
 
 
 def panell_tecles(app):
-    linies = ['P: reproduir / pausar', 'V: explorar / des del terra', 'G: espai / tornar',
-              'Tab o clic dret: mirar amb el ratoli', 'Fletxes: mirar', 'Esc: alliberar el ratoli; tancar']
-    if app.vista == 0:
-        linies += ['W A S D: moure\'s   E / Q: pujar / baixar', 'Ctrl: rapid   Shift: correr (caminant)',
-                   'Arrossegar: moure el terra', 'Shift + arrossegar: girar', 'Roda: apropar-se',
-                   'Doble clic: anar-hi']
-    elif app.vista == 2:
-        linies += ['Roda o W / S: apropar / allunyar']
-    else:
-        linies += ['Roda: zoom']
-    for linia in linies:
-        imgui.bullet_text(linia)
-
-
-def panell_avancat(app):
-    imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
-    # comparacio didactica (tasca 46.3): les mateixes columnes de vegetacio amb instancing en lloc del geometry shader
-    _, app.vegetacio.instancing = imgui.checkbox('Vegetacio amb instancing (comparacio)', app.vegetacio.instancing)
-    if app.vegetacio.actiu:
-        imgui.text_disabled(f'Vegetacio: {app.vegetacio.n_punts} columnes')
-    t = app.peninsula
-    if eclipsis.actiu() == '2026':      # les capes del CNIG nomes son del 2026: en un altre eclipsi enganyarien
-        canviat, lim = imgui.checkbox('Limits de la totalitat (CNIG)', t.limits_totalitat)
-        if canviat:
-            for terreny in app.terrenys():
-                terreny.limits_totalitat = lim
-        canviat, op = imgui.slider_float('Opacitat CNIG', t.opacitat, 0, 1)
-        if canviat:
-            for terreny in app.terrenys():
-                terreny.opacitat = op
-    canviat, exag = imgui.slider_float('Exageracio', t.exaggeration, 1, 20)
-    if canviat:
-        for terreny in app.terrenys():
-            terreny.exaggeration = exag
-    canviat, filferros = imgui.checkbox('Filferros', t.wireframe)
-    if canviat:
-        for terreny in app.terrenys():
-            terreny.wireframe = filferros
-    if app.cnig is not None and imgui.tree_node('CNIG i model'):
-        panell_cnig(app)
-        imgui.tree_pop()
-
-
-def panell_cnig(app):
-    m, e = app.model, app.cnig
-    if imgui.begin_table('fases', 3, imgui.TableFlags.ROW_BG | imgui.TableFlags.BORDERS_INNER_H):
-        hl = eclipse_data.hora_local
-        for nom, k in (('C1', 'c1'), ('C2', 'c2'), ('Maxim', 'maxim'), ('C3', 'c3'), ('C4', 'c4'), ('Posta', 'posta')):
-            hc, hm = e['hores_tu'].get(k), m.hores.get(k)
-            if hc is None and hm is None:
-                continue
-            imgui.table_next_row()
-            imgui.table_next_column()
-            imgui.text(nom)
-            imgui.table_next_column()
-            imgui.text(hl(hc) if hc is not None else '-')
-            imgui.table_next_column()
-            imgui.text(hl(hm) if hm is not None else '-')
-        imgui.end_table()
+    """Els controls de la camera (una sola vista: main.py, teclat i render; basecode/camera_exploracio.py)."""
+    linies = ['W A S D: moure la camera', 'E / Q: pujar / baixar', 'Ctrl + W A S D E Q: mes rapid',
+              'Fletxes: girar la mirada', 'Arrossegar: moure el terra',
+              'Majuscules + arrossegar: girar al voltant del centre de la pantalla',
+              'Roda: apropar-se o allunyar-se del punt del cursor',
+              'Doble clic al terreny: anar-hi, als ulls i mirant el Sol',
+              'P: reproduir / pausar', 'G: ombra de la Lluna des de l\'espai / tornar',
+              'Tab o clic dret: mirar amb el ratoli', 'Esc: alliberar el ratoli; tancar']
+    for text in linies:
+        imgui.bullet()
+        imgui.text_wrapped(text)
 
 
 def avis_ratoli(app):

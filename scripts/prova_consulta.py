@@ -73,7 +73,6 @@ def main():
         nom, lat, lon = next(u for u in UBICACIONS if part.lower() in u[0].lower())
         print(f'== {nom}', flush=True)
         app.triar_ubicacio(lat, lon, nom)
-        app.canviar_vista(0)
         o = app.observador
         u = app.ulls()
         cam = app.camera_exploracio

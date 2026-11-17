@@ -12,8 +12,8 @@ Nivells de detall del relleu, de lluny a prop: la graella general de la peninsul
 vertexs), un pegat de la peninsula al voltant del punt de detall (200 m, ~100 km), la zona de 5 m
 (~10-20 m entre vertexs) i un pegat de la zona al voltant del punt de detall (5 m, ~2,5 km). Cada nivell
 fa un forat al de sota i, a la vora, la seva altura passa suaument a la del de sota.
-Detall segons la vista (basecode/detall.py): el punt de detall es el que es mira a l'exploracio (o el punt
-d'observacio a les altres vistes); el relleu de 5 m, els edificis (amb altures mesurades) i el mapa de visibilitat de
+Detall segons el que es mira (basecode/detall.py): el punt de detall es el que mira la camera (o el de sota, a prop
+del terra); el relleu de 5 m, els edificis (amb altures mesurades) i el mapa de visibilitat de
 detall d'aquell lloc es preparen i es carreguen en segon pla, sense aturar el dibuix.
 
 Espai de navegacio: un cub fix que conte la Terra, la Lluna i el Sol (dades/navegacio.py); la camera
@@ -25,8 +25,9 @@ a l'Esc.
 Tres coses independents:
   - el temps de simulacio (self.hora, TU): nomes canvia quan es reprodueix (tecla P);
   - el punt d'observacio (self.observador): nomes canvia quan se'n tria un (i no durant la reproduccio);
-  - la camera: la d'exploracio (lliure), la d'observacio (als ulls, 1,7 m sobre el terra) o la guiada
-    (allunyar-se del punt fins a l'espai per una trajectoria fixa, dades/trajectoria.py).
+  - la camera: una sola vista (basecode/camera_exploracio.py), lliure de l'espai fins als ulls (1,7 m sobre el
+    terra). El doble clic al terreny hi posa el punt d'observacio i la camera, als ulls i mirant cap al Sol; des
+    d'alli es continua explorant amb la mateixa camera.
 
 Segueix l'estructura del repte 4: on_init crea la llum, les cameres i l'escena; drawables() son els
 objectes als quals la camera escriu m_proj i m_view; render() els dibuixa i build_ui() crida ui.py.
@@ -39,9 +40,7 @@ On es cada cosa:
     terrain.py                       relleu d'un MDT (mode globus: posat sobre la Terra)
     astres.py                        el Sol, el seu halo i la Lluna
     sol.py                           la llum (Light del basecode)
-    camera_exploracio.py             camera lliure (del terreny a l'espai)
-    camera_observador.py             camera als ulls de l'observador
-    camera_guiada.py                 camera que s'allunya per una trajectoria (roda = progres)
+    camera_exploracio.py             la camera (de l'espai fins als ulls de l'observador)
     camera_orbital.py                camera del mode pla (nomes per als scripts)
     programes.py                     carrega shaders amb opcions (#define)
   dades/                           sense OpenGL: efemerides, geodesia, model de l'eclipsi, observador,
@@ -76,9 +75,7 @@ from slimgui import imgui
 from OpenGL import GL
 
 from basecode.engine import GraphicsEngineBase
-from basecode.camera_exploracio import CameraExploracio, COEF_LOG, direccio_mirada, FOV as FOV_EXPLORACIO
-from basecode.camera_observador import CameraObservador
-from basecode.camera_guiada import CameraGuiada, VELOCITAT_TECLAT as VELOCITAT_GUIADA
+from basecode.camera_exploracio import CameraExploracio, COEF_LOG, FOV as FOV_EXPLORACIO
 from basecode.astres import Esfera, Lluna, SOL, HALO
 from basecode.sol import Sol
 from basecode.terra import Terra
@@ -105,7 +102,9 @@ import ui
 MODELS_DIR = os.path.join(_CODE_DIR, 'models')  # models .obj (cada un a la seva carpeta), com al repte 4
 VELOCITAT_GIR = 60.0               # graus/s amb les fletxes
 ALCADA_ATMOSFERA_KM = 60.0         # per sobre, el cel ja es negre (aproximacio visual)
-INCLINACIO_EN_ARRIBAR = 2.0        # graus: en arribar a un punt amb doble clic, la mirada just sobre l'horitzo
+INCLINACIO_EN_ARRIBAR = 2.0        # graus: en tornar al punt d'observacio, la mirada just sobre l'horitzo
+ALCADA_PRIMERA_PERSONA_KM = 0.1    # per sota d'aquesta altura sobre el terra, els edificis segueixen l'opcio "Edificis";
+                                   # per sobre, "A la vista aeria" (panell, Que es dibuixa)
 # mirada en arrencar (rumb i inclinacio, graus): des de la placa Civica de la UAB, cap al campus (est-sud-est), una
 # direccio oberta; cap a l'oest (on es el Sol al maxim, azimut 286 i 4 graus) hi ha un edifici al davant
 MIRADA_INICIAL = (100.0, 3.0)
@@ -136,12 +135,11 @@ class GraphicsEngine(GraphicsEngineBase):
         self.radi_sol_km, self.radi_lluna_km = RADI_SOL_KM, RADI_LLUNA_KM
         self.terra = self.peninsula = self.zona = self.sol_visible = self.halo = self.lluna = self.paret = None
         self.edificis = None          # edificis de la zona de detall (Catastro), si n'hi ha
-        # edificis: es mostren en primera persona (observacio i caminant) i a la vista aeria (vol lliure i guiada);
-        # cada cas es pot canviar al panell
+        # edificis: es mostren a prop del terra (primera persona) i des de l'aire; cada cas es pot canviar al panell
         self.mostrar_edificis = True
         self.edificis_aeris = True    # (equip, 01/11/2026: tambe a la vista aeria per defecte; es poden amagar)
         self._clau_edificis = None
-        self.mostrar_noms = True      # noms de lloc importants sobre el mapa a les vistes aeries (ui.noms_al_mapa)
+        self.mostrar_noms = True      # noms de lloc importants sobre el mapa, vist des de l'aire (ui.noms_al_mapa)
         self.noms_mapa = None         # [(nom, nivell, posicio ECEF)], es prepara el primer cop que es dibuixen
         self.usar_ortofoto = True     # color del terra de les zones de detall: fotografia aeria (si n'hi ha)
         # mapes de l'eclipsi (objectius O3 i O4): basecode/mapes.py (les dades es preparen en segon pla segons la
@@ -155,10 +153,11 @@ class GraphicsEngine(GraphicsEngineBase):
         cami = {n: c for n, c, _ in TERRENYS}
         self.peninsula = Terrain(self, cami['Peninsula'], globus=True)
         self.peninsula.exaggeration = 1.0
-        self.peninsula.limits_totalitat = False   # les capes tecniques, nomes des de l'apartat Avancat
+        self.peninsula.limits_totalitat = False   # capa tecnica: una opcio del selector de Mapes (ui.py)
         self.zona, self.nom_zona = None, None
-        self.vista = 1                     # index a ui.VISTES: 0 exploracio, 1 observador, 2 guiada
         self.camera_exploracio = None
+        self.ulls_fixats = None            # posicio on s'ha posat la camera als ulls (veure seguir_ulls)
+        self.abans_espai = None            # tecla G: on era la camera abans d'anar a l'espai (per tornar-hi)
         self.detall = Detall(self)
         self.vegetacio = Vegetacio(self)   # vegetacio mesurada (LiDAR) amb un geometry shader; desactivada d'entrada
         self.terra = Terra(self)
@@ -188,16 +187,13 @@ class GraphicsEngine(GraphicsEngineBase):
         self.cub = cub_navegacio(self.ef, FOV_EXPLORACIO)
         self.ratoli = ControlRatoli(self)
         self.esc_premuda = False
-        self.avis_caminar, self.avis_caminar_fins = '', -1.0   # resultat de passar a caminar (panell)
+        self.avis, self.avis_fins = '', -1.0   # avis temporal al panell Camera (p. ex. consulta desada)
 
-        # --- cameres: comencem des del terra mirant cap al campus (MIRADA_INICIAL; abans, cap al Sol, que a la
-        # UAB queda darrere d'un edifici). El boto "Mirar el Sol" hi gira la mirada
-        self.camera_observador = CameraObservador(self)
-        self.camera_observador.mirar(*MIRADA_INICIAL)
-        self.camera_exploracio = CameraExploracio(self, self.ulls())
-        self.posar_exploracio_sobre_el_punt()
-        self.camera_guiada = CameraGuiada(self)
-        self.camera = self.camera_observador
+        # --- camera: comencem als ulls de l'observador mirant cap al campus (MIRADA_INICIAL; cap al Sol, a la UAB,
+        # hi ha un edifici al davant). El boto "Mirar el Sol" hi gira la mirada
+        self.camera_exploracio = CameraExploracio(self, self.ulls(), *MIRADA_INICIAL)
+        self.camera = self.camera_exploracio
+        self.posar_als_ulls()
 
         self.lluna = Lluna(self)
         self.sol_visible = Esfera(self, color=(1.0, 0.96, 0.85), mode=SOL)
@@ -223,8 +219,7 @@ class GraphicsEngine(GraphicsEngineBase):
         if amplada == 0 or alcada == 0:  # finestra minimitzada
             return
         self.ctx.viewport = (0, 0, amplada, alcada)
-        for cam in (self.camera_exploracio, self.camera_observador, self.camera_guiada):
-            cam.aspect_ratio = amplada / alcada
+        self.camera.aspect_ratio = amplada / alcada
         self.camera.update()
 
     # ------------------------------------------------------------ territori i observador
@@ -243,8 +238,9 @@ class GraphicsEngine(GraphicsEngineBase):
         return 0.0
 
     def primera_persona(self):
-        """Observacio des del terra o caminant: la vista on els edificis fan l'horitzo."""
-        return self.vista == 1 or (self.vista == 0 and self.camera_exploracio is not None and self.camera_exploracio.caminar)
+        """La camera a prop del terra (menys d'ALCADA_PRIMERA_PERSONA_KM): els edificis fan l'horitzo."""
+        cam = self.camera_exploracio
+        return cam is not None and cam.alcada_sobre_terra() < ALCADA_PRIMERA_PERSONA_KM
 
     def actualitzar_edificis(self):
         """Edificis visibles segons la vista (primera persona o aeria) i les opcions del panell. Nomes actua quan
@@ -264,16 +260,6 @@ class GraphicsEngine(GraphicsEngineBase):
         (amagats, es pot passar a traves, com es veu)."""
         e = self.edificis
         return e.obstacles if e is not None and e.visible else None
-
-    def altitud_caminable_km(self, lat, lon):
-        """Com altitud_terra_km, pero nomes on hi ha relleu de terra dibuixat (el del terreny mes detallat que
-        conte el punt): None al mar, fora d'Espanya o fora de tots els terrenys. Per caminar."""
-        for t in reversed(self.terrenys()):
-            if t.conte(lat, lon):
-                if not t.es_terra(lat, lon):
-                    return None
-                return t.altitud_latlon(lat, lon) / 1000.0 * t.exaggeration
-        return None
 
     def triar_punt(self, lat, lon, nom=''):
         """Posa l'observador al punt (lat, lon) i hi calcula, tot alhora, el model del Sol i la Lluna
@@ -310,14 +296,18 @@ class GraphicsEngine(GraphicsEngineBase):
 
     def reubicar_observador(self):
         """Quan arriben edificis nous (o les altures mesurades) a la zona de l'observador, el punt es torna a triar:
-        si ara queda dins d'un edifici, els ulls van a l'exterior. En reproduir, la ubicacio no canvia."""
+        si ara queda dins d'un edifici, els ulls van a l'exterior. En reproduir, la ubicacio no canvia. Si la camera
+        era als ulls, s'hi queda (als ulls nous)."""
         o = self.observador
         if self.reproduint or o is None:
             return
+        als_ulls = self.camera_als_ulls()
         lat, lon = (o.lat_ref, o.lon_ref) if o.lat_ref is not None else (o.lat, o.lon)
         nom_punt = self.nom_punt
         self.triar_punt(lat, lon, o.nom)
         self.nom_punt = nom_punt
+        if als_ulls:
+            self.posar_als_ulls()
 
     def actualitzar_nom(self):
         """Recull el nom del lloc quan la consulta acaba."""
@@ -327,17 +317,15 @@ class GraphicsEngine(GraphicsEngineBase):
             self.nom_punt = (c.clau, c.resultat if c.resultat is not None else dict(nucli=None, municipi=None,
                                                                                      errors=[c.error]))
 
-    def anar_al_punt(self, lat, lon):
-        """Doble clic a l'exploracio: l'observador va al punt i la vista passa directament a primera persona
-        (observacio des del terra, amb els edificis), mirant cap on mirava la camera, en horitzontal: es veu
-        l'horitzo d'aquell lloc. La camera d'exploracio no es mou (V hi torna). Caminant, el doble clic nomes
-        tria el punt (ja s'es en primera persona). Durant la reproduccio, com triar_punt, no fa res."""
-        ce = self.camera_exploracio
-        if not self.triar_punt(lat, lon):
+    def anar_al_punt(self, lat, lon, nom=''):
+        """Doble clic al terreny (i desplegable d'ubicacions): el punt d'observacio va al punt i la camera als seus
+        ulls (1,7 m sobre el terra), mirant cap al Sol. Es la mateixa camera: des d'alli es continua explorant.
+        Durant la reproduccio, com triar_punt, no fa res (avis al panell)."""
+        if not self.triar_punt(lat, lon, nom):
+            self.avis, self.avis_fins = 'En reproduccio el punt no canvia (P per pausar)', glfw.get_time() + 3.0
             return False
-        if self.vista == 0 and not ce.caminar:
-            self.camera_observador.mirar(ce.rumb, INCLINACIO_EN_ARRIBAR)
-            self.canviar_vista(1)
+        self.posar_als_ulls()
+        self.mirar_el_sol()
         return True
 
     def text_mapa(self):
@@ -345,17 +333,8 @@ class GraphicsEngine(GraphicsEngineBase):
         return self.mapes.text_estat() if self.mapes.quin else ''
 
     def triar_ubicacio(self, lat, lon, nom):
-        """Desplegable del panell: l'observador va a la ubicacio i la camera d'exploracio se situa a sobre,
-        perque en passar a explorar (V) es parteixi del lloc triat. La mirada als ulls es conserva.
-        (El doble clic explorant crida nomes triar_punt: la camera es queda on es.)
-        A la vista guiada, la trajectoria es torna a calcular per al punt nou (amb el mateix progres i la
-        mateixa mirada): la camera salta al lloc triat, que es el que s'ha demanat."""
-        if self.triar_punt(lat, lon, nom):
-            self.posar_exploracio_sobre_el_punt()
-            if self.vista == 2:
-                self.camera_guiada.ancorar()
-            return True
-        return False
+        """Desplegable del panell: com el doble clic (anar_al_punt), amb el nom de la ubicacio."""
+        return self.anar_al_punt(lat, lon, nom)
 
     def ulls(self):
         """Posicio dels ulls de l'observador (ECEF, km): 1,7 m sobre els triangles que es dibuixen en
@@ -363,87 +342,68 @@ class GraphicsEngine(GraphicsEngineBase):
         o = self.observador
         return geodesia.ecef(o.lat, o.lon, self.altitud_terra_km(o.lat, o.lon) + ALCADA_ULLS_KM)
 
-    # ------------------------------------------------------------ vistes i temps
+    # ------------------------------------------------------------ camera i temps
 
-    def canviar_vista(self, vista):
-        """Les cameres d'exploracio i d'observacio conserven la seva posicio i orientacio. En entrar a la
-        guiada, la trajectoria es calcula amb l'hora actual i es mira la referencia del tram (enquadrament
-        inicial); el progres es conserva."""
-        if vista == 2 and self.vista != 2:
-            self.camera_guiada.recentrar()
-        self.camera_exploracio.aturar_moviment()   # el zoom o la inercia pendents no continuen en tornar-hi
-        if vista != 0 and self.vista == 0:
-            # el relleu i els edificis del punt d'observacio (son carregats: la zona de l'observador no es descarrega)
-            o = self.observador
-            abans = self.detall.cami_obs
-            self.detall.situar(o.lat, o.lon, observador=True)
-            if self.detall.cami_obs != abans:
-                self.reubicar_observador()     # el relleu de 5 m hi ha arribat mentre s'explorava
-        self.vista = vista
-        self.camera = (self.camera_exploracio, self.camera_observador, self.camera_guiada)[vista]
-        self.actualitzar_edificis()
+    def posar_als_ulls(self):
+        """La camera als ulls de l'observador (sense canviar la mirada). Mentre no es mogui, segueix els ulls si el
+        relleu de sota canvia (seguir_ulls): p. ex. quan arriba el relleu de 5 m d'aquell lloc."""
+        cam = self.camera
+        cam.aturar_moviment()
+        cam.posicio = self.ulls()
+        self.ulls_fixats = cam.posicio.copy()
+
+    def camera_als_ulls(self):
+        """Si la camera es als ulls de l'observador i no s'ha mogut des que s'hi ha posat."""
+        return self.ulls_fixats is not None and np.linalg.norm(self.camera.posicio - self.ulls_fixats) < 1e-6
+
+    def seguir_ulls(self):
+        """Cada fotograma: si la camera es als ulls (camera_als_ulls), s'hi torna a posar (el relleu dibuixat pot haver
+        canviat). Si l'usuari l'ha moguda, deixa de seguir-los. Girar la mirada no la mou."""
+        if self.ulls_fixats is None:
+            return
+        if not self.camera_als_ulls():
+            self.ulls_fixats = None
+            return
+        self.camera.posicio = self.ulls()
+        self.ulls_fixats = self.camera.posicio.copy()
 
     def mirar_el_sol(self):
-        """Mirar l'eclipsi: orienta la camera activa cap al Sol (on es dibuixa) des d'on es, sense moure-la.
-        Es una accio puntual: despres la mirada torna a ser de l'usuari."""
+        """Orienta la camera cap al Sol (on es dibuixa) des d'on es, sense moure-la. Es una accio puntual:
+        despres la mirada torna a ser de l'usuari (el Sol no se segueix)."""
         cam = self.camera
-        if self.vista == 2:
-            cam.mirar_cap_a(self.sol_ecef)
-            return
-        if self.vista == 0:
-            cam.aturar_moviment()
+        cam.aturar_moviment()
         lat, lon, _ = geodesia.geodesiques(cam.posicio)
         cam.orientar(*geodesia.azimut_elevacio(self.sol_ecef - cam.posicio, float(lat), float(lon)))
 
     def tornar_al_punt(self):
-        """Vista d'observacio al punt triat (amb la mirada que tenia)."""
-        self.canviar_vista(1)
+        """Boto del panell: la camera torna als ulls de l'observador, amb el mateix rumb i la mirada just sobre
+        l'horitzo."""
+        self.posar_als_ulls()
+        self.camera.orientar(self.camera.rumb, INCLINACIO_EN_ARRIBAR)
 
-    def posar_exploracio_sobre_el_punt(self):
-        """Camera d'exploracio a 6 km del punt d'observacio, d'esquena al Sol i mirant cap al punt. Si s'esta
-        caminant, en canvi, la camera es posa als ulls del punt (mateixa mirada que l'observador)."""
-        if self.camera_exploracio.caminar:
-            self.caminar_des_del_punt()
+    def commutar_espai(self):
+        """Tecla G: la primera vegada, la camera va a 12.000 km, entre la vertical del lloc on l'ombra de la Lluna es
+        mes fosca a l'hora actual i el Sol (veu la cara de dia), i mira aquell punt; un enquadrament, sense
+        seguiment. La segona, torna on era (posicio i mirada, tambe als ulls si hi era). El temps no canvia."""
+        cam = self.camera
+        cam.aturar_moviment()
+        if self.abans_espai is not None:
+            posicio, rumb, inclinacio, als_ulls = self.abans_espai
+            self.abans_espai = None
+            cam.posicio = posicio
+            cam.orientar(rumb, inclinacio)
+            if als_ulls:
+                self.posar_als_ulls()
             return
-        o = self.observador
-        az, _ = self.model.sol(self.hora)
-        darrere = direccio_mirada(o.lat, o.lon, az + 180.0, 0.0)
-        _, _, amunt = geodesia.base_local(o.lat, o.lon)
-        self.camera_exploracio.posicio = self.ulls() + 6.0 * darrere + 3.0 * amunt
-        self.camera_exploracio.orientar(az, -25.0)
-
-    def veure_ombra_des_de_lespai(self):
-        """Enquadrament (una sola vegada, sense seguiment): la camera d'exploracio a 12.000 km, entre la
-        vertical del lloc i el Sol (veu la cara de dia), mirant el punt on l'ombra de la Lluna es mes fosca
-        a l'hora actual. El temps no canvia. Si es caminava, passa a vol lliure (es un boto explicit)."""
-        self.camera_exploracio.caminar = False
+        self.abans_espai = (cam.posicio.copy(), cam.rumb, cam.inclinacio, self.camera_als_ulls())
         lat_o, lon_o, _ = punt_ombra(self.hora, self.ef)
         cap_al_sol = self.sol_ecef / np.linalg.norm(self.sol_ecef)
         _, _, amunt = geodesia.base_local(lat_o, lon_o)
         punt = geodesia.ecef(lat_o, lon_o, 0.0)
-        cam = self.camera_exploracio
         direccio = amunt + cap_al_sol
         cam.posicio = punt + 12000.0 * direccio / np.linalg.norm(direccio)
         lat, lon, _ = cam.geodesiques()
-        az, el = geodesia.azimut_elevacio(punt - cam.posicio, lat, lon)
-        cam.orientar(az, el)
-        self.canviar_vista(0)
-
-    def passar_a_caminar(self):
-        """Selector del panell: caminar des d'on es la camera d'exploracio (baixant en vertical al terra) o, si
-        no es pot, deixar-ho dit al panell (cap teletransport)."""
-        fet, text = self.camera_exploracio.entrar_caminar()
-        self.avis_caminar, self.avis_caminar_fins = text, glfw.get_time() + (4.0 if fet else 1e9)
-        return fet
-
-    def caminar_des_del_punt(self):
-        """Accio explicita: la camera d'exploracio als ulls de l'observador, amb la seva mirada, caminant."""
-        ce, co = self.camera_exploracio, self.camera_observador
-        ce.posicio = self.ulls()
-        ce.orientar(co.rumb, co.inclinacio)
-        ce.caminar = True
-        self.avis_caminar_fins = -1.0
-        self.canviar_vista(0)
+        cam.orientar(*geodesia.azimut_elevacio(punt - cam.posicio, lat, lon))
 
     def anar_al_maxim(self):
         """L'hora del maxim de l'eclipsi al punt d'observacio, amb el temps pausat. La camera no es mou."""
@@ -469,8 +429,6 @@ class GraphicsEngine(GraphicsEngineBase):
                 t.overlay, t.limits_totalitat = 0, False
         self.camera_exploracio.posicio = self.camera_exploracio.posicio   # dins del cub nou
         self.actualitzar_astres()
-        if self.vista == 2:
-            self.camera_guiada.ancorar()
 
     def reproduir_pausar(self):
         """Tecla P: nomes posa en marxa o atura el temps. Si ja s'ha arribat al final, no fa res."""
@@ -492,17 +450,14 @@ class GraphicsEngine(GraphicsEngineBase):
             self.hora, self.reproduint = self.ef.final, False
 
     def teclat(self, dt):
-        """P reproduir/pausar, V explorar / observar, G allunyar-se (guiat), Tab capturar o alliberar el
-        ratoli, fletxes girar la mirada (velocitat x dt). A l'exploracio en vol lliure, W A S D desplacen la
-        camera i E / Q la pugen o baixen (Ctrl: mes rapid); caminant, W A S D caminen sobre el relleu (Shift:
-        correr) i E / Q no fan res; a la guiada, W / S s'acosten o s'allunyen per la trajectoria."""
+        """P reproduir/pausar, G anar a l'espai a veure l'ombra de la Lluna / tornar, Tab capturar o alliberar el
+        ratoli, fletxes girar la mirada (velocitat x dt). W A S D desplacen la camera en horitzontal i E / Q la
+        pugen o baixen (Ctrl: mes rapid); la velocitat depen de l'altura (camera_exploracio.py)."""
         if imgui.get_io().want_capture_keyboard:
             return
         tecla = lambda k: glfw.get_key(self.window, k) == glfw.PRESS
-        if imgui.is_key_pressed(imgui.Key.KEY_V, False):
-            self.canviar_vista(0 if self.vista == 1 else 1)
         if imgui.is_key_pressed(imgui.Key.KEY_G, False):
-            self.canviar_vista(1 if self.vista == 2 else 2)
+            self.commutar_espai()
         if imgui.is_key_pressed(imgui.Key.KEY_TAB, False):
             self.ratoli.commutar()
         if imgui.is_key_pressed(imgui.Key.KEY_P, False):
@@ -515,23 +470,12 @@ class GraphicsEngine(GraphicsEngineBase):
         # control del panell (p. ex. arrossegant la barra de temps)
         if not self.ratoli.focus or imgui.is_any_item_active():
             return
-        if self.vista == 0:
-            endavant = tecla(glfw.KEY_W) - tecla(glfw.KEY_S)
-            costat = tecla(glfw.KEY_D) - tecla(glfw.KEY_A)
-            if cam.caminar:     # E / Q no separen la camera del terra
-                if endavant or costat:
-                    correr = tecla(glfw.KEY_LEFT_SHIFT) or tecla(glfw.KEY_RIGHT_SHIFT)
-                    cam.caminar_pas(endavant, costat, dt, correr)
-                return
-            vertical = tecla(glfw.KEY_E) - tecla(glfw.KEY_Q)
-            if endavant or costat or vertical:
-                rapid = 5.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
-                cam.moure(endavant, costat, vertical, dt * rapid)
-        elif self.vista == 2:
-            endavant = tecla(glfw.KEY_W) - tecla(glfw.KEY_S)
-            if endavant:
-                rapid = 3.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
-                cam.moure_progres(-endavant * VELOCITAT_GUIADA * dt * rapid)
+        endavant = tecla(glfw.KEY_W) - tecla(glfw.KEY_S)
+        costat = tecla(glfw.KEY_D) - tecla(glfw.KEY_A)
+        vertical = tecla(glfw.KEY_E) - tecla(glfw.KEY_Q)
+        if endavant or costat or vertical:
+            rapid = 5.0 if (tecla(glfw.KEY_LEFT_CONTROL) or tecla(glfw.KEY_RIGHT_CONTROL)) else 1.0
+            cam.moure(endavant, costat, vertical, dt * rapid)
 
     # ------------------------------------------------------------ escena a cada instant
 
@@ -615,9 +559,9 @@ class GraphicsEngine(GraphicsEngineBase):
                 or (self.mosaic.actiu and self.mosaic.descarregador.pendents() > 0))
 
     def signatura(self):
-        """El que determina la imatge i pot canviar d'un fotograma al seguent: vista, camera i hora."""
+        """El que determina la imatge i pot canviar d'un fotograma al seguent: camera i hora."""
         cam = self.camera
-        return (self.vista, cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapes.quin,
+        return (cam.posicio.tobytes(), bytes(cam.m_view), cam.fov, self.hora, self.mapes.quin,
                 self.mapes.mode_actual(), len(self.mapes.peces), self.vegetacio.actiu, len(self.vegetacio.cel_les))
 
     def repos(self):
@@ -672,6 +616,7 @@ class GraphicsEngine(GraphicsEngineBase):
     def render(self):
         dt = min(self.dt, 0.1)
         self.teclat(dt)
+        self.seguir_ulls()          # als ulls de l'observador, la camera segueix el relleu que hi ha a sota
         self.detall.actualitzar()   # detall segons la vista: es prepara i es carrega en segon pla
         self.mapes.actualitzar()    # mapes de l'eclipsi (les peces que vol la vista, en segon pla)
         self.vegetacio.actualitzar()
@@ -679,21 +624,17 @@ class GraphicsEngine(GraphicsEngineBase):
         self.actualitzar_edificis()
         self.avancar_temps(dt)
         self.actualitzar_astres()
-        # ratoli: amb el ratoli capturat, el moviment gira la mirada (un cop per fotograma, sense dt); la roda
-        # va a la camera activa. L'exploracio processa el ratoli despres de dibuixar (picking)
+        # ratoli: amb el ratoli capturat, el moviment gira la mirada (un cop per fotograma, sense dt). La resta del
+        # ratoli (roda, arrossegar, doble clic) es processa despres de dibuixar (picking)
         dx, dy, roda = self.ratoli.fotograma()
         if dx or dy:
             self.camera.girar_ratoli(dx, dy)
-        if self.vista != 0:
-            self.camera.processar_ratoli(roda, self.ratoli.capturat)
-        else:
-            # si mai la camera queda dins d'un edifici (p. ex. s'han tornat a mostrar els edificis), surt al
-            # punt exterior mes proper; caminant, els ulls sobre el relleu encara que el relleu canvii
-            fora = self.camera.sortir_dels_edificis()
-            if fora:
-                self.avis_caminar, self.avis_caminar_fins = f'Fora de l\'edifici: {fora:.0f} m', glfw.get_time() + 4.0
-            if self.camera.caminar:
-                self.camera.seguir_terra()
+        # si mai la camera queda dins d'un edifici (p. ex. s'han tornat a mostrar els edificis), surt al punt exterior
+        # mes proper; i mai per sota dels ulls, encara que el relleu dibuixat canvii
+        fora = self.camera.sortir_dels_edificis()
+        if fora:
+            self.avis, self.avis_fins = f'Fora de l\'edifici: {fora:.0f} m', glfw.get_time() + 4.0
+        self.camera.no_sota_terra()
         self.camera.update()
         self.actualitzar_cel()
         self.situar_astres()
@@ -715,13 +656,12 @@ class GraphicsEngine(GraphicsEngineBase):
         self.paret.render()  # translucides: despres dels objectes opacs
         self.halo.render()
 
-        if self.vista == 0:
-            # el ratoli es processa just despres de dibuixar: el depth buffer ja es ple.
-            # doble clic: si no s'esta reproduint, l'observador va al punt clicat i es passa a mirar des d'alli
-            punt = self.camera.processar_ratoli(self.punt_sota_cursor, roda, self.ratoli.capturat)
-            if punt is not None:
-                lat, lon, _ = geodesia.geodesiques(punt)
-                self.anar_al_punt(float(lat), float(lon))
+        # el ratoli es processa just despres de dibuixar: el depth buffer ja es ple.
+        # doble clic: si no s'esta reproduint, el punt d'observacio i la camera van al punt clicat (als ulls, cap al Sol)
+        punt = self.camera.processar_ratoli(self.punt_sota_cursor, roda, self.ratoli.capturat)
+        if punt is not None:
+            lat, lon, _ = geodesia.geodesiques(punt)
+            self.anar_al_punt(float(lat), float(lon))
         # FPS: mitjana de cada mig segon (self.dt el calcula GraphicsEngineBase)
         self.frames += 1
         self.temps_fps += self.dt

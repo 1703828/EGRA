@@ -2707,6 +2707,52 @@ servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en di
 càmera inclinada i baixar fins als carrers de la UAB; comprovar que el color no desapareix mai, que la llegenda no
 canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i desar-lo.
 
+### F48 — Una sola vista i panell «Càmera» simplificat (17/11/2026, petició de l'equip) — FET
+
+Petició: una única vista per explorar i baixar fins al terra, sense selectors; doble clic → ulls mirant el Sol; panell
+*Càmera* més curt (descàrregues amb progrés i FPS, *Mirar el Sol*, *Què es dibuixa* i *Tecles* desplegables); *Límits de
+totalitat* al selector de *Mapes*; sense *On és la càmera*, *Detall del lloc*, *Avançat* ni el botó de l'ombra des de
+l'espai.
+
+| Tasca | Què | Estat |
+|---|---|---|
+| 48.1 | Una sola càmera (`camera_exploracio.py`): fora la vista des del terra (`camera_observador`), la guiada (`camera_guiada`), `V`, el mode Caminar i `app.vista`. Pot baixar fins als ulls (`ALCADA_MINIMA_KM = ALCADA_ULLS_KM`); a prop del terra, 1,5 m/s (`VELOCITAT_MINIMA_KM_S`, abans 20 m/s) | `FET` |
+| 48.2 | Doble clic (i llista d'ubicacions): punt d'observació i càmera als ulls, mirant el Sol; la càmera segueix els ulls mentre no es mou (`seguir_ulls`). En reproducció, avís al panell | `FET` |
+| 48.3 | `G`: enquadrament de l'ombra des de l'espai (el que feia el botó) i, un altre cop, tornar on era | `FET` |
+| 48.4 | Panell *Càmera*: *Descàrregues en segon pla* amb barra per feina (progrés real o indeterminat) i FPS, *Mirar el Sol*, *Què es dibuixa* i *Tecles* tancats. `Descarregador.baixant`/`progres()` (`dades/teselles.py`) i `lloc` a les feines de xarxa de `detall.py` | `FET` |
+| 48.4b | Equip: «no surten els edificis i no hi ha descàrregues». No reproduït (Cadis, Sabadell, Vic i la UAB: es baixen i es dibuixen, inspeccionat a captures). Però el panell nou amagava el motiu (abans, a *Detall del lloc*): ara, si no hi ha edificis al punt, *Descàrregues* diu per què (descàrrega fallada amb l'error i botó *Tornar a provar*, sense Catastro estatal, càmera a més de 15 km, mar, opció desactivada) | `FET` (causa de l'equip pendent de confirmar) |
+| 48.5 | *Límits de totalitat (CNIG)* com a opció del selector de *Mapes* (2026; exclusiva amb els mapes) | `FET` |
+| 48.6 | Adaptar a la vista única els scripts que encara fan servir l'API antiga (`canviar_vista`, `camera_observador`, `camera_guiada`, `caminar`): `prova_vistes`, `prova_controls`, `prova_obstacles` (part de caminar), `prova_detall`, `prova_mosaic`, `prova_cel`, `prova_eclipsis`, `prova_noms`, `prova_llocs`, `prova_ortofoto`, `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu`, `estudi_instancing`, `estudi_vegetacio_gpu`. `prova_caminar` és obsolet. Decidir amb l'equip si s'esborren `camera_observador.py`, `camera_guiada.py` i `dades/trajectoria.py` | `PENDENT` |
+
+Decisions preses (d'interpretació, per confirmar amb l'equip):
+- `G` es conserva amb un significat nou dins de la vista única (anar a veure l'ombra des de l'espai i tornar), perquè
+  la petició demanava conservar-la i el botó s'ha tret. `Majúscules` ja no fa córrer (no hi ha mode Caminar).
+- *Límits de totalitat* és una entrada del selector de Mapes i, per tant, no es combina amb un altre mapa.
+- *Edificis* / *A la vista aèria* passen a dependre de l'altura de la càmera (100 m, `ALCADA_PRIMERA_PERSONA_KM`).
+- El lloc de les descàrregues és el nom de `data/noms_mapa.json` més proper (aproximació sense xarxa).
+
+Comprovacions:
+- **Comprovat automàticament:** `scripts/prova_navegacio.py` (18 comprovacions correctes: ulls a l'arrencada, W A S D
+  1,8 m/s als ulls, E/Q i mínim de 1,70 m, fletxes, doble clic a 4 m del punt clicat i 0,00° del Sol, continuar
+  explorant, G anada i tornada exacta, P, textos i fraccions de les descàrregues amb feines simulades).
+  `scripts/prova_mapes.py` (R1): tot correcte.
+- **Inspeccionat visualment:** `captures/proves/panell_camera.png` (panell amb els desplegables oberts i dues barres).
+  Les descàrregues de la prova són feines simulades: les reals (xarxa) no s'han vist al panell.
+- **Proves de l'equip pendents:** amb la finestra, baixar de l'espai fins al carrer amb la roda i W A S D; doble clic
+  en diversos llocs (mirant el Sol, i continuar explorant); G anada i tornada; veure les barres mentre es baixen
+  fotos i edificis d'un lloc nou; triar *Límits de totalitat* a Mapes. Si la navegació a prop del terra és intuïtiva.
+
+### F49 — Panell «Eclipsi» simplificat (18/11/2026, petició de l'equip) — FET
+
+Selector de l'eclipsi («12 d'agost de 2026 (total)»), *Punt d'observació* (llista; *Coordenades*, *Nucli* i *Municipi*
+alineats en columna, del punt actual, «-» quan no se sap) i *Mapes* sense canvis. Retirats: hora/fase, Sol tapat,
+velocitat, *Tornar al punt*, *Anar al màxim*, línies de l'ombra i capes del CNIG.
+- El guió llarg «—» de l'esquema no hi és a la font del panell (es dibuixa «?», **inspeccionat visualment**): «-».
+- L'atribució de les fonts (obligatòria segons `CLAUDE.md`) passa al desplegable *Què es dibuixa*.
+- La velocitat es queda en *Auto* (no hi ha cap control); l'hora es canvia a la barra de temps.
+- **Comprovat automàticament:** `prova_navegacio.py` (22 correctes; coordenades del punt del doble clic).
+  **Inspeccionat visualment:** captura del panell (sense textos tallats). Pendent: prova de l'equip.
+
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
 - 7.2 Animació de la superfície del Sol (**il·lustratiu**).
@@ -2762,3 +2808,5 @@ canvia i que la càmera no s'encalla; obrir «Mapa al punt d'observació» i des
 | 16/11/2026 | O4 en curs: F40, F42 (menys N1) i F43.1–43.6 implementats i comprovats (O4.4). Commits `961bd60`, `611f251`. |
 | 16/11/2026 | O4: N1 (25 m), estudis d'instancing i de vegetació, D94, vegetació amb geometry shader i comparació amb instancing (`b77ccba`). |
 | 16/11/2026 | O4: mesures finals (R1, temps per peça, penínsules del 2027 i el 2028), regressió completa correcta. Pendent: prova de l'equip. |
+| 17/11/2026 | F48 (petició de l'equip): una sola vista (fora la vista des del terra, la guiada, `V` i Caminar), doble clic als ulls mirant el Sol, `G` espai/tornar, panell *Càmera* simplificat amb descàrregues i progrés, *Límits de totalitat* a *Mapes*. 48.6 (adaptar scripts antics) `PENDENT`. Sense commit. |
+| 18/11/2026 | F49: panell *Eclipsi* simplificat (eclipsi, punt d'observació, Mapes). Sense commit. |

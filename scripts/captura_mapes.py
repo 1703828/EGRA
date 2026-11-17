@@ -69,7 +69,6 @@ def main():
     app.canviar_eclipsi(a.eclipsi)
     app.triar_ubicacio(UAB[0], UAB[1], 'UAB, placa Civica')
     app.hora = app.model.hores['maxim'] + a.minuts / 60.0
-    app.canviar_vista(0)
     cam = app.camera_exploracio
     imatges = {}
     for escala, lat, lon, alt, rumb, incl in ESCALES:

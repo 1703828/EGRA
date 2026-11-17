@@ -61,59 +61,42 @@ python scripts/preparar_dades.py
 
 ### Controls
 
-Hi ha tres vistes. **Observar des del terra** posa la càmera als ulls d'una persona al punt
-d'observació, 1,7 m sobre el terra: els ulls no es mouen i la mirada es queda on la deixes (el Sol no
-se segueix sol). **Explorar** és una càmera lliure que es pot moure del terreny fins a l'espai; la
-velocitat s'adapta a l'altura; dins d'Explorar, el panell deixa triar **Vol lliure** o **Caminar** (veure a
-sota). **Allunyar-se fins a l'espai (guiat)** surt del punt d'observació per
-una trajectòria fixa fins a veure la Terra, el sistema Terra–Lluna i el Sol, sense perdre's (veure a sota).
+Hi ha **una sola vista** (simplificació del 17/11/2026): la mateixa càmera va de l'espai fins als ulls d'una persona,
+1,7 m sobre el terra, sense modes separats per volar, caminar o observar des del terra. La velocitat s'adapta a
+l'altura: a 1 km es va a ~1 km/s i a 10.000 km, a ~10.000 km/s; a prop del terra, no baixa d'1,5 m/s (pas de
+caminar). La càmera no baixa mai per sota dels ulls (1,7 m sobre el relleu dibuixat).
 
-| Acció | Explorar | Observar des del terra | Allunyar-se (guiat) |
-|---|---|---|---|
-| Girar la mirada | ratolí capturat (veure a sota) o fletxes; caminant, també arrossegar | ratolí capturat, arrossegar o fletxes (els ulls no es mouen) | ratolí capturat, arrossegar o fletxes |
-| Ratolí a la vista aèria (vol lliure, com Google Earth) | arrossegar: moure el terra (amb inèrcia); `Shift` + arrossegar o botó del mig: girar al voltant del centre i inclinar; arrossegar el cel: mirar | — | — |
-| Moure's | Vol lliure: `W` `A` `S` `D` (endavant, enrere, costats), `E` / `Q` (pujar, baixar), `Ctrl`: més ràpid. Caminar: `W` `A` `S` `D` a 1,5 m/s, `Shift`: córrer | — | `W` / `S`: apropar-se / allunyar-se per la trajectòria |
-| Roda o dos dits amunt/avall al trackpad | Vol lliure: apropar-se o allunyar-se del punt sota el cursor, amb una animació suau (cada pas, la distància ×0,74 o ×1,35; sobre el cel o amb el ratolí capturat, en la direcció de la mirada). Caminar: res | zoom òptic (com uns prismàtics: només canvia el camp de visió) | apropar-se / allunyar-se per la trajectòria (40 passos en total) |
-| Triar el punt d'observació | doble clic al terreny: s'hi va i es passa a observar des del terra, mirant cap on mirava la càmera (`V` torna a l'aire on era); o la llista del panell | la llista del panell | la llista del panell |
-| Capturar / alliberar el ratolí | `Tab` o clic dret a l'escena / `Tab` o `Esc` | ídem | ídem |
-| Canviar de vista | `V` (explorar ↔ observar), `G` (guiat) | `V`, `G` | `V` torna a observar, `G` també |
-| Mirar el Sol (una sola vegada) | botó *Mirar l'eclipsi* | ídem | ídem |
-| Reproduir / pausar el temps | `P` | `P` | `P` |
+| Acció | Control |
+|---|---|
+| Moure la càmera | `W` `A` `S` `D` (endavant, enrere, costats, en horitzontal), `E` / `Q` (pujar, baixar); `Ctrl`: més ràpid (×5) |
+| Girar la mirada | fletxes; o el ratolí capturat (veure a sota) |
+| Arrossegar (botó esquerre) | moure el terra, com a Google Earth (amb inèrcia); sobre el cel, girar la mirada |
+| `Majúscules` + arrossegar (o botó del mig) | girar al voltant del punt del centre de la pantalla i inclinar la vista |
+| Roda o dos dits amunt/avall al trackpad | apropar-se o allunyar-se del punt sota el cursor, amb una animació suau (cada pas, la distància ×0,74 o ×1,35; sobre el cel o amb el ratolí capturat, en la direcció de la mirada) |
+| Doble clic al terreny | el punt d'observació i la càmera hi van: als ulls (1,7 m) i **mirant cap al Sol**; des d'allà es continua explorant amb la mateixa càmera |
+| `G` | anar a l'espai a veure l'ombra de la Lluna (12.000 km, mirant el punt on és més fosca ara); `G` un altre cop torna exactament on era |
+| `P` | reproduir / pausar el temps (no toca la càmera) |
+| Capturar / alliberar el ratolí | `Tab` o clic dret a l'escena / `Tab` o `Esc` |
+| Mirar el Sol (una sola vegada) | botó *Mirar el Sol* del panell *Càmera* |
 
 **Mirar amb el ratolí (com en un joc en primera persona).** `Tab` (o un clic dret a l'escena, fora del
 panell) captura el ratolí a l'instant: el cursor s'amaga i moure el ratolí gira la mirada sense haver de
 prémer cap botó ni topar amb la vora de la pantalla. `Tab` o `Esc` l'alliberen per tornar a fer servir el
 panell; amb el ratolí lliure, `Esc` tanca el programa, com abans. Canviar a una altra finestra també
-l'allibera. El clic esquerre no captura: arrossegar (girar la mirada o, a la vista aèria, moure el terra) i el
-doble clic funcionen sense esperes. La sensibilitat és una sola constant (`SENSIBILITAT` a
-`basecode/control_ratoli.py`, 0,15° per punt de pantalla), igual capturat i arrossegant, proporcional al
-camp de visió (amb zoom gira menys) i independent dels FPS. La mirada vertical es limita a ±89° i no hi
+l'allibera. El clic esquerre no captura: arrossegar i el doble clic funcionen sense esperes. La sensibilitat és
+una sola constant (`SENSIBILITAT` a `basecode/control_ratoli.py`, 0,15° per punt de pantalla), igual capturat i
+arrossegant, proporcional al camp de visió i independent dels FPS. La mirada vertical es limita a ±89° i no hi
 ha inèrcia. En capturar apareix uns segons un avís a dalt de la pantalla.
 
-**Caminar (dins d'Explorar).** Es tria al panell ("Vol lliure" / "Caminar"). `W` `A` `S` `D` mouen en
-horitzontal respecte de cap on mira la càmera (A/D de costat, sense girar), a 1,5 m/s (`Shift`: ×3); mirar amunt
-o avall no fa volar, i en diagonal no es va més de pressa. Els ulls es mantenen a 1,7 m sobre el relleu
-**dibuixat**, en pujada i en baixada; el moviment es fa en passos de 0,5 m com a molt, de manera que un fotograma
-lent no es salta una carena. Al mar o on no hi ha relleu, la càmera s'atura a la vora. `E` / `Q` i la roda no hi
-fan res. Per passar a caminar cal ser a menys de 5 km sobre el relleu (es baixa en vertical, sense moure's en
-horitzontal); des de més amunt o sobre el mar, el panell ho diu i ofereix *Caminar des del punt d'observació*.
-Sense salt ni gravetat; els edificis que es mostren són obstacles (veure *Edificis*). Constants: `VELOCITAT_CAMINAR_M_S` i
-`FACTOR_CORRER` a `basecode/camera_exploracio.py`; comprovació: `python scripts/prova_caminar.py`.
+**Als ulls.** Després d'un doble clic (o de triar una ubicació de la llista), la càmera és als
+ulls de l'observador i, mentre no es mogui, els segueix si el relleu de sota canvia (per exemple, quan arriba el
+relleu de 5 m d'aquell lloc). Girar la mirada no la mou; en prémer `W` `A` `S` `D` `E` `Q`, arrossegar o fer rodar,
+es continua explorant des d'allà. Comprovació: `python scripts/prova_navegacio.py`.
 
-**Allunyar-se fins a l'espai (guiat).** La posició de la càmera depèn només d'un *progrés* (de 0 a 1) que
-canvien la roda i `W` / `S`; la mirada (ratolí, fletxes) és independent i la roda no la toca. Tram a tram:
-a 300 m del punt, d'esquena al Sol, sobre una recta que surt del punt amb 70° d'elevació (sortida segura:
-no es retrocedeix en la direcció de la mirada, que mirant el cel faria entrar sota terra); 100 km; la Terra
-a 30.000 km d'altura, entre la vertical del punt i el Sol (cara de dia); el sistema Terra–Lluna de costat;
-i, a 1,2 milions de km, una vista on caben la Terra, la Lluna i el Sol. Els mateixos passos enrere tornen
-exactament al mateix lloc. En entrar-hi es mira el punt; després la mirada és de l'usuari, i el botó
-*Recentrar* la torna a la de referència. La trajectòria es calcula amb el Sol i la Lluna de l'hora
-d'entrada: si l'hora canvia, la càmera no es mou (el panell ho avisa) i *Recentrar* l'actualitza; canviar
-d'ubicació des del panell la recalcula per al punt nou amb el mateix progrés. **Limitació (escala real):**
-lluny, la Terra i la Lluna es veuen petites (a la vista Terra–Lluna, ~1° i ~0,3°), i amb el Sol al camp la
-Terra és un creixent i la Lluna mostra la cara fosca: no hi ha cap lloc des d'on es vegin alhora el Sol i
-la cara de dia de la Terra. La vista de l'espai és de context; no reprodueix l'eclipsi que es veu des del
-terra. Geometria: `dades/trajectoria.py`; comprovació: `python scripts/prova_trajectoria.py`.
+**`G`: l'ombra des de l'espai.** És un sol enquadrament (la càmera no segueix l'ombra), entre la vertical del punt on
+l'ombra és més fosca i el Sol, de manera que es veu la cara de dia. Des de l'espai l'ombra real es distingeix poc (a
+Espanya l'eclipsi passa a prop de la posta); el mapa *Ombra de la Lluna* (selector de *Mapes*) en mostra la fase central i
+el recorregut. La càmera i la Terra són a escala real: la Lluna i el Sol es veuen petits.
 
 **Trackpad del Mac:** lliscar amb dos dits amunt o avall fa el mateix que la roda. El gest de pessigar no
 funciona: GLFW, la llibreria de finestres, no el rep a macOS (veure el pla, tasca 12.4).
@@ -141,29 +124,21 @@ al punt inicial, la UAB (plaça Cívica, `dades/observador.UBICACIO_INICIAL`): a
 l'hora.
 
 **P** no canvia res de la càmera: congela el temps on és i el torna a posar en marxa des del mateix
-instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es passa a explorar i s'allunya
-fins a veure la Terra, i es prem P: l'eclipsi continua amb la càmera a l'espai.
+instant. Per exemple: s'observa l'eclipsi des del terra, es prem P, es prem G i l'eclipsi continua amb la
+càmera a l'espai.
 
 Mentre es reprodueix, el punt d'observació queda bloquejat (el panell, el cel i el model són sempre
-del mateix lloc). Quan es tria una ubicació de la llista, la càmera d'exploració es posa a sobre del lloc
-nou, perquè en passar a explorar (V) es parteixi d'allà.
+del mateix lloc): el doble clic no hi va i el panell ho avisa. Triar una ubicació de la llista fa el mateix que
+el doble clic: la càmera va als ulls del lloc nou, mirant el Sol.
 
 Ubicacions de la llista (coordenades verificades el 26/10/2026, font a `PLA_DE_TREBALL.md` §10.3): plaça Major de
 Vic, ajuntament de Montmeló, ajuntament de Cerdanyola i plaça Cívica de la UAB (on arrenca). Picos de Europa (el cas
 de totalitat) i l'Escala ja no hi són (equip, 01/11/2026), però les seves dades es conserven i els scripts de prova hi
 continuen passant (`dades/observador.UBICACIONS_PROVES`); qualsevol altre punt es pot triar amb doble clic.
 
-Botons:
-
-- **Veure l'ombra des de l'espai**: porta la càmera d'exploració a 12.000 km, entre la vertical i el
-  Sol, mirant el punt on l'ombra de la Lluna és més fosca a l'hora actual. És un sol enquadrament: la
-  càmera no segueix l'ombra. Des de l'espai l'ombra real es distingeix poc (a Espanya l'eclipsi passa
-  a prop de la posta, i l'ombra cau a prop del límit entre el dia i la nit); la casella **Ressaltar
-  l'ombra amb línies (didàctic)** hi dibuixa les línies del 25, 50 i 75 % del Sol tapat i el límit de la
-  totalitat, sense canviar la foscor de l'ombra.
-- **Anar al màxim del punt seleccionat**: posa l'hora del màxim al punt d'observació i deixa el temps
-  pausat.
-- **Tornar al punt d'observació**: torna a la vista des del terra, amb la mirada que tenia.
+Des del 18/11/2026 el panell *Eclipsi* ja no té els botons *Anar al màxim* i *Tornar al punt* (les funcions
+`anar_al_maxim` i `tornar_al_punt` de `main.py` es conserven). Per tornar al punt d'observació, es tria de nou a la
+llista o es fa doble clic.
 
 ### Relleu: nivells de detall
 
@@ -173,8 +148,8 @@ Al voltant del **punt de detall** el relleu té més detall que lluny: la penín
 passa suaument a la del nivell de sota. Els ulls de l'observador queden a 1,7 m dels triangles que es dibuixen
 (l'altura de cada vèrtex la calcula la CPU).
 
-El punt de detall és **el que es mira**: explorant, el punt del terra al centre de la pantalla (o el de sota la
-càmera, a prop del terra o caminant); a les altres vistes, el punt d'observació. No cal cap doble clic.
+El punt de detall és **el que es mira**: el punt del terra al centre de la pantalla (o el de sota la càmera, a menys
+de 300 m del terra, també als ulls). No cal cap doble clic.
 
 ### Detall segons la vista (qualsevol lloc d'Espanya)
 
@@ -194,9 +169,8 @@ fils; el fil principal només crea els objectes OpenGL (un lloc: ~60 ms; Vic, ~0
 mantenen carregades fins a 3 zones (la del punt d'observació sempre). Una preparació que acaba quan la càmera ja és
 en un altre lloc queda al disc però no canvia el que es veu. El punt d'observació no es mou en navegar.
 
-El panell, a **Detall del lloc**, diu per separat què hi ha al punt: *Terreny* (5 m o 200 m, i què es prepara),
-*Foto* (font, nivell i metres per píxel), *Edificis* (estimades, mesurades —amb la font— o no disponibles) i
-*Mapa* (relleu i detall). Comprovació: `python scripts/prova_detall.py` (Vic, la UAB i València, on s'arriba
+El panell *Càmera*, a **Descàrregues en segon pla**, diu què s'està baixant o preparant ara i de quin lloc (per
+exemple, «Descarregant edificis de Cadiz...»), amb una barra de progrés per feina (veure *Panell*). Comprovació: `python scripts/prova_detall.py` (Vic, la UAB i València, on s'arriba
 navegant).
 
 ### Edificis
@@ -204,8 +178,8 @@ navegant).
 A les zones de detall amb dades (el Vallès —UAB, Cerdanyola i Montmeló—, Vic i l'Escala; a Picos no n'hi ha
 cap a menys de 2 km), els edificis del Catastro es dibuixen com a volums amb coberta plana i façanes,
 assentats sobre el relleu. Són opacs i escriuen la profunditat com la resta de l'escena, de manera que tapen
-el Sol (i el halo). Per defecte es dibuixen **a totes les vistes** (des del terra, caminant i a l'aire). Les caselles
-*Edificis* i *A la vista aèria* del panell *Càmera* ho canvien sense moure la càmera ni l'hora. (La part del Sol que
+el Sol (i el halo). Per defecte es dibuixen sempre (als ulls i des de l'aire). Les caselles
+*Edificis* (càmera a menys de 100 m del terra) i *A la vista aèria* (per sobre) de *Què es dibuixa* ho canvien sense moure la càmera ni l'hora. (La part del Sol que
 tapen des dels ulls es pot calcular, `Edificis.fraccions`, però el panell ja no la mostra.) Les **altures són estimades**:
 plantes del Catastro × 3 m (incertesa ~±20–30 %), o mesurades amb LiDAR (veure a sota). Els edificis fan ombra
 al terra i als altres edificis (veure *Ombres del relleu i dels edificis*).
@@ -215,8 +189,8 @@ llista o amb un doble clic, també sobre un terrat) cau dins d'un contorn del Ca
 exterior més proper a 3 m o més de les façanes, dins de l'espai obert que continua cap als carrers (no en un
 pati tancat ni al terrat). El panell ho indica ("Lloc dins d'un edifici: ulls a N m"). Passa a l'ajuntament de
 l'Escala (13,7 m), de Cerdanyola (10,6 m), de Montmeló (8,9 m) i a la plaça Cívica de la UAB (20,7 m); la plaça
-Major de Vic és a l'exterior. Caminant, el cos (un cercle de 0,3 m) no pot travessar les façanes i hi llisca; en
-vol lliure la càmera no hi entra per sota de la coberta però hi pot passar per sobre. Si mai queda dins d'un
+Major de Vic és a l'exterior. La càmera (radi de 0,5 m) no entra per una façana per sota de la coberta, s'hi llisca,
+però hi pot passar per sobre. Si mai queda dins d'un
 edifici, surt al punt exterior més proper. Amb *Mostrar edificis* desactivat no fan d'obstacle (com es veu).
 Geometria: `dades/obstacles.py`; comprovació: `python scripts/prova_obstacles.py`.
 
@@ -300,16 +274,29 @@ l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
 ### Panell i barra de temps
 
 - **Dos panells** (només controls):
-  - **Eclipsi** (a l'esquerra): l'eclipsi (12/08/2026 total, 02/08/2027 total, 26/01/2028 anular); hora, fase, part
-    del Sol tapada i velocitat (*Auto* o x1 a x1000); el punt d'observació (llista, coordenades, **nucli i
-    municipi**, tornar-hi, anar al màxim); el mapa de visibilitat; les línies de l'ombra de la Lluna i, només el
-    2026, les capes del CNIG.
-  - **Càmera** (a la dreta): la vista (explorar, des del terra, espai; vol lliure o caminar; mirar el Sol; l'ombra
-    de la Lluna des de l'espai); **on és la càmera**: altura sobre el terra que es dibuixa a sota, altitud sobre el
-    nivell del mar (sobre l'el·lipsoide WGS84) i coordenades; què es dibuixa (fotografia aèria, edificis, ombres del
-    relleu, noms de lloc); el **detall del lloc** (terreny, foto, edificis i mapa). *Tecles* i *Avançat* (FPS, exageració,
-    filferros, origen de les altures, dades del CNIG) són desplegables tancats.
-- **Noms de lloc sobre el mapa** (`ui.noms_al_mapa`, `data/noms_mapa.json`), com a Google Maps, a les vistes aèries:
+  - **Eclipsi** (a l'esquerra, simplificat el 18/11/2026), només tres coses: el selector de l'eclipsi (12/08/2026
+    total, 02/08/2027 total, 26/01/2028 anular); el **punt d'observació** (llista i, a sota, *Coordenades*, *Nucli* i
+    *Municipi* del punt actual, també després d'un doble clic; «-» si no se sap o s'està consultant) i **Mapes** (com
+    abans, amb *Límits de totalitat*). L'hora i reproduir són a la barra de temps; la velocitat es queda en *Auto*
+    (lenta a la totalitat). Ja no hi són: hora i fase, part del Sol tapada, velocitat, *Tornar al punt*, *Anar al
+    màxim*, les línies de l'ombra de la Lluna i les capes del CNIG (els atributs `velocitat`, `ressaltar_ombra` i
+    `Terrain.overlay` continuen al codi per als scripts). L'atribució de les fonts és ara a *Què es dibuixa*.
+  - **Càmera** (a la dreta, simplificat el 17/11/2026): **Descàrregues en segon pla** (què es baixa o es prepara i de
+    quin lloc, amb una barra de progrés per feina, i els FPS), el botó **Mirar el Sol** i dos desplegables tancats:
+    **Què es dibuixa** (fotografia aèria, edificis, vegetació, ombres, noms de lloc) i **Tecles**.
+  - **Límits de totalitat (CNIG)**, només el 2026, és una opció més del selector de **Mapes** (en treu els altres).
+  - Les descàrregues surten de les feines reals: relleu de 5 m (IGN), edificis (Catastro), altures (LiDAR), teselles
+    de la fotografia aèria que es baixen de la xarxa (no les del disc), dades dels mapes, vegetació i el nom del punt.
+    El lloc és el nom del mapa més proper (capitals de comunitat, de província i de comarca de Catalunya,
+    `data/noms_mapa.json`): «de X» a menys de 15 km, «prop de X» més enllà. És una aproximació sense xarxa. El
+    progrés és real quan es coneix: les teselles del lot de fotos (acabades sobre acabades + pendents; el total creix
+    si la càmera es mou) o el comptador que la feina escriu («municipi 2/5», «tros 3 de 8»). Si la feina no en dona
+    cap, la barra és **indeterminada** (es mou sense percentatge).
+  - Des del 17/11/2026 ja no són al panell: les dades de la posició de la càmera, l'estat del detall per separat, i
+    les eines de depuració d'*Avançat* (exageració, filferros, opacitat del CNIG, vegetació amb instancing, taula
+    del CNIG i el model). Les variables continuen al codi (`Terrain.exaggeration`, `wireframe`, `opacitat`,
+    `Vegetacio.instancing`) i els scripts les fan servir.
+- **Noms de lloc sobre el mapa** (`ui.noms_al_mapa`, `data/noms_mapa.json`), com a Google Maps, des de l'aire:
   segons l'altura de la càmera sobre el terra, les capitals de comunitat (de 25 a 4.000 km), les de província (de 12 a
   1.500 km) i les de comarca de Catalunya (de 3 a 200 km). Més a prop desapareixen. No s'escriuen els que queden
   darrere de l'horitzó ni els que en taparien un de més important. La casella *Noms de lloc* del panell *Càmera* els
@@ -318,7 +305,7 @@ l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
   que la pantalla mostra (~60 per segon). La imatge és la mateixa. Si durant mig segon no canvia res (mateixa càmera i
   hora, en pausa) i no hi ha res en segon pla (descàrregues, càlculs de mapes, detall, nom del lloc), queda **en
   repòs**: només redibuixa 4 vegades per segon fins que es toca el teclat o el ratolí, que el desperten a l'instant.
-  *Avançat* ho indica al costat de l'FPS.
+  El panell ho indica al costat de l'FPS.
 - **Nom del lloc** (`dades/noms.py`): en triar un punt, el **nucli de població més proper** (Nomenclàtor Geogràfic
   Bàsic de l'IGN; si l'adreça més propera pertany a un nucli, "dins de" aquell) i el **municipi** administratiu
   (CartoCiudad). Són dades diferents: entre Vic i Tona, un punt pot ser del municipi de Malla o de Tona i tenir com a
@@ -350,8 +337,8 @@ consulta del punt (temps visible, fase central, intervals, dades i obstacles) i 
 `validar_visibilitat.py`, `validar_temps_visibilitat.py`. Captures: `python scripts/captura_mapes.py`.
 
 **Vegetació i objectes (LiDAR)** (panell *Càmera*): la mateixa superfície dels obstacles dibuixada amb un geometry
-shader (`basecode/vegetacio.py`): una columna per cel·la de 2 m. A *Avançat*, la mateixa vegetació amb instancing,
-per comparar-ne el cost (més lent).
+shader (`basecode/vegetacio.py`): una columna per cel·la de 2 m. La mateixa vegetació amb instancing (`Vegetacio.instancing`, ja no al panell) en permet
+comparar el cost (`scripts/estudi_vegetacio_gpu.py`; més lent).
 
 ### Com es calcula l'eclipsi (`dades/`)
 
@@ -402,10 +389,10 @@ basecode/                Codi base de l'assignatura (el del repte 4, sense canvi
   paret_cub.py           Les parets translúcides del cub de navegació
   edificis.py            Els edificis (volums opacs) de la zona de detall
   control_ratoli.py      Ratolí capturat per mirar (Tab), sensibilitat, roda i trackpad
-  camera_guiada.py       Càmera de la vista guiada (roda = progrés de la trajectòria)
+  camera_guiada.py       Càmera de la vista guiada (des del 17/11/2026 el programa no la fa servir)
   sol.py                 La llum de l'escena (Light del basecode)
-  camera_exploracio.py   Càmera lliure, del terreny fins a l'espai
-  camera_observador.py   Càmera als ulls de l'observador (1,7 m sobre el terra)
+  camera_exploracio.py   La càmera (una sola vista), dels ulls fins a l'espai
+  camera_observador.py   Càmera als ulls de l'observador (des del 17/11/2026 el programa no la fa servir)
   camera_orbital.py      Càmera orbital del mode pla (només per als scripts)
   programes.py           Carrega shaders amb opcions (#define) i fitxers compartits (#include)
   shaders/               gouraud i phong (originals); terrain, terra, esfera, ombra, paret, cel, edifici i
@@ -508,18 +495,19 @@ Tots s'executen des de l'arrel del repositori, amb l'entorn `egra` activat.
 | `descarregar_textures.py` | Descarrega les textures de la Terra i la Lluna (NASA, `data/textures/`); amb `--alta`, la Lluna a 8k i el seu relleu (84 MB) |
 | `validar_model.py` | Compara les hores de l'eclipsi del nostre model amb les del CNIG a 9 punts |
 | `validar_ombra.py` | Comprova que l'ombra de la Lluna cau dins de la umbra publicada pel CNIG |
-| `prova_vistes.py` | Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
+| `prova_vistes.py` | (Pendent d'adaptar a la vista única del 17/11/2026.) Prova el programa a les sis ubicacions (ulls, mirar avall, pausa, allunyar-se comprovant la superfície, P a l'espai, botons, ombra) i la seqüència sencera amb el bucle real i el teclat i el ratolí simulats; captures a `captures/proves/`. Amb `--visible`, es veu a la finestra |
 | `descarregar_edificis.py` | Baixa els edificis del Catastro de les zones de detall i en prepara les dades i la malla (`data/edificis/`, `data/cache/`) |
 | `validar_edificis.py` | Edificis: contorns contra OpenStreetMap, plantes contra la font, cobertes a la cota calculada, Sol visible/parcial/total a la imatge contra el càlcul geomètric, halo, interruptor, rendiment |
 | `prova_noms.py` | Noms de lloc sobre el mapa: el fitxer té els tres nivells; quins s'escriuen sobre Manresa a 1.200, 300, 60, 8 i 1,5 km (de prop, cap); cap des del terra ni amb la casella desactivada; captures a `captures/proves/noms_*.png` |
 | `prova_eclipsis.py` | Els tres eclipsis amb el bucle real i el panell dibuixat: canviar-hi sense errors d'OpenGL, contactes, *Anar al màxim*, Sol i Lluna de l'escena iguals al model, capes del CNIG només el 2026, el mapa de visibilitat comença; captures a `captures/proves/eclipsi_*.png` |
-| `prova_controls.py` | Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat (Tab, clic dret, focus, FPS, zoom, límits), panell, P, roda i vista guiada (anada i tornada, temps, ubicació, Mirar l'eclipsi); captures a `captures/proves/guiat_*.png` |
+| `prova_navegacio.py` | Una sola vista (17/11/2026): arrencada als ulls, W A S D (pas de caminar), E / Q (mai sota els ulls), fletxes, doble clic (als ulls, mirant el Sol, i es continua explorant), G (anada i tornada), P, textos i progrés de *Descàrregues en segon pla*; captura del panell a `captures/proves/panell_camera.png` |
+| `prova_controls.py` | (Pendent d'adaptar a la vista única del 17/11/2026.) Arrencada, cub de navegació (sis cares, teclat, roda, botons), enquadrar el Sol, ratolí capturat (Tab, clic dret, focus, FPS, zoom, límits), panell, P, roda i vista guiada (anada i tornada, temps, ubicació, Mirar l'eclipsi); captures a `captures/proves/guiat_*.png` |
 | `prova_cel.py` | Cel i llum: shader contra el model de la CPU, el cel no tapa cap objecte, continuïtat minut a minut, saturació, totalitat contra posta, orientació dels triangles dels edificis i colors de coberta, temps per fotograma (1280 × 860 i 2560 × 1720) |
 | `prova_obstacles.py` | Edificis com a obstacles: geometries de prova (paret, diagonal, cantonades, escletxes, patis), 3.000 moviments a l'atzar sobre el Catastro del Vallès i el programa real (punts exteriors amb cel, caminar i volar contra l'ajuntament de Cerdanyola, cobertes, recuperació) |
 | `prova_ortofoto.py` | (Obsolet des de la F38: el programa ja no carrega l'ortofoto.) Ortofoto d'una zona: alineació amb el Catastro, mida, memòria, temps per fotograma i captures |
 | `descarregar_ortofoto.py` | Descarrega l'ortofoto del PNOA d'una zona (tota la zona a 5 m i 4 × 4 km a 0,5 m al voltant de cada punt) |
 | `prova_mosaic.py` | Fotografia aèria i controls aeris: coordenades de les teselles, precisió, sense xarxa, alineació entre la Terra i el terreny, temps, arrossegar, roda, orbitar, inèrcia, doble clic i edificis segons la vista; captures a `captures/proves/mosaic_*.png` |
-| `prova_caminar.py` | Mode Caminar amb el programa real: direcció amb W/S/A/D a diferents rumbs, diagonal, inclinació, FPS, pendents (ulls a 1,7 m), pas llarg subdividit, vora de zona i mar, entrar/sortir, focus, panell |
+| `prova_caminar.py` | (Obsolet des del 17/11/2026: el mode Caminar ja no existeix.) Mode Caminar amb el programa real: direcció amb W/S/A/D a diferents rumbs, diagonal, inclinació, FPS, pendents (ulls a 1,7 m), pas llarg subdividit, vora de zona i mar, entrar/sortir, focus, panell |
 | `validar_visibilitat.py` | Mapa de visibilitat d'un MDT: circumstàncies de la graella contra el model punt a punt, marge al màxim i hores contra un raig exacte; amb `--cnig`, classes contra la capa del CNIG |
 | `descarregar_lidar.py` | Baixa el LiDAR de l'ICGC al voltant d'un punt (`uab`: 3 × 3 km) i en fa rasters d'1 m (superfície, terra, edificis); els LAZ s'esborren (`data/lidar/`) |
 | `comparar_altures.py` | Altures dels edificis estimades amb el Catastro contra les del LiDAR, i terra del LiDAR contra el MDT de l'IGN |

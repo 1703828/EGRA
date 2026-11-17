@@ -148,6 +148,8 @@ class Descarregador:
         self.bloqueig = threading.Lock()
         self.n = 0                     # comptador: desempata la prioritat (ordre d'arribada)
         self.baixades = self.del_disc = self.fallades = 0
+        self.baixant = 0               # teselles que ara mateix es baixen de la xarxa (no les del disc): panell
+        self.lot = 0                   # teselles acabades des que la cua era buida (progres() del panell)
         self.actiu = True
         self.fils = [threading.Thread(target=self.treballar, daemon=True) for _ in range(fils)]
         for f in self.fils:
@@ -164,6 +166,15 @@ class Descarregador:
     def pendents(self):
         return len(self.en_curs)
 
+    def progres(self):
+        """Fraccio (0..1) del lot actual: les teselles acabades des que la cua era buida, sobre aquestes mes les
+        pendents. La cua es va omplint mentre la camera es mou: el total pot creixer i la barra, recular."""
+        with self.bloqueig:
+            if not self.en_curs:
+                self.lot = 0
+                return 1.0
+            return self.lot / (self.lot + len(self.en_curs))
+
     def treballar(self):
         import requests
         sessio = requests.Session()        # una connexio per fil (es reutilitza: mes rapid)
@@ -178,6 +189,9 @@ class Descarregador:
                     self.en_curs.discard(clau)
                 continue
             al_disc = os.path.exists(cami_cau('pnoa', z, x, y))
+            if not al_disc:
+                with self.bloqueig:
+                    self.baixant += 1
             try:
                 nivells = reduccions(tesella(z, x, y, sessio))
             except Exception:
@@ -185,8 +199,11 @@ class Descarregador:
                     self.errors[clau] = time.time()
                     self.en_curs.discard(clau)
                     self.fallades += 1
+                    self.baixant -= 0 if al_disc else 1
                 continue
             with self.bloqueig:
+                self.baixant -= 0 if al_disc else 1
+                self.lot += 1
                 if al_disc:
                     self.del_disc += 1
                 else:

@@ -1,10 +1,10 @@
 """
-Detall segons la vista: quin relleu de 5 m, quins edificis i quin mapa de visibilitat de detall calen on es mira, i
+Detall segons el que es mira: quin relleu de 5 m, quins edificis i quin mapa de visibilitat de detall calen on es mira, i
 la seva preparacio i carrega en segon pla, sense aturar el dibuix.
 
-Punt de detall (punt_referencia): a la vista d'exploracio, el punt del terra que es mira (el raig del centre de la
-pantalla) o, a prop del terra o caminant, el de sota la camera; a les altres vistes, el punt d'observacio. Per sobre
-d'ALCADA_DETALL_KM no es demana res (de lluny, el relleu de 200 m de la peninsula n'hi ha prou).
+Punt de detall (punt_referencia): el punt del terra que mira la camera (el raig del centre de la pantalla) o, a prop
+del terra (tambe als ulls de l'observador), el de sota la camera. Per sobre d'ALCADA_DETALL_KM no es demana res (de
+lluny, el relleu de 200 m de la peninsula n'hi ha prou). El punt d'observacio es prepara a part (situar), quan es tria.
 
 Per a aquest punt, a cada fotograma (com a molt cada REVISIO_S):
   1. Zona: la zona de detall que el conte (les fetes a ma, data_io.ZONES_DETALL, o un lloc preparat,
@@ -42,7 +42,7 @@ from .edificis import Edificis
 from .terrain import Terrain, MIDA_PEGAT
 
 ALCADA_DETALL_KM = 15.0      # per sobre, no es prepara ni es canvia el detall
-ALCADA_SOTA_KM = 0.3         # per sota (o caminant), el punt de detall es el de sota la camera
+ALCADA_SOTA_KM = 0.3         # per sota, el punt de detall es el de sota la camera
 REVISIO_S = 0.15
 ESPERA_PREPARAR_S = 1.0      # el punt ha de ser a la mateixa cel·la aquesta estona abans de baixar-hi res (en volar per
                              # sobre d'un lloc no es prepara)
@@ -127,13 +127,13 @@ class Detall:
     # ------------------------------------------------------------ punt de detall
 
     def punt_vista(self):
-        """El punt (lat, lon) que es mira a l'exploracio, o None si la camera es massa amunt."""
+        """El punt (lat, lon) que es mira, o None si la camera es massa amunt."""
         cam = self.app.camera_exploracio
         alcada = cam.alcada_sobre_terra()
         if alcada > ALCADA_DETALL_KM:
             return None
         lat, lon, _ = cam.geodesiques()
-        if cam.caminar or alcada < ALCADA_SOTA_KM:
+        if alcada < ALCADA_SOTA_KM:
             return float(lat), float(lon)
         # raig del centre de la pantalla contra l'el·lipsoide aixecat fins a l'altura del terra de sota la camera
         h = self.app.altitud_terra_km(float(lat), float(lon))
@@ -151,13 +151,10 @@ class Detall:
         return float(lat), float(lon)
 
     def punt_referencia(self):
-        app = self.app
-        if app.vista == 0:
-            return self.punt_vista()
-        return app.observador.lat, app.observador.lon
+        return self.punt_vista()
 
     def edificis_volguts(self):
-        """Si a la vista actual es mostren els edificis (opcions del panell)."""
+        """Si amb la camera on es ara es mostren els edificis (opcions del panell: als ulls o des de l'aire)."""
         app = self.app
         return app.mostrar_edificis if app.primera_persona() else app.edificis_aeris
 
@@ -231,11 +228,11 @@ class Detall:
         app.actualitzar_edificis()
         if app.camera is not None:
             app.camera.update()      # la zona nova tambe ha de rebre les matrius de la camera
-        # una zona que arriba despres d'haver triat el punt d'observacio (preparada en segon pla) i el conte: el punt es
-        # torna a triar, perque l'altitud dels ulls, el model i els edificis siguin els d'aquest relleu
+        # una zona que arriba despres d'haver triat el punt d'observacio (preparada en segon pla) i el conte, amb la camera
+        # als ulls de l'observador: el punt es torna a triar, perque l'altitud dels ulls, el model i els edificis siguin els d'aquest relleu
         o = getattr(app, 'observador', None)
         if not self._situant and o is not None and cami != self.cami_obs and app.zona.conte(o.lat, o.lon) \
-                and app.vista != 0:
+                and app.camera_als_ulls():
             app.reubicar_observador()
 
     def situar(self, lat, lon, observador=False):
@@ -300,21 +297,20 @@ class Detall:
         volguts = self.edificis_volguts()
         actual = app.zona.cami if app.zona is not None else None
         z, falta = self.triar_zona(x, y, volguts, actual)
-        bloquejat = app.reproduint and app.vista == 1   # el relleu sota l'observador no canvia en reproduir
         cel = alcaries.centre_cel(x, y)
         if self.desitjat[0] != cel:
             self.desitjat = (cel, ara)
-        estable = ara - self.desitjat[1] >= ESPERA_PREPARAR_S or app.vista != 0
-        if falta and not bloquejat and estable:
+        estable = ara - self.desitjat[1] >= ESPERA_PREPARAR_S
+        if falta and estable:
             self.preparar_lloc(lat, lon, x, y, volguts)
-        if z is not None and z['cami'] != actual and not bloquejat:
+        if z is not None and z['cami'] != actual:
             if z['cami'] in self.carregades:
                 self.activar(z['cami'])
             elif self.lliure('zona', z['cami']):
                 self.feines['zona'] = Feina(z['cami'], self._carregar_cpu, z['cami'], z['clau'], z['nom'],
                                             self.max_textura, self.mesurades_disponibles(z['clau']),
                                             descripcio=f'carregar {z["nom"]}')
-        elif z is None and actual is not None and app.vista == 0 and not app.peninsula.es_terra(lat, lon):
+        elif z is None and actual is not None and not app.peninsula.es_terra(lat, lon):
             pass      # al mar o fora d'Espanya, la zona d'abans es continua veient
         self.recentrar_pegats(lat, lon)
         if estable:
@@ -338,8 +334,10 @@ class Detall:
                 protegits = {z['clau'] for z in self.carregades.values()}
                 self.feines['relleu'] = FeinaProces(c, _preparar_relleu, c, self.max_textura, protegits,
                                                     descripcio='relleu del lloc')
+                self.feines['relleu'].lloc = (lat, lon)      # per al panell (Descarregues en segon pla)
         elif volguts and not llocs.edificis_fets(c) and self.lliure('edificis', c):
             self.feines['edificis'] = FeinaProces(c, llocs.preparar_edificis, c, descripcio='edificis del lloc')
+            self.feines['edificis'].lloc = (lat, lon)
 
     def recentrar_pegats(self, lat, lon):
         app = self.app
@@ -373,6 +371,7 @@ class Detall:
         if self.lliure('alcades', clau):
             self.feines['alcades'] = FeinaProces(clau, _mesurar_alcades, e.zona, cel, app.zona.cami,
                                                  descripcio='altures mesurades')
+            self.feines['alcades'].lloc = self.punt
 
     def preparar_cobertes(self):
         """Si els edificis de la zona activa encara no tenen el color de les cobertes, es calcula en un proces (la
@@ -420,7 +419,7 @@ class Detall:
                     x, y = _A_UTM.transform(self.punt[1], self.punt[0])
                     actual = app.zona.cami if app.zona is not None else None
                     z, _ = self.triar_zona(x, y, self.edificis_volguts(), actual)
-                    if z is not None and z['cami'] == f.clau and not (app.reproduint and app.vista == 1):
+                    if z is not None and z['cami'] == f.clau:
                         self.activar(f.clau)
             elif tipus == 'pegat':
                 # nomes si es de la zona activa i el punt no s'ha mogut massa mentrestant (si no, se'n demana un altre)
@@ -497,7 +496,7 @@ class Detall:
             t = 'preparant 5 m: ' + en_curs('relleu', 'zona')
         elif z is not None:
             t = f'5 m ({app.nom_zona})'
-        elif p is None and app.vista == 0:
+        elif p is None:
             t = f'200 m (peninsula); el detall es prepara a menys de {ALCADA_DETALL_KM:.0f} km d\'altura'
         elif p is not None and not app.peninsula.es_terra(*p):
             t = '200 m: aqui no hi ha MDT de 5 m (mar o fora d\'Espanya)'
@@ -522,7 +521,7 @@ class Detall:
         if en_curs('edificis', 'malla', 'carregar_edificis'):
             et = 'preparant: ' + en_curs('edificis', 'malla', 'carregar_edificis')
         elif not volguts:
-            et = 'amagats a aquesta vista (panell: Edificis)'
+            et = 'amagats a aquesta altura (panell: Edificis)'
         elif e is not None:
             et = e.resum_alcades()
             if en_curs('alcades'):

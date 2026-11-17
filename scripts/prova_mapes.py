@@ -148,7 +148,6 @@ def main():
     app.triar_ubicacio(UAB[0], UAB[1], 'UAB, placa Civica')
     if a.hora.startswith('maxim'):
         app.hora = app.model.hores['maxim'] + float(a.hora[5:] or 0) / 60.0
-    app.canviar_vista(0)
     posar_mapa(True)
     cam = app.camera_exploracio
     informe = []
