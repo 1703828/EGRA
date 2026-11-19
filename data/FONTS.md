@@ -76,8 +76,10 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 - **Llocs (en navegar o triar un punt, `dades/llocs.py` i `dades/catastro.py`):** les parts d'edifici de la cel·la
   de 3 × 3 km del lloc (els antics, del doble clic: 2 × 2 km al voltant del punt). Els municipis que el toquen es busquen als canals ATOM (el general, una
   entrada per gerència amb el seu rectangle, i el de cada gerència, una entrada per municipi), que es desen a
-  `data/edificis/catastro/`. Els ZIP dels municipis s'esborren després de llegir-los (si no hi eren abans); es
-  desa `data/edificis/lloc_<x>_<y>.gpkg`. Navarra i el País Basc no hi són (cadastres propis). El servei WFS per
+  `data/edificis/catastro/`. Els ZIP dels municipis es conserven entre cel·les i sessions, com a molt 300 MB
+  (`catastro.MAX_ZIPS_MB`; s'esborren primer els que fa més temps que no es fan servir); una descàrrega tallada es
+  repren (`.part`, HTTP Range) i un ZIP només es fa servir si és sencer (CRC). Des del 20/11/2026 (F51); abans
+  s'esborraven després de llegir-los. Es desa `data/edificis/lloc_<x>_<y>.gpkg`. Navarra i el País Basc no hi són (cadastres propis). El servei WFS per
   rectangle (`https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx`) s'ha descartat: com a molt ~1 km² per petició i
   2,5 min per 1 km² del centre de Manresa (24 MB), contra 20 s per al ZIP de tot el municipi (6,6 MB); comprovat
   el 30/10/2026.

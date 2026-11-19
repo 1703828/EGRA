@@ -10,7 +10,7 @@ amagada). Cada fotograma es com els del bucle del programa, amb el panell constr
   4. G: a l'espai (milers de km) i, un altre cop, torna exactament on era (posicio i mirada, als ulls).
   5. P: nomes reproduir / pausar (la camera no es mou ni gira).
   6. Panell: les linies de "Descarregues en segon pla" surten de les feines (es posa una feina d'espera amb el lloc de
-     Cadis: comprova el text, no una descarrega real); el selector de Mapes te els limits de totalitat; es desa una
+     Cadis: comprova el text, no una descarrega real); el selector de Mapes ja no te els limits de totalitat; es desa una
      captura del panell amb els desplegables oberts a captures/proves/panell_camera.png.
 Limitacio: no hi ha ratoli fisic; els clics es simulen com a esdeveniments d'imgui. No demostra que els controls
 siguin intuitius: aixo ho ha de provar l'equip amb la finestra.
@@ -237,7 +237,7 @@ def main():
     f = Feina('prova', lambda avis: (avis('Edificis de Cadiz (3/4, Catastro)...'), time.sleep(3.0)), descripcio='prova')
     f.lloc = cadis
     time.sleep(0.1)
-    app.detall.feines['edificis'] = f
+    app.detall.feines['cadastre'] = f
     linies = ui.descarregues(app)
     ok(linies == [('Descarregant edificis de Cadiz...', 0.5)],
        f'feina d\'edificis a Cadis, municipi 3 de 4: {linies} (progres: 2 de 4 acabats)')
@@ -260,18 +260,34 @@ def main():
     dades = objectiu.read(components=3)
     Image.frombytes('RGB', (W, H), dades).transpose(Image.FLIP_TOP_BOTTOM).save(os.path.join(CARPETA, 'panell_camera.png'))
     print(f'   captura: {os.path.join(CARPETA, "panell_camera.png")}')
-    app.detall.feines.pop('edificis', None)
+    app.detall.feines.pop('cadastre', None)
     dsc.baixant, dsc.en_curs = 0, en_curs
     app.mosaic.actiu = False
     import inspect
-    font = inspect.getsource(ui.panell_mapa)
-    ok("LLIMITS_TOTALITAT" in font and ui.LLIMITS_TOTALITAT[0] == 'limits',
-       'el selector de Mapes inclou "Limits de totalitat (CNIG)" (al 2026)')
-    for t in app.terrenys():
-        t.limits_totalitat = True
-    fotograma(2)
-    for t in app.terrenys():
-        t.limits_totalitat = False
+    ok('limits_totalitat' not in inspect.getsource(ui) and not any(t.limits_totalitat for t in app.terrenys()),
+       'el selector de Mapes ja no te els limits de totalitat i la capa no es dibuixa')
+
+    # ------------------------------------------------------------ 7. barra de temps
+    from dades.observador import UBICACIONS_PROVES
+    obrir[0] = False
+
+    def captura_barra(nom):
+        fotograma(2)
+        im = Image.frombytes('RGB', (W, H), objectiu.read(components=3)).transpose(Image.FLIP_TOP_BOTTOM)
+        im.crop((240, H - 150, W - 240, H)).save(os.path.join(CARPETA, nom))
+        print(f'   captura: {os.path.join(CARPETA, nom)}')
+    captura_barra('barra_temps_uab.png')
+    nom, lat, lon = next(u for u in UBICACIONS_PROVES if u[0].startswith('Picos'))
+    app.triar_ubicacio(lat, lon, nom)
+    app.hora = app.model.hores['c2'] - 0.05
+    hora = app.hora
+    io.add_key_event(imgui.Key.KEY_P, True)
+    fotograma()
+    io.add_key_event(imgui.Key.KEY_P, False)
+    captura_barra('barra_temps_picos.png')
+    ok(app.reproduint and app.hora > hora and app.model.hores['c2'] is not None,
+       f'barra de temps a {nom} (totalitat), reproduint: l\'hora avanca ({ui.eclipse_data.hora_local(app.hora)})')
+    app.reproduir_pausar()
 
     print(f'\n{"Tot correcte" if not errors else f"{len(errors)} errors"}')
     app._shutdown()

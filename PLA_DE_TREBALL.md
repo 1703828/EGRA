@@ -2721,13 +2721,13 @@ l'espai.
 | 48.3 | `G`: enquadrament de l'ombra des de l'espai (el que feia el botó) i, un altre cop, tornar on era | `FET` |
 | 48.4 | Panell *Càmera*: *Descàrregues en segon pla* amb barra per feina (progrés real o indeterminat) i FPS, *Mirar el Sol*, *Què es dibuixa* i *Tecles* tancats. `Descarregador.baixant`/`progres()` (`dades/teselles.py`) i `lloc` a les feines de xarxa de `detall.py` | `FET` |
 | 48.4b | Equip: «no surten els edificis i no hi ha descàrregues». No reproduït (Cadis, Sabadell, Vic i la UAB: es baixen i es dibuixen, inspeccionat a captures). Però el panell nou amagava el motiu (abans, a *Detall del lloc*): ara, si no hi ha edificis al punt, *Descàrregues* diu per què (descàrrega fallada amb l'error i botó *Tornar a provar*, sense Catastro estatal, càmera a més de 15 km, mar, opció desactivada) | `FET` (causa de l'equip pendent de confirmar) |
-| 48.5 | *Límits de totalitat (CNIG)* com a opció del selector de *Mapes* (2026; exclusiva amb els mapes) | `FET` |
+| 48.5 | *Límits de totalitat (CNIG)* com a opció del selector de *Mapes* (2026; exclusiva amb els mapes) | Retirat el 19/11/2026 (equip: el mapa *Ombra de la Lluna* ja ho mostra, millor) |
 | 48.6 | Adaptar a la vista única els scripts que encara fan servir l'API antiga (`canviar_vista`, `camera_observador`, `camera_guiada`, `caminar`): `prova_vistes`, `prova_controls`, `prova_obstacles` (part de caminar), `prova_detall`, `prova_mosaic`, `prova_cel`, `prova_eclipsis`, `prova_noms`, `prova_llocs`, `prova_ortofoto`, `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu`, `estudi_instancing`, `estudi_vegetacio_gpu`. `prova_caminar` és obsolet. Decidir amb l'equip si s'esborren `camera_observador.py`, `camera_guiada.py` i `dades/trajectoria.py` | `PENDENT` |
 
 Decisions preses (d'interpretació, per confirmar amb l'equip):
 - `G` es conserva amb un significat nou dins de la vista única (anar a veure l'ombra des de l'espai i tornar), perquè
   la petició demanava conservar-la i el botó s'ha tret. `Majúscules` ja no fa córrer (no hi ha mode Caminar).
-- *Límits de totalitat* és una entrada del selector de Mapes i, per tant, no es combina amb un altre mapa.
+- *Límits de totalitat* va ser una entrada del selector de Mapes; retirada el 19/11/2026.
 - *Edificis* / *A la vista aèria* passen a dependre de l'altura de la càmera (100 m, `ALCADA_PRIMERA_PERSONA_KM`).
 - El lloc de les descàrregues és el nom de `data/noms_mapa.json` més proper (aproximació sense xarxa).
 
@@ -2740,7 +2740,7 @@ Comprovacions:
   Les descàrregues de la prova són feines simulades: les reals (xarxa) no s'han vist al panell.
 - **Proves de l'equip pendents:** amb la finestra, baixar de l'espai fins al carrer amb la roda i W A S D; doble clic
   en diversos llocs (mirant el Sol, i continuar explorant); G anada i tornada; veure les barres mentre es baixen
-  fotos i edificis d'un lloc nou; triar *Límits de totalitat* a Mapes. Si la navegació a prop del terra és intuïtiva.
+  fotos i edificis d'un lloc nou. Si la navegació a prop del terra és intuïtiva.
 
 ### F49 — Panell «Eclipsi» simplificat (18/11/2026, petició de l'equip) — FET
 
@@ -2752,6 +2752,54 @@ velocitat, *Tornar al punt*, *Anar al màxim*, línies de l'ombra i capes del CN
 - La velocitat es queda en *Auto* (no hi ha cap control); l'hora es canvia a la barra de temps.
 - **Comprovat automàticament:** `prova_navegacio.py` (22 correctes; coordenades del punt del doble clic).
   **Inspeccionat visualment:** captura del panell (sense textos tallats). Pendent: prova de l'equip.
+
+### F50 — Barra de temps reformulada (19/11/2026, petició de l'equip) — FET
+
+Esquema de l'equip: botó de reproduir amb el símbol (triangle / dues barres, dibuixats: la font no els té), sense ±5
+min, l'hora fora de la barra (a la dreta), marques més clares (eclipsi C1–C4 o fins a la posta: franja clara; fase
+central C2–C3: vermell) i una llegenda curta a sota. Retirats el màxim, la posta com a marca pròpia i la línia d'hores.
+- Primera versió rebutjada per l'equip (massa alta, mides canviades, massa literal amb l'esbós). Segona versió: mides
+  i estil d'abans, format de la imatge de l'equip: línies amb el nom a sota (inici/fi de l'eclipsi i de la totalitat;
+  fusionats si es trepitgen), part passada omplerta, hora en una caixa, llegenda.
+- **Comprovat automàticament:** `prova_navegacio.py` (Picos: P reprodueix i l'hora avança). **Inspeccionat
+  visualment:** `captures/proves/barra_temps_uab.png` (parcial, la fi és la posta) i `barra_temps_picos.png`
+  (totalitat). Pendent: prova de l'equip.
+
+### F51 — Edificis abans en un lloc nou (20/11/2026, petició de l'equip, després de l'auditoria) — FET
+
+Auditoria (19/11, `scripts/auditar_edificis.py`): el Catastro (11–18 s) i la malla, feta dues vegades (estimades i
+mesurades, 7–12 s cada una), feien esperar; el Catastro esperava el relleu (~5 s) sense necessitar-lo; els ZIP
+s'esborraven (una cel·la veïna els tornava a baixar); una feina d'altures refeia la malla de la zona anterior (~17 s).
+`revisar_preparacio()` ja no existeix (F31): en reproducció ja no hi ha cap espera (mesurat). MapMiner, descartat (no té
+el Catastro, plantes ni LiDAR).
+
+| Tasca | Què | Estat |
+|---|---|---|
+| 51.1 | Relleu, Catastro (`llocs.preparar_cadastre`, etapa nova) i LiDAR de la cel·la (`_llegir_lidar`) alhora, quan el punt és estable (es conserva `ESPERA_PREPARAR_S`) | `FET` |
+| 51.2 | Una sola malla amb les altures mesurades si el LiDAR ja hi és; si no en 4 s (`ESPERA_LIDAR_S`, triat amb els temps mesurats) o falla, estimades i després mesurades. Les parts sense mesura, estimades (en blau) | `FET` |
+| 51.3 | ZIP del Catastro conservats (300 MB, els menys usats primer), descàrrega represa (`.part` + Range) i validada (CRC) | `FET` |
+| 51.4 | Cap feina d'altures per a una zona sense parts a la cel·la del punt; resultat sempre de la zona activa | `FET` |
+| 51.5 | Memòria cau de proves (`EGRA_CACHE_PROVES`) perquè les proves no toquin els llocs de l'usuari | `FET` |
+
+Mesures (**comprovat automàticament**, `auditar_edificis.py`, mateix mètode, sense `ctx.finish()`, memòria cau de proves
+buida; una mesura per cas: la xarxa varia molt, p. ex. el relleu d'Igualada 8 o 12 s):
+
+| Lloc | Primers edificis abans → després | Altures definitives abans → després | Fotogrames > 100 ms |
+|---|---|---|---|
+| Igualada (22.280 parts) | 37,8 → 36,8 s | 52,9 → 36,9 s | 4 → 3 |
+| Mataró (33.009 parts) | 43,2 → 41,9 s | 66,1 → 41,9 s | 4 → 5 |
+| Cel·la veïna d'Igualada | (23,2 s, auditoria) → 13,4 s | (30,3 s) → 13,4 s | 3 |
+| LiDAR lent (+20 s, simulat; Vilafranca) | → 24,5 s (estimades) | → 33,4 s | 5 |
+| LiDAR absent (simulat; Valls) | → 17,7 s (estimades) | no n'hi ha (un intent) | 3 |
+| Reproduint (càmera; poble de 1.648 parts) | → 14,4 s | → 14,6 s | 1 |
+
+- Els primers edificis amb prou feines s'avancen: el Catastro és ara el camí crític (Igualada: 25 de 37 s) i, fet alhora
+  amb el relleu, el LiDAR i les teselles de la foto, va més lent (Igualada 25 s contra 17 s; una sola mesura). La malla
+  única hi afegeix el càlcul de les altures (~2–3 s) abans de veure-hi res, però ja amb les altures definitives.
+- Proves: `prova_cadastre_zips.py` (represa, `.part` malmès, límit, cel·les veïnes: tot correcte),
+  `prova_canvi_lloc.py` (cap feina d'altures per a la zona anterior; canvi de lloc amb feines en curs: 0 incoherències),
+  `prova_navegacio.py` (adaptada al nom nou de la feina).
+- Següent pas, si l'equip ho vol: valorar el Catastro (WFS, ordre de les descàrregues) amb aquests temps.
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
@@ -2810,3 +2858,6 @@ velocitat, *Tornar al punt*, *Anar al màxim*, línies de l'ombra i capes del CN
 | 16/11/2026 | O4: mesures finals (R1, temps per peça, penínsules del 2027 i el 2028), regressió completa correcta. Pendent: prova de l'equip. |
 | 17/11/2026 | F48 (petició de l'equip): una sola vista (fora la vista des del terra, la guiada, `V` i Caminar), doble clic als ulls mirant el Sol, `G` espai/tornar, panell *Càmera* simplificat amb descàrregues i progrés, *Límits de totalitat* a *Mapes*. 48.6 (adaptar scripts antics) `PENDENT`. Sense commit. |
 | 18/11/2026 | F49: panell *Eclipsi* simplificat (eclipsi, punt d'observació, Mapes). Sense commit. |
+| 19/11/2026 | Equip: fora *Límits de totalitat (CNIG)* del selector de *Mapes* (el mapa *Ombra de la Lluna* ja ho mostra). |
+| 19/11/2026 | F50: barra de temps reformulada (símbol de reproduir, sense ±5 min, hora a la dreta, marques i llegenda). Sense commit. |
+| 20/11/2026 | F51: relleu, Catastro i LiDAR alhora, una sola malla amb altures mesurades, ZIP conservats, correcció de les altures de la zona anterior; memòria cau de proves. Sense commit. |

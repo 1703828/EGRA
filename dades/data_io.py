@@ -21,7 +21,12 @@ from scipy import ndimage
 
 DIR_DADES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')  # data/ es a l'arrel del projecte
 DIR_MDT = os.path.join(DIR_DADES, 'mdt')       # MDT descarregats (scripts/descarregar_mdt.py)
-DIR_CACHE = os.path.join(DIR_DADES, 'cache')   # fitxers generats (no es versionen)
+# Proves (scripts/auditar_edificis.py): amb la variable d'entorn EGRA_CACHE_PROVES=<carpeta>, tot el que el programa
+# baixa o genera per als llocs (relleu de 5 m, edificis, ZIP del Catastro, alcaries i caches) va a aquella carpeta:
+# els llocs de l'usuari no es toquen. Els processos fills (dades/feines.py) hereten la variable. Sense: data/.
+CACHE_PROVES = os.environ.get('EGRA_CACHE_PROVES') or None
+DIR_GENERATS = CACHE_PROVES or DIR_DADES
+DIR_CACHE = os.path.join(DIR_GENERATS, 'cache')   # fitxers generats (no es versionen)
 # terrenys del selector: (nom al panell, fitxer, es zona de detall)
 TERRENYS = [
     ('Peninsula', os.path.join(DIR_MDT, 'peninsula_200m.tif'), False),

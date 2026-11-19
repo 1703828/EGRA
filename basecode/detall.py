@@ -19,6 +19,11 @@ Per a aquest punt, a cada fotograma (com a molt cada REVISIO_S):
   4. Altures mesurades dels edificis (dades/alcaries.py): quan els edificis es veuen i encara son estimats.
   (Els mapes de l'eclipsi preparen les seves dades a basecode/mapes.py, segons tota la vista: aqui nomes hi ha la
   feina de la superficie dels obstacles, _preparar_superficie, que tambe fan servir.)
+Lloc nou (F51, 20/11/2026): quan el punt es estable (ESPERA_PREPARAR_S), comencen alhora el relleu, el Catastro i el
+LiDAR de la cel·la, que no depenen l'un de l'altre; la malla dels edificis, quan hi ha el relleu i el Catastro. Si el
+LiDAR ja hi es, una sola malla amb les altures mesurades; si encara s'esta llegint, s'espera com a molt ESPERA_LIDAR_S
+i, si no arriba (lent o fallat), la de les estimades, i les mesurades arriben despres (punt 4). Mesures:
+scripts/auditar_edificis.py i PLA_DE_TREBALL.md (F51).
 Cada feina guarda que s'ha demanat (clau). Quan acaba, el resultat queda al disc; nomes es fa servir si encara es el
 que cal per al punt actual (una descarrega antiga no canvia el que es veu despres de moure's).
 
@@ -47,6 +52,11 @@ REVISIO_S = 0.15
 ESPERA_PREPARAR_S = 1.0      # el punt ha de ser a la mateixa cel·la aquesta estona abans de baixar-hi res (en volar per
                              # sobre d'un lloc no es prepara)
 MAX_CARREGADES = 3
+# Lloc nou: quan el relleu i el Catastro son a punt i el LiDAR de la cel·la encara no, s'espera com a molt aixo abans de
+# fer la malla de les estimades. Mesures (19/11/2026): el LiDAR de l'ICGC tarda 5-7 s i comenca alhora que el Catastro
+# (11-36 s), aixi que normalment ja hi es; si no, es lent o ha fallat. Una malla de mes (les estimades i despres les
+# mesurades) costa 7-12 s: esperar fins a ~la meitat de la mes curta surt a compte; mes, retardaria els primers edificis
+ESPERA_LIDAR_S = 4.0
 MARGE_ZONA_M = 1000.0        # el punt ha de ser a aixo de la vora del relleu de la zona
 HISTERESI_M = 300.0          # la zona activa es conserva fins que el punt en surt aixo mes enlla
 LLINDAR_PEGAT = 0.25         # el pegat es torna a centrar quan el punt se n'allunya aquesta fraccio del costat
@@ -71,6 +81,7 @@ class Detall:
         self.cel_les_mesurades = {}   # zona -> cel·les on ja s'han mesurat les altures dels edificis
         self.desitjat = (None, 0.0)   # (cel·la del punt, des de quan hi es): per a ESPERA_PREPARAR_S
         self._situant = False
+        self.malla_a_punt = {}        # lloc -> quan s'hi han tingut el relleu i el Catastro (espera del LiDAR)
 
     # ------------------------------------------------------------ zones disponibles
 
@@ -172,7 +183,8 @@ class Detall:
             # nomes llegir: si la malla no hi es, es fara en un proces (recollir) i els edificis arribaran despres
             e = Edificis.preparar(clau, cami, mesurades=mesurades, nomes_llegir=True)
         from dades.edificis import preparar_malla
-        falta = os.path.exists(fitxer_zona(clau)) and (
+        # (un lloc nou sense la malla encara: la fa preparar_lloc, amb les altures mesurades si es pot)
+        falta = os.path.exists(fitxer_zona(clau)) and (not clau.startswith('lloc_') or llocs.edificis_fets(clau)) and (
             e is None or (mesurades and preparar_malla(clau, cami, mesurades=True, nomes_llegir=True) is None))
         return dict(terreny=t, edificis=e, falta_malla=falta)
 
@@ -301,7 +313,10 @@ class Detall:
         if self.desitjat[0] != cel:
             self.desitjat = (cel, ara)
         estable = ara - self.desitjat[1] >= ESPERA_PREPARAR_S
-        if falta and estable:
+        # el lloc de la quadricula ja es la zona pero li falten els edificis (el Catastro ja hi es: "falta" no ho veu)
+        c = llocs.clau_per_punt(x, y)
+        incomplet = volguts and z is not None and z['clau'] == c and not llocs.edificis_fets(c)
+        if (falta or incomplet) and estable:
             self.preparar_lloc(lat, lon, x, y, volguts)
         if z is not None and z['cami'] != actual:
             if z['cami'] in self.carregades:
@@ -319,25 +334,49 @@ class Detall:
     def lliure(self, tipus, clau):
         """Si es pot comencar una feina d'aquest tipus per a la clau: cap altra en curs i no ha fallat abans. Les que
         preparen dades noves (xarxa), nomes si preparar es True."""
-        if not self.preparar and tipus in ('relleu', 'edificis', 'alcades', 'superficie'):
+        if not self.preparar and tipus in ('relleu', 'cadastre', 'lidar', 'edificis', 'alcades', 'superficie'):
             return False
         return tipus not in self.feines and (tipus, clau) not in self.fallades
 
     def preparar_lloc(self, lat, lon, x, y, volguts):
-        """Prepara el lloc de la quadricula del punt (relleu i, si es volen, edificis), si es a terra a Espanya."""
+        """Prepara el lloc de la quadricula del punt, si es a terra a Espanya. El relleu, el Catastro i el LiDAR de la
+        cel·la (nomes si es volen edificis) comencen alhora: no depenen l'un de l'altre. La malla, quan hi ha el relleu
+        i el Catastro (fer_malla). Cada feina porta el lloc (per al panell: Descarregues en segon pla)."""
         app = self.app
         if not (app.peninsula.conte(lat, lon) and app.peninsula.es_terra(lat, lon)):
             return
         c = llocs.clau_per_punt(x, y)
-        if not llocs.te_relleu(c):
-            if self.lliure('relleu', c):
-                protegits = {z['clau'] for z in self.carregades.values()}
-                self.feines['relleu'] = FeinaProces(c, _preparar_relleu, c, self.max_textura, protegits,
-                                                    descripcio='relleu del lloc')
-                self.feines['relleu'].lloc = (lat, lon)      # per al panell (Descarregues en segon pla)
-        elif volguts and not llocs.edificis_fets(c) and self.lliure('edificis', c):
-            self.feines['edificis'] = FeinaProces(c, llocs.preparar_edificis, c, descripcio='edificis del lloc')
-            self.feines['edificis'].lloc = (lat, lon)
+        if not llocs.te_relleu(c) and self.lliure('relleu', c):
+            protegits = {z['clau'] for z in self.carregades.values()}
+            self.feines['relleu'] = FeinaProces(c, _preparar_relleu, c, self.max_textura, protegits,
+                                                descripcio='relleu del lloc')
+            self.feines['relleu'].lloc = (lat, lon)
+        if not volguts or llocs.edificis_fets(c):
+            return
+        if not llocs.cadastre_fet(c) and self.lliure('cadastre', c):
+            self.feines['cadastre'] = FeinaProces(c, llocs.preparar_cadastre, c, descripcio='Catastro del lloc')
+            self.feines['cadastre'].lloc = (lat, lon)
+        cel = llocs.centre(c)           # la cel·la del LiDAR es la del lloc (la mateixa quadricula de 3 km)
+        if not os.path.exists(alcaries.cami_alcaria_cel(*cel)) and self.lliure('lidar', cel):
+            self.feines['lidar'] = FeinaProces(cel, _llegir_lidar, *cel, descripcio='LiDAR de la cel·la')
+            self.feines['lidar'].lloc = (lat, lon)
+        if llocs.te_relleu(c) and llocs.cadastre_fet(c):
+            self.fer_malla(c, cel, (lat, lon))
+
+    def fer_malla(self, c, cel, lloc):
+        """La malla dels edificis d'un lloc amb el relleu i el Catastro a punt. Amb el LiDAR de la cel·la ja llegit (o
+        sabent que no n'hi ha), una sola malla amb les millors altures. Si el LiDAR encara s'esta llegint, s'espera com
+        a molt ESPERA_LIDAR_S; passat aquest temps, o si ha fallat, la malla de les estimades: els edificis es veuen
+        sense esperar mes, identificats com a estimats, i preparar_alcades els actualitza quan arriben les mesures."""
+        if not self.lliure('edificis', c):
+            return
+        ara = time.time()
+        a_punt = self.malla_a_punt.setdefault(c, ara)
+        if 'lidar' in self.feines and self.feines['lidar'].clau == cel and ara - a_punt < ESPERA_LIDAR_S:
+            return
+        amb_lidar = os.path.exists(alcaries.cami_alcaria_cel(*cel))
+        self.feines['edificis'] = FeinaProces(c, _preparar_edificis, c, amb_lidar, descripcio='malla dels edificis')
+        self.feines['edificis'].lloc = lloc
 
     def recentrar_pegats(self, lat, lon):
         app = self.app
@@ -363,6 +402,11 @@ class Detall:
         if not volguts or e is None:
             return
         cel = centre_cel(x, y)
+        # nomes si la zona dels edificis te parts en aquesta cel·la: abans (fins a la F51), en arribar a un lloc nou
+        # amb la zona anterior encara activa, es mesurava una cel·la sense cap part i es refeia tota la malla d'aquella
+        # zona (~17 s d'un proces). I no mentre el LiDAR de la cel·la ja s'esta llegint (preparar_lloc)
+        if not self.te_edificis(e.zona, x, y) or ('lidar' in self.feines and self.feines['lidar'].clau == cel):
+            return
         if e.zona not in self.cel_les_mesurades:
             self.cel_les_mesurades[e.zona] = alcaries.cel_les_fetes(e.zona)
         if cel in self.cel_les_mesurades[e.zona]:
@@ -438,6 +482,8 @@ class Detall:
                 self.carregar_edificis(f.clau)
             elif tipus == 'edificis':
                 self._limits.clear()
+                self.cel_les_mesurades.pop(f.clau, None)    # la malla pot haver-se fet amb les altures mesurades
+                self.malla_a_punt.pop(f.clau, None)
                 self.carregar_edificis(f.clau)       # si el lloc ja es veu, els seus edificis nous
             elif tipus == 'alcades':
                 zona, cel = f.clau
@@ -518,8 +564,8 @@ class Detall:
         # edificis
         volguts = self.edificis_volguts()
         e = app.edificis
-        if en_curs('edificis', 'malla', 'carregar_edificis'):
-            et = 'preparant: ' + en_curs('edificis', 'malla', 'carregar_edificis')
+        if en_curs('cadastre', 'edificis', 'malla', 'carregar_edificis'):
+            et = 'preparant: ' + en_curs('cadastre', 'edificis', 'malla', 'carregar_edificis')
         elif not volguts:
             et = 'amagats a aquesta altura (panell: Edificis)'
         elif e is not None:
@@ -540,8 +586,8 @@ class Detall:
                 et = 'no disponibles: el Catastro estatal no hi te cap municipi (Navarra i el Pais Basc tenen cadastre propi)'
             elif info is not None:
                 et = 'cap edifici al Catastro en aquest lloc'
-            elif ('edificis', c) in self.fallades:
-                et = f'error: {self.fallades[("edificis", c)][:60]}'
+            elif ('edificis', c) in self.fallades or ('cadastre', c) in self.fallades:
+                et = f'error: {self.fallades.get(("cadastre", c)) or self.fallades[("edificis", c)]}'
             else:
                 et = 'pendents (primer el relleu de 5 m)'
         # mapa
@@ -575,11 +621,28 @@ def _mesurar_alcades(zona, cel, cami, avis):
     """Altures mesurades d'una cel·la i la malla amb aquestes altures (FeinaProces). True si n'hi ha cap."""
     from dades.edificis import preparar_malla
     r = alcaries.preparar_alcades(zona, cel, avis)
-    if not np.isfinite(r['alcada']).any():
-        return False          # cap mesura: es queden les estimades
+    # cap mesura nova en aquesta cel·la: no cal refer la malla (si la cel·la ja era mesurada, com abans)
+    if not (r['mesurades_cel'] if 'mesurades_cel' in r else np.isfinite(r['alcada']).any()):
+        return False
     avis('Malla dels edificis amb les altures mesurades...')
     preparar_malla(zona, cami, mesurades=True)
     return True
+
+
+def _llegir_lidar(cx, cy, avis):
+    """L'alcaria mesurada (LiDAR) de la cel·la, a la memoria cau (FeinaProces): es llegeix alhora que el Catastro."""
+    a = alcaries.alcaria_cel(cx, cy, avis)
+    return a['font'] if a is not None else ''
+
+
+def _preparar_edificis(c, amb_lidar, avis):
+    """La malla dels edificis d'un lloc (FeinaProces). amb_lidar: primer les altures mesurades de la cel·la i, si n'hi
+    ha cap, una sola malla amb aquestes; si no, la de les estimades."""
+    mesurades = False
+    if amb_lidar and os.path.exists(fitxer_zona(c)):
+        r = alcaries.preparar_alcades(c, llocs.centre(c), avis)
+        mesurades = bool(r['mesurades_cel'] if 'mesurades_cel' in r else np.isfinite(r['alcada']).any())
+    return llocs.preparar_edificis(c, avis, mesurades=mesurades)
 
 
 def _preparar_malla(zona, cami, avis):
@@ -596,7 +659,7 @@ def _preparar_malla(zona, cami, avis):
 def _preparar_cobertes(zona, cami, avis):
     """Color de les cobertes d'una zona a partir de la fotografia aeria (FeinaProces): els contorns, de la malla."""
     from dades.edificis import preparar_malla, contorns_de_bytes, colors_cobertes
-    m = preparar_malla(zona, cami, nomes_llegir=True)
+    m = preparar_malla(zona, cami, nomes_llegir=True) or preparar_malla(zona, cami, mesurades=True, nomes_llegir=True)
     return colors_cobertes(zona, contorns_de_bytes(m), avis) if m is not None else None
 
 

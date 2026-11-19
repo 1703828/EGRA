@@ -156,10 +156,14 @@ de 300 m del terra, també als ulls). No cal cap doble clic.
 Quan la càmera baixa a menys de 15 km d'un lloc d'Espanya, el programa hi prepara **en segon pla** el detall que
 falta (`basecode/detall.py`), sense aturar la navegació:
 1. **Relleu de 5 m** (IGN, 6 × 6 km): si no hi ha cap zona de detall, el del lloc de la quadrícula de 3 km.
-   Uns 10–20 s la primera vegada. Les zones fetes a mà (Picos, Vic, l'Escala, el Vallès) es continuen fent servir.
-2. **Edificis** (Catastro, la cel·la de 3 × 3 km), si es veuen a la vista actual: primer amb altures
-   **estimades** (plantes × 3 m) i, quan arriben les dades, amb altures **mesurades** amb LiDAR (secció
-   *Edificis*).
+   Uns 5–12 s la primera vegada. Les zones fetes a mà (Picos, Vic, l'Escala, el Vallès) es continuen fent servir.
+2. **Edificis** (Catastro, la cel·la de 3 × 3 km), si es veuen: el Catastro i el LiDAR de la cel·la es baixen
+   **alhora que el relleu** (no en depenen). Quan hi ha el relleu i el Catastro, si el LiDAR ja és llegit es fa
+   **una sola malla amb les altures mesurades**; si no ha arribat en 4 s (`ESPERA_LIDAR_S`) o ha fallat, primer
+   amb les altures **estimades** (plantes × 3 m, en blau) i després les mesurades (secció *Edificis*). Els ZIP del
+   Catastro es conserven (300 MB com a molt): una cel·la veïna del mateix municipi no el torna a baixar. Temps
+   mesurats (F51 del pla): Igualada 37 s i Mataró 42 s fins als edificis ja amb les altures definitives (abans,
+   53 s i 66 s); una cel·la veïna, 13 s.
 3. Les dades dels **mapes de l'eclipsi**, si se'n mostra un: les prepara `basecode/mapes.py` segons tota la vista
    (secció *Mapes de l'eclipsi*).
 La fotografia aèria ja arribava a tot arreu i no canvia (secció *Fotografia aèria*).
@@ -277,14 +281,15 @@ l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
   - **Eclipsi** (a l'esquerra, simplificat el 18/11/2026), només tres coses: el selector de l'eclipsi (12/08/2026
     total, 02/08/2027 total, 26/01/2028 anular); el **punt d'observació** (llista i, a sota, *Coordenades*, *Nucli* i
     *Municipi* del punt actual, també després d'un doble clic; «-» si no se sap o s'està consultant) i **Mapes** (com
-    abans, amb *Límits de totalitat*). L'hora i reproduir són a la barra de temps; la velocitat es queda en *Auto*
+    abans). L'hora i reproduir són a la barra de temps; la velocitat es queda en *Auto*
     (lenta a la totalitat). Ja no hi són: hora i fase, part del Sol tapada, velocitat, *Tornar al punt*, *Anar al
     màxim*, les línies de l'ombra de la Lluna i les capes del CNIG (els atributs `velocitat`, `ressaltar_ombra` i
     `Terrain.overlay` continuen al codi per als scripts). L'atribució de les fonts és ara a *Què es dibuixa*.
   - **Càmera** (a la dreta, simplificat el 17/11/2026): **Descàrregues en segon pla** (què es baixa o es prepara i de
     quin lloc, amb una barra de progrés per feina, i els FPS), el botó **Mirar el Sol** i dos desplegables tancats:
     **Què es dibuixa** (fotografia aèria, edificis, vegetació, ombres, noms de lloc) i **Tecles**.
-  - **Límits de totalitat (CNIG)**, només el 2026, és una opció més del selector de **Mapes** (en treu els altres).
+  - Els **límits de la totalitat del CNIG** ja no són al panell (19/11/2026): el mapa *Ombra de la Lluna* ja mostra la
+    franja de la fase central. La capa continua al codi (`Terrain.limits_totalitat`) per als scripts.
   - Les descàrregues surten de les feines reals: relleu de 5 m (IGN), edificis (Catastro), altures (LiDAR), teselles
     de la fotografia aèria que es baixen de la xarxa (no les del disc), dades dels mapes, vegetació i el nom del punt.
     El lloc és el nom del mapa més proper (capitals de comunitat, de província i de comarca de Catalunya,
@@ -310,8 +315,12 @@ l'eclipsi): mentre es reprodueix a x60, cada fotograma passa de ~13 a ~22 ms.
   Bàsic de l'IGN; si l'adreça més propera pertany a un nucli, "dins de" aquell) i el **municipi** administratiu
   (CartoCiudad). Són dades diferents: entre Vic i Tona, un punt pot ser del municipi de Malla o de Tona i tenir com a
   nucli més proper el Gurri. Els noms es mostren sense accents (limitació de la font del panell).
-- **Barra de temps** (a baix): reproduir/pausar, ±5 min i l'hora, que es pot arrossegar. Marques al punt triat:
-  inici i final (groc), fase central (lila), màxim (blanc) i posta (taronja); a sota, les hores.
+- **Barra de temps** (a baix, format de l'equip del 19/11/2026, amb les mides i l'estil d'abans): el botó ▶ / ❚❚
+  (reproduir / pausar; també `P`), la barra de l'hora (es pot arrossegar; la part ja passada, omplerta) i l'hora local
+  en una caixa a la dreta. Sobre la barra, línies a l'inici i la fi de l'eclipsi (blanques; si el Sol es pon abans de
+  C4, la fi és la posta) i de la totalitat o anularitat (vermelles), amb el seu nom a sota. La totalitat dura un o dos
+  minuts: si els dos noms es trepitjarien, surt un sol nom («Totalitat»). A sota de tot, la llegenda dels dos colors.
+  Ja no hi ha ±5 min, el màxim ni la línia d'hores.
 
 ### Mapes de l'eclipsi (on anar a veure'l)
 

@@ -47,7 +47,9 @@ class Edificis:
         """Part de CPU (llegir o preparar la malla, contorns i obstacles), sense OpenGL: es pot fer en un fil.
         Edificis(app, zona, cami_mdt, preparat=...) hi afegeix els objectes OpenGL al fil principal.
         nomes_llegir: None si la malla no es a la memoria cau (fer-la es llarg i s'ha de fer en un proces)."""
-        if nomes_llegir and preparar_malla(zona, cami_mdt, nomes_llegir=True) is None:
+        # (un lloc nou pot tenir nomes la malla de les altures mesurades: F51)
+        if nomes_llegir and preparar_malla(zona, cami_mdt, nomes_llegir=True) is None and \
+                (not mesurades or preparar_malla(zona, cami_mdt, mesurades=True, nomes_llegir=True) is None):
             return None
         e = cls.__new__(cls)
         e._preparar_cpu(zona, cami_mdt, mesurades)

@@ -8,7 +8,7 @@ GraphicsEngine.build_ui(), que crida build_ui(app) d'aquest fitxer. imgui es una
 Els panells nomes tenen controls (sense textos d'explicacio, peticio de l'equip del 30/10), separats en dos (peticio
 de l'equip de l'1/11):
   - "Eclipsi" (simplificat el 18/11/2026): quin eclipsi, el punt d'observacio (lloc, coordenades, nucli i municipi)
-    i el selector de Mapes (amb els limits de la totalitat del CNIG). L'hora i reproduir son a la barra de temps.
+    i el selector de Mapes. L'hora i reproduir son a la barra de temps.
   - "Camera" (simplificat el 17/11/2026, una sola vista): el boto "Mirar el Sol", les descarregues en segon pla (que
     es baixa i de quin lloc) amb els FPS, i dos desplegables tancats: que es dibuixa i les tecles.
 Reproduir i pausar es a la barra de temps (a baix).
@@ -22,14 +22,12 @@ import glm
 import numpy as np
 from slimgui import imgui
 
-from basecode.terrain import COLOR_TOTALITAT
 from basecode import mapes as M
 from basecode.detall import ALCADA_DETALL_KM
 from dades import eclipse_data, eclipsis, geodesia, noms
 from dades.observador import UBICACIONS
 
 AMPLADA_PANELL = 300
-LLIMITS_TOTALITAT = ('limits', 'Limits de totalitat (CNIG)')   # entrada del selector de Mapes (capa del terreny)
 LLOC_A_PROP_KM = 15.0     # descarregues: "de Cadis" fins a aquesta distancia del nom mes proper; mes enlla, "prop de"
 LLOC_MAX_KM = 150.0       # mes enlla, sense nom (mar, fora d'Espanya)
 # Noms de lloc sobre el mapa (noms_al_mapa): cada nivell es veu amb la camera entre aquestes altures sobre el terra
@@ -43,8 +41,9 @@ COLOR_SUAU = (0.65, 0.68, 0.72, 1.0)
 COLOR_AVIS = (1.0, 0.8, 0.4, 1.0)
 COLOR_ALCADA_ESTIMADA = (0.30, 0.50, 0.95)   # el mateix que BLAU_ESTIMADA (shaders/edifici.frag)
 # marques de la barra de temps: contacte, color
-MARQUES = [('c1', (1.0, 0.85, 0.3)), ('c2', COLOR_TOTALITAT), ('maxim', (1.0, 1.0, 1.0)), ('c3', COLOR_TOTALITAT),
-           ('c4', (1.0, 0.85, 0.3)), ('posta', (1.0, 0.45, 0.2))]
+# barra de temps: colors de les marques (la fase central en vermell, com a l'esquema de l'equip) i alcada de la barra
+COLOR_CENTRAL = (0.95, 0.30, 0.30)
+COLOR_ECLIPSI_BARRA = (0.92, 0.92, 0.95)
 
 
 def build_ui(app):
@@ -245,22 +244,17 @@ def llegenda_columnes(entrades, columnes=2):
 
 def panell_mapa(app):
     """Quin mapa (basecode/mapes.py), el seu mode, la llegenda (llindars fixos: no canvien amb el zoom) i d'on surten
-    les dades que es veuen. Al 2026, el selector inclou tambe els limits de la totalitat del CNIG (linies sobre el
-    terreny, basecode/terrain.py): s'hi tria com un mapa mes i en treu els altres."""
+    les dades que es veuen. (Els limits de la totalitat del CNIG ja no hi son, 19/11/2026: el mapa "Ombra de la
+    Lluna" ja mostra la franja de la fase central.)"""
     m = app.mapes
-    opcions = list(M.MAPES) + ([LLIMITS_TOTALITAT] if eclipsis.actiu() == '2026' else [])
-    noms = [n for _, n in opcions]
-    claus = [c for c, _ in opcions]
-    t = app.peninsula
-    actual = claus.index(m.quin) if m.quin else (claus.index('limits') if t.limits_totalitat and 'limits' in claus else 0)
+    noms = [n for _, n in M.MAPES]
+    claus = [c for c, _ in M.MAPES]
+    actual = claus.index(m.quin) if m.quin else 0
     imgui.push_item_width(-1.0)
     canviat, nou = imgui.combo('##mapa', actual, noms)
     imgui.pop_item_width()
     if canviat:
-        limits = claus[nou] == 'limits'
-        m.mostrar('cap' if limits else claus[nou])
-        for terreny in app.terrenys():
-            terreny.limits_totalitat = limits
+        m.mostrar(claus[nou])
     if not m.quin:
         return
     modes = M.MODES[m.quin]
@@ -376,7 +370,8 @@ def descarregues(app):
     on = lambda f: nom_proper(*(getattr(f, 'lloc', None) or punt)) if (getattr(f, 'lloc', None) or punt) else ''
     linies = []
     d = app.detall.feines
-    textos = {'relleu': 'Descarregant el relleu (5 m) {}', 'edificis': 'Descarregant edificis {}',
+    textos = {'relleu': 'Descarregant el relleu (5 m) {}', 'cadastre': 'Descarregant edificis {}',
+              'lidar': 'Descarregant les altures (LiDAR) {}', 'edificis': 'Preparant edificis {}',
               'alcades': 'Descarregant les altures dels edificis (LiDAR) {}', 'zona': 'Carregant el relleu {}',
               'malla': 'Preparant edificis {}', 'carregar_edificis': 'Carregant edificis {}',
               'cobertes': 'Preparant les cobertes dels edificis {}'}
@@ -426,7 +421,7 @@ def motiu_sense_edificis(app):
     if any(text.startswith(p) for p in ('estimades', 'mesurades', 'preparant', 'llegint')) and \
             app.edificis is not None and app.edificis.visible:
         return ''
-    if any(t in app.detall.feines for t in ('relleu', 'edificis', 'zona', 'malla', 'carregar_edificis')):
+    if any(t in app.detall.feines for t in ('relleu', 'cadastre', 'edificis', 'zona', 'malla', 'carregar_edificis')):
         return ''
     if terreny.startswith('200 m'):    # sense relleu de 5 m: mar, fora d'Espanya o error del relleu
         return terreny
@@ -481,8 +476,10 @@ def avis_ratoli(app):
 
 
 def barra_temps(app):
-    """Finestra de la barra de temps, a baix al mig: l'hora es pot arrossegar (en pausa o no). Marques al punt
-    triat: inici i final (groc), fase central (lila), maxim (blanc) i posta (taronja)."""
+    """Finestra de la barra de temps, a baix al mig, amb les mides i l'estil d'abans (format de l'equip, 19/11/2026):
+    el boto de reproduir / pausar (icona dibuixada: la font del panell no te els simbols), la barra de l'hora (es pot
+    arrossegar, en pausa o no; la part ja passada, omplerta), l'hora local en una caixa a la dreta i, a sota de la
+    barra, les marques de l'eclipsi al punt d'observacio amb el seu nom. A sota de tot, la llegenda dels colors."""
     m = app.model
     io = imgui.get_io()
     w, h = io.display_size
@@ -494,49 +491,121 @@ def barra_temps(app):
     imgui.begin('Temps', False, flags)
     imgui.push_item_flag(imgui.ItemFlags.NO_TAB_STOP, True)
     inici, final = app.ef.inici, app.ef.final
-    if imgui.button('Pausa (P)' if app.reproduint else 'Reproduir (P)', (110, 0)):
+    alt = imgui.get_frame_height()
+    if imgui.button('##play', (alt * 1.8, 0)):
         app.reproduir_pausar()
+    icona_play(imgui.get_item_rect_min(), imgui.get_item_rect_max(), app.reproduint)
     imgui.same_line()
-    if imgui.button('-5 min'):
-        app.hora -= 5 / 60
-    imgui.same_line()
-    if imgui.button('+5 min'):
-        app.hora += 5 / 60
-    app.hora = min(max(app.hora, inici), final)
-    imgui.same_line()
-    imgui.push_item_width(-1.0)
-    text = f"{eclipse_data.hora_local(app.hora)}  -  {m.fase(app.hora)}"
-    canviat, minuts = imgui.slider_float('##hora', (app.hora - inici) * 60, 0, (final - inici) * 60,
-                                         text.replace('%', '%%'))
+    hora = eclipse_data.hora_local(app.hora)
+    amplada_hora = imgui.calc_text_size('00:00:00')[0] + 2 * imgui.get_style().frame_padding[0]
+    imgui.push_item_width(imgui.get_content_region_avail()[0] - amplada_hora - imgui.get_style().item_spacing[0])
+    canviat, minuts = imgui.slider_float('##hora', (app.hora - inici) * 60, 0, (final - inici) * 60, '')
     imgui.pop_item_width()
     if canviat:
-        app.hora = inici + minuts / 60
-    if m.valid:
-        marques_barra(m.hores, inici, final)
-        hh, hl = m.hores, eclipse_data.hora_local
-        parts = [f"inici {hl(hh['c1'])[:5]}"]
-        if hh['c2'] is not None:
-            parts.append(f"{'anularitat' if m.anular else 'totalitat'} {hl(hh['c2'])} - {hl(hh['c3'])}")
-        parts.append(f"maxim {hl(hh['maxim'])[:5]}")
-        if hh['c4'] is not None:
-            parts.append(f"final {hl(hh['c4'])[:5]}")
-        if hh['posta'] is not None:
-            parts.append(f"posta {hl(hh['posta'])[:5]}")
-        imgui.text_disabled('   |   '.join(parts))
+        app.hora = min(max(inici + minuts / 60, inici), final)
+    barra = imgui.get_item_rect_min(), imgui.get_item_rect_max()
+    omplir_barra(barra, (app.hora - inici) / (final - inici))
+    imgui.same_line()
+    caixa_hora(hora, amplada_hora)
+    marques = marques_eclipsi(m) if m.valid else []
+    noms_marques(barra, marques, inici, final)
+    if marques:
+        llegenda_barra(COLOR_ECLIPSI_BARRA, 'Eclipsi')
+        if any(t == 'central' for _, t, _ in marques):
+            imgui.same_line(0, 24)
+            llegenda_barra(COLOR_CENTRAL, 'Anularitat' if m.anular else 'Totalitat')
     imgui.pop_item_flag()
     imgui.end()
 
 
-def marques_barra(hores, inici, final):
-    """Marques verticals sobre el control lliscant de l'hora (el darrer element dibuixat)."""
-    x0, y0 = imgui.get_item_rect_min()
-    x1, y1 = imgui.get_item_rect_max()
+def icona_play(p0, p1, reproduint):
+    """Triangle (reproduir) o dues barres (pausa) al centre del boto."""
     dl = imgui.get_window_draw_list()
-    for clau, color in MARQUES:
-        t = hores.get(clau)
-        if t is None or not inici <= t <= final:
+    color = imgui.get_color_u32(imgui.Col.TEXT)
+    cx, cy = (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2
+    r = (p1[1] - p0[1]) * 0.27
+    if reproduint:
+        for dx in (-r * 0.75, r * 0.25):
+            dl.add_rect_filled((cx + dx, cy - r), (cx + dx + r * 0.5, cy + r), color)
+    else:
+        dl.add_triangle_filled((cx - r * 0.7, cy - r), (cx - r * 0.7, cy + r), (cx + r, cy), color)
+
+
+def caixa_hora(text, amplada):
+    """L'hora en una caixa amb el color dels botons (no fa res si es clica)."""
+    color = imgui.get_style_color_vec4(imgui.Col.BUTTON)
+    for c in (imgui.Col.BUTTON_HOVERED, imgui.Col.BUTTON_ACTIVE):
+        imgui.push_style_color(c, color)
+    imgui.button(f'{text}##hora_caixa', (amplada, 0))
+    imgui.pop_style_color(2)
+
+
+def omplir_barra(barra, fraccio):
+    """La part de la barra ja passada, amb el color del cursor de la barra (mes suau)."""
+    (x0, y0), (x1, y1) = barra
+    color = imgui.get_style_color_vec4(imgui.Col.SLIDER_GRAB)
+    imgui.get_window_draw_list().add_rect_filled(
+        (x0, y0), (x0 + (x1 - x0) * min(max(fraccio, 0.0), 1.0), y1), imgui.get_color_u32((*color[:3], 0.35)),
+        imgui.get_style().frame_rounding)
+
+
+def marques_eclipsi(m):
+    """[(hora TU, tipus, nom en dues linies)] al punt d'observacio: inici i fi de l'eclipsi (si el Sol es pon abans de
+    C4, la fi es la posta: despres no es veu) i, si n'hi ha, inici i fi de la fase central."""
+    h = m.hores
+    central = 'anularitat' if m.anular else 'totalitat'
+    marques = []
+    if h.get('c1') is not None:
+        marques.append((h['c1'], 'eclipsi', ('Inici', 'eclipsi')))
+    if h.get('c2') is not None and h.get('c3') is not None:
+        marques += [(h['c2'], 'central', ('Inici', central)), (h['c3'], 'central', ('Fi', central))]
+    posta, c4 = h.get('posta'), h.get('c4')
+    if posta is not None and (c4 is None or posta < c4):
+        marques.append((posta, 'eclipsi', ('Fi', '(posta)')))
+    elif c4 is not None:
+        marques.append((c4, 'eclipsi', ('Fi', 'eclipsi')))
+    return marques
+
+
+def noms_marques(barra, marques, inici, final):
+    """Les marques com a linies verticals sobre la barra i el seu nom a sota, centrat. Si dos noms es trepitjarien
+    (la totalitat dura un o dos minuts: a l'escala de la barra, l'inici i la fi gairebe es toquen), l'inici i la fi
+    de la fase central es fusionen en un sol nom; els altres es desplacen el just per no tocar-se."""
+    (x0, y0), (x1, y1) = barra
+    dl = imgui.get_window_draw_list()
+    linia_h = imgui.get_text_line_height()
+    etiquetes = []
+    for t, tipus, nom in marques:
+        if not inici <= t <= final:
             continue
         x = x0 + (x1 - x0) * (t - inici) / (final - inici)
-        gruix = 3.0 if clau == 'maxim' else 2.0
-        dl.add_line((x, y0), (x, y0 + 5), imgui.get_color_u32((*color, 1.0)), gruix)
-        dl.add_line((x, y1 - 5), (x, y1), imgui.get_color_u32((*color, 1.0)), gruix)
+        color = COLOR_CENTRAL if tipus == 'central' else COLOR_ECLIPSI_BARRA
+        dl.add_line((x, y0 + 1), (x, y1 - 1), imgui.get_color_u32((*color, 1.0)), 2.0)
+        etiquetes.append([x, tipus, nom, color])
+    amplada = lambda nom: max(imgui.calc_text_size(n)[0] for n in nom)
+    k = 0
+    while k + 1 < len(etiquetes):      # inici i fi de la fase central massa a prop: un sol nom
+        a, b = etiquetes[k], etiquetes[k + 1]
+        if a[1] == b[1] == 'central' and b[0] - a[0] < (amplada(a[2]) + amplada(b[2])) / 2 + 6:
+            etiquetes[k:k + 2] = [[(a[0] + b[0]) / 2, 'central', (a[2][1].capitalize(), ''), a[3]]]
+        k += 1
+    dreta = x0 - 1e9
+    for x, _, nom, color in etiquetes:
+        mig = max(x, dreta + amplada(nom) / 2 + 6)
+        mig = min(mig, x1 - amplada(nom) / 2)
+        for i, n in enumerate(nom):
+            tw = imgui.calc_text_size(n)[0]
+            dl.add_text((mig - tw / 2, y1 + 3 + i * linia_h), imgui.get_color_u32((*color, 0.9)), n)
+        dreta = mig + amplada(nom) / 2
+    imgui.dummy((0, 2 * linia_h + 4 if etiquetes else 0))
+
+
+def llegenda_barra(color, text):
+    """Un quadradet del color de la marca i el text."""
+    x, y = imgui.get_cursor_screen_pos()
+    mida = imgui.get_font_size() * 0.75
+    y0 = y + (imgui.get_text_line_height() - mida) / 2
+    imgui.get_window_draw_list().add_rect_filled((x, y0), (x + mida, y0 + mida), imgui.get_color_u32((*color, 1.0)), 2.0)
+    imgui.dummy((mida + 6, imgui.get_text_line_height()))
+    imgui.same_line(0, 0)
+    imgui.text(text)

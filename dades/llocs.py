@@ -9,11 +9,13 @@ sempre queda a 1,5 km o mes de la vora del relleu.
   - Relleu (etapa 1, preparar_relleu): un quadrat de MIDA_MDT_M (6 km) del MDT de 5 m de l'IGN (dades/mdt_wcs.py,
     una sola peticio), a data/mdt/llocs/<clau>_5m.tif. Es el darrer fitxer que es desa: si hi es, el relleu es
     complet.
-  - Edificis (etapa 2, preparar_edificis, nomes si es demanen): les parts d'edifici del Catastro de la cel·la de la
-    quadricula (MEITAT_EDIFICIS_M al voltant del centre: 3 x 3 km), dels municipis que la toquen (dades/catastro.py),
-    a data/edificis/<clau>.gpkg, i la malla amb les altures estimades (dades/edificis.preparar_malla). Els ZIP dels
-    municipis s'esborren despres de llegir-los (si no hi eren abans). <clau>.json diu que l'etapa s'ha fet (tambe
-    si no hi ha cap edifici: no es torna a provar).
+  - Catastro (etapa 2a, preparar_cadastre, nomes si es volen edificis; no necessita el relleu i es fa alhora): les
+    parts d'edifici de la cel·la de la quadricula (MEITAT_EDIFICIS_M al voltant del centre: 3 x 3 km), dels municipis
+    que la toquen (dades/catastro.py, ZIP desats amb un limit d'espai), a data/edificis/<clau>.gpkg. <clau>.json en
+    desa el resum ('cadastre').
+  - Edificis (etapa 2b, la malla: basecode/detall.py, o preparar_edificis als scripts): cal el relleu i el Catastro.
+    Si les altures mesurades (dades/alcaries.py) ja hi son, una sola malla amb aquestes altures; si no, la de les
+    estimades. 'edificis' a <clau>.json diu que l'etapa s'ha fet (tambe sense cap edifici: no es torna a provar).
   - Fotografia aeria: la del mosaic (dades/teselles.py), que ja arriba a tot arreu.
 Els llocs d'abans de la quadricula (centre arrodonit a 100 m, preparats amb doble clic) es continuen fent servir; els
 seus edificis cobreixen 2 x 2 km (MEITAT_ANTIGA_M).
@@ -30,10 +32,10 @@ import time
 from pyproj import Transformer
 
 from . import catastro, mdt_wcs
-from .data_io import DIR_CACHE, DIR_MDT
+from .data_io import DIR_CACHE, DIR_GENERATS
 from .edificis import CRS, fitxer_zona, preparar_malla
 
-DIR_LLOCS = os.path.join(DIR_MDT, 'llocs')   # ignorada pel Git (com data/mdt/zones)
+DIR_LLOCS = os.path.join(DIR_GENERATS, 'mdt', 'llocs')   # data/mdt/llocs, ignorada pel Git (com data/mdt/zones)
 RES_M = 5
 PAS_GRAELLA_M = 3000.0       # distancia entre centres de llocs
 MIDA_MDT_M = 6000.0          # costat del relleu de 5 m (1200 x 1200 pixels)
@@ -96,11 +98,17 @@ def meta(clau_lloc):
 
 
 def _desar_meta(clau_lloc, **canvis):
-    m = meta(clau_lloc)
-    m.update(canvis)
-    with open(cami_meta(clau_lloc) + '.tmp', 'w') as f:
-        json.dump(m, f, indent=1)
-    os.replace(cami_meta(clau_lloc) + '.tmp', cami_meta(clau_lloc))
+    """Afegeix canvis a <clau>.json. El relleu i el Catastro es preparen alhora en processos diferents: un bloqueig de
+    fitxer (fcntl.flock) evita que un esborri el que acaba d'escriure l'altre (llegir, canviar i escriure)."""
+    import fcntl
+    os.makedirs(DIR_LLOCS, exist_ok=True)
+    with open(cami_meta(clau_lloc) + '.lock', 'w') as bloqueig:
+        fcntl.flock(bloqueig, fcntl.LOCK_EX)
+        m = meta(clau_lloc)
+        m.update(canvis)
+        with open(cami_meta(clau_lloc) + '.tmp', 'w') as f:
+            json.dump(m, f, indent=1)
+        os.replace(cami_meta(clau_lloc) + '.tmp', cami_meta(clau_lloc))
 
 
 def nom(clau_lloc):
@@ -140,7 +148,8 @@ def fitxers(clau_lloc):
     """Tots els fitxers d'un lloc: dades i memoria cau (data_io, terrain.py, edificis, altures i mapes)."""
     from .alcaries import DIR_ALCARIES
     nom_mdt = f'{clau_lloc}_5m'
-    return ([cami_mdt(clau_lloc), cami_meta(clau_lloc), cami_us(clau_lloc), fitxer_zona(clau_lloc)] +
+    return ([cami_mdt(clau_lloc), cami_meta(clau_lloc), cami_meta(clau_lloc) + '.lock', cami_us(clau_lloc),
+             fitxer_zona(clau_lloc)] +
             glob.glob(os.path.join(DIR_CACHE, f'{nom_mdt}.*.npz')) +
             glob.glob(os.path.join(DIR_CACHE, f'*_{clau_lloc}.npz')) +
             glob.glob(os.path.join(DIR_CACHE, f'*_{clau_lloc}_*.npz')) +
@@ -192,14 +201,19 @@ def preparar_relleu(clau_lloc, avis=print, protegits=()):
     return cami_mdt(clau_lloc)
 
 
-def preparar_edificis(clau_lloc, avis=print):
-    """Etapa 2: les parts d'edifici del Catastro de la cel·la del lloc i la malla (altures estimades). Cal el relleu.
-    Retorna el nombre de parts."""
+def cadastre_fet(clau_lloc):
+    """Si l'etapa del Catastro s'ha fet (n'hi hagi o no, d'edificis)."""
+    return 'cadastre' in meta(clau_lloc) or edificis_fets(clau_lloc)
+
+
+def preparar_cadastre(clau_lloc, avis=print):
+    """Etapa 2a: les parts d'edifici del Catastro de la cel·la del lloc, a data/edificis/<clau>.gpkg (no cal el
+    relleu). Retorna el nombre de parts."""
     import geopandas as gpd
     import pandas as pd
     import shapely
-    if edificis_fets(clau_lloc):
-        return meta(clau_lloc).get('edificis', {}).get('parts', 0)
+    if cadastre_fet(clau_lloc):
+        return meta(clau_lloc).get('cadastre', meta(clau_lloc).get('edificis', {})).get('parts', 0)
     x, y = centre(clau_lloc)
     mm = meitat_edificis(clau_lloc)
     quadrat = shapely.box(x - mm, y - mm, x + mm, y + mm)
@@ -209,13 +223,8 @@ def preparar_edificis(clau_lloc, avis=print):
     totes = []
     for i, (prov, codi, nom_m, url) in enumerate(municipis):
         avis(f'Edificis de {nom_m.title()} ({i + 1}/{len(municipis)}, Catastro)...')
-        hi_era = os.path.exists(catastro.cami_zip(codi))
-        cami_zip = catastro.descarregar(prov, codi, nom_m, url)
-        try:
-            parts = catastro.llegir_parts(cami_zip, codi, bbox=gpd.GeoSeries([quadrat], crs=CRS))
-        finally:
-            if not hi_era and os.path.exists(cami_zip):
-                os.remove(cami_zip)
+        cami_zip = catastro.descarregar(prov, codi, nom_m, url)      # es conserva (memoria cau amb limit)
+        parts = catastro.llegir_parts(cami_zip, codi, bbox=gpd.GeoSeries([quadrat], crs=CRS))
         if len(parts):
             parts = parts[parts['plantes'] > 0].to_crs(CRS)
             totes.append(parts[parts.intersects(quadrat)])
@@ -230,11 +239,23 @@ def preparar_edificis(clau_lloc, avis=print):
         parts.to_file(tmp, layer='parts', driver='GPKG')
         os.replace(tmp, fitxer_zona(clau_lloc))
         n = len(parts)
-        avis(f'Preparant la malla de {n} parts d\'edifici...')
-        preparar_malla(clau_lloc, cami_mdt(clau_lloc))
-    _desar_meta(clau_lloc, edificis=dict(font='Catastro INSPIRE (D. G. del Catastro)', parts=n,
+    _desar_meta(clau_lloc, cadastre=dict(font='Catastro INSPIRE (D. G. del Catastro)', parts=n,
                                          municipis=[m[2] for m in municipis], meitat_m=mm,
                                          data=time.strftime('%Y-%m-%d')))
+    return n
+
+
+def preparar_edificis(clau_lloc, avis=print, mesurades=False):
+    """Etapa 2b: la malla dels edificis (cal el relleu i el Catastro, que es prepara si falta). mesurades=True: amb
+    les altures mesurades ja desades (dades/alcaries.py), sense fer la de les estimades. Retorna el nombre de parts."""
+    if edificis_fets(clau_lloc):
+        return meta(clau_lloc).get('edificis', {}).get('parts', 0)
+    n = preparar_cadastre(clau_lloc, avis)
+    if n:
+        avis(f'Preparant la malla de {n} parts d\'edifici' + (' (altures mesurades)...' if mesurades else '...'))
+        preparar_malla(clau_lloc, cami_mdt(clau_lloc), mesurades=mesurades)
+    c = meta(clau_lloc).get('cadastre', {})
+    _desar_meta(clau_lloc, edificis=dict(c, parts=n, malla='mesurades' if mesurades else 'estimades'))
     return n
 
 

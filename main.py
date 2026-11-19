@@ -153,7 +153,7 @@ class GraphicsEngine(GraphicsEngineBase):
         cami = {n: c for n, c, _ in TERRENYS}
         self.peninsula = Terrain(self, cami['Peninsula'], globus=True)
         self.peninsula.exaggeration = 1.0
-        self.peninsula.limits_totalitat = False   # capa tecnica: una opcio del selector de Mapes (ui.py)
+        self.peninsula.limits_totalitat = False   # capa del CNIG (scripts); el panell ja no la mostra (19/11/2026)
         self.zona, self.nom_zona = None, None
         self.camera_exploracio = None
         self.ulls_fixats = None            # posicio on s'ha posat la camera als ulls (veure seguir_ulls)

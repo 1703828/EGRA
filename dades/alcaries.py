@@ -36,7 +36,7 @@ import time
 
 import numpy as np
 
-from .data_io import DIR_DADES
+from .data_io import DIR_GENERATS
 from . import mdt_wcs
 
 URL_ICGC = ('https://datacloud.icgc.cat/datacloud/model-alcaries/tif_unzip/'
@@ -47,7 +47,7 @@ TROS_PX = 1600
 MARGE_VORA_M = 0.5
 MIN_OBJECTE_M = 1.5
 MIN_COBERTURA = 0.5
-DIR_ALCARIES = os.path.join(DIR_DADES, 'alcaries')      # ignorada pel Git
+DIR_ALCARIES = os.path.join(DIR_GENERATS, 'alcaries')   # data/alcaries, ignorada pel Git
 FONTS = {
     'icgc': dict(nom='ICGC, model d\'alcaries (LiDAR 2021-2023)', res_m=1.0, llicencia='CC BY 4.0 (ICGC)',
                  curt='ICGC 1 m 2021-23'),
@@ -212,6 +212,12 @@ def alcaria_cel(cx, cy, avis=print):
                 r['edificis'] = z['edificis'].astype('f4')
             return r
     m = PAS_CEL_M / 2 + MARGE_CEL_M
+    prova = os.environ.get('EGRA_PROVA_LIDAR')     # nomes proves (scripts/auditar_edificis.py --lidar): absent o lent
+    if prova == 'falla':
+        raise RuntimeError('LiDAR absent (simulat per a les proves)')
+    if prova and prova.startswith('lent:'):
+        avis(f'LiDAR lent (simulat: {prova[5:]} s)...')
+        time.sleep(float(prova[5:]))
     r = llegir((cx - m, cy - m, cx + m, cy + m), avis)
     os.makedirs(DIR_ALCARIES, exist_ok=True)
     d = dict(font=np.array(''), data=np.array(time.strftime('%Y-%m-%d')))
@@ -293,6 +299,7 @@ def preparar_alcades(zona, cel, avis=print):
              mtime_gpkg=np.array(os.path.getmtime(gpkg)), data=np.array(time.strftime('%Y-%m-%d')))
     np.savez_compressed(cami_alcades(zona) + '.tmp.npz', **r)
     os.replace(cami_alcades(zona) + '.tmp.npz', cami_alcades(zona))
+    r['mesurades_cel'] = int(np.isfinite(alcada[-len(parts):]).sum()) if len(parts) else 0   # (no es desa)
     n = int(np.isfinite(alcada).sum())
     avis(f'Altures mesurades: {n} parts en total ({font or "sense font a la cel·la"}, {time.time() - t0:.0f} s)')
     return r
