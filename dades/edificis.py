@@ -271,6 +271,56 @@ def contorns_a_bytes(geoms):
     return dict(contorns_wkb=np.frombuffer(b''.join(wkb), dtype='u1'), contorns_inici=inici)
 
 
+# ------------------------------------------------------------ tipus d'edifici (aspecte de les facanes i cobertes)
+
+# Tipus per a l'aspecte (basecode/shaders/edifici.vert en tria el material de la facana i el de la coberta provisional).
+# Surten de l'us de l'edifici al Catastro (currentUse) i, els residencials, de la mida: una casa (poques plantes i poca
+# superficie) no te la facana d'un bloc de pisos. Es una aproximacio estetica, no una dada del material real.
+CASA, BLOC, COMERCIAL, INDUSTRIAL, AGRARI, PUBLIC = range(6)
+TIPUS_US = {'1_residential': None, '2_agriculture': AGRARI, '3_industrial': INDUSTRIAL, '4_1_office': COMERCIAL,
+            '4_2_retail': COMERCIAL, '4_3_publicServices': PUBLIC}
+CASA_PLANTES_MAX = 2         # residencial amb com a molt 2 plantes: casa...
+CASA_TRES_PLANTES_M2 = 150.0 # ... o amb 3 i menys d'aquesta superficie (casa entre mitgeres estreta)
+
+
+def tipus_parts(zona, m, contorns):
+    """(tipus uint8, hash uint16) de cada part de la malla m, per a l'aspecte. El hash es el de l'edifici del Catastro
+    (zlib.crc32 de l'identificador, 16 bits): estable entre sessions i igual per a totes les parts d'un edifici (una
+    torre i el seu cos baix tenen el mateix material). L'us i l'edifici es llegeixen del .gpkg de la zona, que te
+    les parts en el mateix ordre que la malla (llegir_zona); si no quadra (p. ex. el .gpkg ha canviat), el tipus
+    nomes per plantes i el hash per part."""
+    import zlib
+    n = int(m['n_parts'])
+    plantes_m = m['plantes'].astype(int) if 'plantes' in m else None
+    try:
+        import pyogrio
+        g = pyogrio.read_dataframe(fitxer_zona(zona), layer='parts', columns=['edifici', 'us', 'plantes'],
+                                   read_geometry=False)
+        ok = len(g) == n and (plantes_m is None or np.array_equal(g['plantes'].to_numpy().astype(int), plantes_m))
+    except Exception:                      # noqa: BLE001 (fitxer o columnes que falten: aspecte per defecte)
+        ok = False
+    plantes = plantes_m if plantes_m is not None else np.ones(n, int)
+    if not ok:
+        tipus = np.where(plantes <= CASA_PLANTES_MAX, CASA, BLOC).astype('u1')
+        h = (np.arange(n, dtype=np.uint64) * 2654435761 >> 8).astype('u2')
+        return tipus, h
+    edifici = g['edifici'].astype(str).to_numpy()
+    h = np.array([zlib.crc32(e.encode()) & 0xFFFF for e in edifici], 'u2')
+    area = shapely.area(contorns) if contorns is not None else np.zeros(n)
+    # superficie i plantes de tot l'edifici (suma i maxim de les seves parts)
+    _, inv = np.unique(edifici, return_inverse=True)
+    area_ed = np.bincount(inv, weights=area)[inv]
+    plantes_ed = np.zeros(inv.max() + 1, int)
+    np.maximum.at(plantes_ed, inv, plantes)
+    plantes_ed = plantes_ed[inv]
+    casa = (plantes_ed <= CASA_PLANTES_MAX) | ((plantes_ed == 3) & (area_ed < CASA_TRES_PLANTES_M2))
+    tipus = np.where(casa, CASA, BLOC)
+    for us, t in TIPUS_US.items():
+        if t is not None:
+            tipus = np.where(g['us'].to_numpy() == us, t, tipus)
+    return tipus.astype('u1'), h
+
+
 def contorns_de_bytes(m):
     """El contrari de contorns_a_bytes: array de poligons shapely (EPSG:25830)."""
     dades, inici = m['contorns_wkb'].tobytes(), m['contorns_inici']
@@ -442,3 +492,122 @@ def preparar_malla(zona, cami_mdt, mesurades=False, nomes_llegir=False):
     np.savez_compressed(cache + '.tmp.npz', **r)
     os.replace(cache + '.tmp.npz', cache)
     return r
+
+
+# ---------------------------------------------------------------------------------------------------- aspecte (F53)
+# Aspecte de cada part (estetic: el Catastro no diu el material), calculat un sol cop aqui en lloc de a cada vertex
+# (abans, F52, edifici.vert: amb un milio de triangles al Valles, era la part mes cara del dibuix des de lluny).
+# Mateixa logica i mateix hash que la F52: cada edifici conserva el material que tenia.
+MATERIALS_FACANA = ('arrebossat', 'mao', 'pedra', 'formigo', 'xapa', 'cortina')
+ARREBOSSAT, MAO, PEDRA, FORMIGO, XAPA, CORTINA = range(6)
+# pesos (sobre 100) de cada material per tipus: ARREBOSSAT, MAO, PEDRA, FORMIGO, XAPA, CORTINA
+PESOS_MATERIAL = np.array([[55, 15, 30, 0, 0, 0],      # casa: arrebossat de colors, pedra, una mica de mao
+                           [55, 35, 0, 10, 0, 0],      # bloc: arrebossat clar, totxo vist (habitual als 60-70), formigo
+                           [15, 0, 25, 30, 0, 30],     # comercial i oficines: aplacat de pedra, formigo, mur cortina
+                           [0, 0, 0, 40, 60, 0],       # industrial: xapa grecada i formigo prefabricat
+                           [30, 20, 50, 0, 0, 0],      # agrari: pedra, arrebossat envellit, mao
+                           [30, 40, 0, 30, 0, 0]])     # serveis publics: mao, arrebossat, formigo
+ARREBOSSATS = np.array([(0.90, 0.88, 0.82), (0.88, 0.80, 0.64), (0.84, 0.69, 0.47), (0.86, 0.68, 0.56),
+                        (0.79, 0.78, 0.74), (0.76, 0.54, 0.42), (0.92, 0.86, 0.72), (0.83, 0.76, 0.66)])
+CLARS = np.array([0, 1, 6, 7, 2])                      # arrebossats clars (blocs, publics, comercials)
+MAONS = np.array([(0.66, 0.38, 0.27), (0.73, 0.47, 0.33), (0.60, 0.36, 0.28)])
+PEDRES = np.array([(0.74, 0.67, 0.56), (0.64, 0.60, 0.54), (0.79, 0.73, 0.62)])
+FORMIGONS = np.array([(0.72, 0.71, 0.68), (0.63, 0.63, 0.61), (0.80, 0.77, 0.72)])
+XAPES = np.array([(0.82, 0.83, 0.84), (0.62, 0.67, 0.72), (0.58, 0.62, 0.56), (0.72, 0.70, 0.66)])
+TEULES = np.array([(0.64, 0.36, 0.26), (0.70, 0.45, 0.33), (0.58, 0.38, 0.30)])
+TERRATS = np.array([(0.62, 0.60, 0.57), (0.70, 0.67, 0.62), (0.55, 0.54, 0.52)])
+TEXELS_ASPECTE = 6     # texels RGBA32F per part (edifici.frag: aspecte(k))
+
+
+def _hash32(x):
+    """El hash de la F52 (edifici.vert), en uint32."""
+    x = np.asarray(x, dtype=np.uint64) & 0xFFFFFFFF
+    x ^= x >> 16
+    x = (x * 0x7feb352d) & 0xFFFFFFFF
+    x ^= x >> 15
+    x = (x * 0x846ca68b) & 0xFFFFFFFF
+    x ^= x >> 16
+    return x.astype(np.int64)      # (els uint64 amb enters de Python passarien a float en algunes operacions)
+
+
+def aspecte_parts(tipus, hash_edifici, grups=None, mitjanes=None):
+    """Aspecte de cada part (n, TEXELS_ASPECTE, 4) float32, el que llegeix edifici.frag:
+      0: base (RGB: color del material, a les facanes), material
+      1: base2 (RGB: morter, socol, marcs), llavor (0..1 per edifici)
+      2: tint (RGB: multiplica la textura de la facana), capa de la textura (-1: sense)
+      3: finestres: pas, amplada, y0, y1 (m)
+      4: planta baixa: amplada, y0, y1; tipus
+      5: coberta provisional (RGB: teula, terrat o xapa, segons el tipus), desplacament de la textura (cm: x * 2048 + y,
+         exacte en float32)
+    grups: per material (primera capa, quantes, quantes rustiques) de basecode/textures_facanes.py; mitjanes: el color
+    mitja de cada capa. Sense textures (grups None), capa = -1."""
+    n = len(tipus)
+    tipus = np.asarray(tipus, int)
+    h = _hash32(np.asarray(hash_edifici, np.int64) + 1)
+    llavor = (h & 1023) / 1023.0
+    r = (h % 100).astype(int)
+    acum = np.cumsum(PESOS_MATERIAL[tipus], axis=1)
+    material = np.argmax(r[:, None] < acum, axis=1)
+    h2 = _hash32(h)
+    var = 0.94 + 0.12 * (h2 & 255) / 255.0
+    base, base2 = np.zeros((n, 3)), np.zeros((n, 3))
+    m = material == ARREBOSSAT
+    casa = (tipus == CASA) | (tipus == AGRARI)
+    k = np.where(casa, h2 % 8, CLARS[h2 % 5])
+    base[m] = ARREBOSSATS[k[m]] * var[m, None]
+    socol_pedra = (h2 & 256) != 0
+    base2[m] = np.where(socol_pedra[m, None], PEDRES[h2[m] % 3] * 0.85, base[m] * 0.78)
+    for mat, paleta, segon in ((MAO, MAONS, None), (PEDRA, PEDRES, 0.72), (FORMIGO, FORMIGONS, 0.8),
+                               (XAPA, XAPES, 0.85)):
+        s = material == mat
+        base[s] = paleta[h2[s] % len(paleta)] * var[s, None]
+        base2[s] = (0.80, 0.77, 0.70) if segon is None else base[s] * segon
+    s = material == CORTINA
+    base[s] = np.array((0.55, 0.57, 0.60)) * var[s, None]
+    base2[s] = (0.22, 0.24, 0.27)
+    # finestres (m): pas, amplada, y0, y1 i planta baixa (amplada, y0, y1)
+    pv = 0.92 + 0.16 * ((h2 >> 9) & 255) / 255.0
+    taula = {CASA: (3.6, 1.0, 1.0, 2.3, 1.0, 0.3, 2.3, True), BLOC: (3.2, 1.2, 0.9, 2.3, 1.2, 0.3, 2.6, True),
+             COMERCIAL: (3.0, 1.8, 0.8, 2.5, 2.6, 0.3, 2.8, True), INDUSTRIAL: (6.0, 3.0, 1.7, 2.4, 3.0, 1.7, 2.4, False),
+             AGRARI: (5.0, 0.8, 1.2, 2.0, 1.2, 0.3, 2.2, True), PUBLIC: (3.6, 2.2, 0.9, 2.5, 2.2, 0.3, 2.6, True)}
+    fin, pb = np.zeros((n, 4)), np.zeros((n, 3))
+    for t, (pas, amp, y0, y1, a_pb, y0_pb, y1_pb, variable) in taula.items():
+        s = tipus == t
+        fin[s] = np.column_stack([pas * (pv[s] if variable else np.ones(s.sum())), np.full(s.sum(), amp),
+                                  np.full(s.sum(), y0), np.full(s.sum(), y1)])
+        pb[s] = (a_pb, y0_pb, y1_pb)
+    s = material == CORTINA
+    fin[s], pb[s] = (1.5, 1.38, 0.15, 2.85), (1.38, 0.1, 2.9)
+    # la fotografia del material (basecode/textures_facanes.py): les rustiques (primeres del grup) nomes per a cases i
+    # edificis agraris; tenyida perque el seu color mitja sigui el de la paleta (el mao conserva el seu)
+    h3 = _hash32(h2 + 7)
+    desplacament = np.column_stack([(h3 & 1023), ((h3 >> 10) & 1023)]) * 0.0137
+    capa = np.full(n, -1)
+    tint = np.repeat(var[:, None], 3, axis=1)
+    if grups is not None:
+        for mat in range(XAPA + 1):
+            primera, quantes, rustiques = grups[mat]
+            if quantes == 0:
+                continue
+            s = material == mat
+            totes = casa | (quantes == rustiques)
+            p0 = np.where(totes, primera, primera + rustiques)
+            q = np.where(totes, quantes, quantes - rustiques)
+            capa[s] = (p0 + ((h3 >> 20) % q))[s]
+            a_paleta = base[s] / np.maximum(mitjanes[capa[s]], 0.05)
+            tint[s] = 0.7 * var[s, None] + 0.3 * a_paleta if mat == MAO else a_paleta
+    # coberta provisional (la foto la substitueix a edifici.frag; tex_parts en pot donar el color mitja)
+    coberta = TERRATS[h2 % 3] * var[:, None]
+    s = casa
+    coberta[s] = TEULES[h2[s] % 3] * var[s, None]
+    s = tipus == INDUSTRIAL
+    coberta[s] = XAPES[h2[s] % 4] * var[s, None]
+    a = np.zeros((n, TEXELS_ASPECTE, 4), 'f4')
+    a[:, 0, :3], a[:, 0, 3] = base, material
+    a[:, 1, :3], a[:, 1, 3] = base2, llavor
+    a[:, 2, :3], a[:, 2, 3] = tint, capa
+    a[:, 3] = fin
+    a[:, 4, :3], a[:, 4, 3] = pb, tipus
+    a[:, 5, :3] = coberta
+    a[:, 5, 3] = np.floor(desplacament[:, 0] * 100) * 2048 + np.floor(desplacament[:, 1] * 100)   # cm: x*2048 + y
+    return a

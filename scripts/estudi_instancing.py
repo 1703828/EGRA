@@ -26,6 +26,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import glm  # noqa: E402
@@ -122,7 +124,7 @@ def main():
         nom, lat, lon = next(u for u in UBICACIONS if lloc.lower() in u[0].lower())
         print(f'\n== {nom}', flush=True)
         app.triar_ubicacio(lat, lon, nom)
-        app.canviar_vista(1)
+        als_ulls(app)
         t0 = time.time()
         while time.time() - t0 < 600 and (app.edificis is None or not app.edificis.mesurades or app.detall.feines):
             fotograma(5)
@@ -138,7 +140,7 @@ def main():
         originals = [(o, m, getattr(o, m)) for _, o, m in objs]
         for etiqueta, o, m in objs:
             cronometrat(etiqueta, o, m)
-        for vista, posar in (('carrer', lambda: (app.canviar_vista(1), app.camera_observador.mirar(285, 3))),
+        for vista, posar in (('carrer', lambda: (als_ulls(app), app.camera.orientar(285, 3))),
                              ('aire 400 m', lambda: posar_aire(app, geodesia))):
             posar()
             fotograma(10)
@@ -180,7 +182,7 @@ def main():
         vao_inst = ctx.vertex_array(prog_i, [(b_cub, '3f', 'in_cub'), (b_inst, '3f 3f 3f 3f/i', 'in_p0', 'in_e1',
                                                                                'in_e2', 'in_h')])
         fbo = ctx.simple_framebuffer((W, H))
-        for vista, posar in (('carrer', lambda: (app.canviar_vista(1), app.camera_observador.mirar(285, 3))),
+        for vista, posar in (('carrer', lambda: (als_ulls(app), app.camera.orientar(285, 3))),
                              ('aire 400 m', lambda: posar_aire(app, geodesia))):
             posar()
             fotograma(3)
@@ -256,7 +258,7 @@ def main():
 def posar_aire(app, geodesia):
     o = app.observador
     _, nord, amunt = geodesia.base_local(o.lat, o.lon)
-    app.canviar_vista(0)
+    lliure(app)
     app.camera_exploracio.posicio = app.ulls() - 0.4 * nord + 0.4 * amunt
     app.camera_exploracio.orientar(0.0, -45.0)
 

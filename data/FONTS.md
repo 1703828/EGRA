@@ -9,8 +9,6 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
 |---|---|---|---|---|---|
 | `peninsula_200m.tif` | lat 35,9–43,9, lon −9,5–3,4 | 200 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py peninsula` |
 | `picos_5m.tif` | 20 × 20 km centrats a 43,262, −4,949 | 5 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py picos` |
-| `asturias_25m.tif` | Astúries | 25 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py asturias` (no el fa servir el programa; es retirarà) |
-| `luarca_5m.tif` | 20 × 20 km centrats a 43,54, −6,54 | 5 m | EPSG:25830 | Sí | `python scripts/descarregar_mdt.py luarca` (no el fa servir el programa; es retirarà) |
 | `zones/vic_5m.tif` | 20 × 20 km centrats a 41,9302, 2,2546 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py vic` |
 | `zones/escala_5m.tif` | 20 × 20 km centrats a 42,1250, 3,1330 | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py escala` |
 | `zones/valles_5m.tif` | lat 41,39–41,63, lon 2,00–2,36 (31,7 × 28,5 km) | 5 m | EPSG:25830 | No | `python scripts/descarregar_mdt.py valles` |
@@ -23,7 +21,8 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
   i hi deixa veure el globus.
 - Les altituds són sobre el geoide (nivell del mar); el programa les posa sobre l'el·lipsoide WGS84
   sense corregir l'ondulació del geoide (~50 m a Espanya).
-- `data/mdt05/PNOA_MDT05_ETRS89_HU30_0011_LID.tif`: fulla 0011 original del MDT05 (CNIG), d'exemple.
+- Retirats el 20/11/2026 (tasca 4.2, amb permís de l'equip; el programa no els feia servir): `asturias_25m.tif`,
+  `luarca_5m.tif` i la fulla 0011 del MDT05 (`data/mdt05/`). Són a l'historial del Git fins al commit `38ea1ee`.
 - Els MDT nous són a `data/mdt/zones/`, ignorada pel Git (tasca 4.1 del pla). Les zones catalanes es
   van descarregar el 22/10/2026 en EPSG:25830, el mateix CRS que la península: el servei les reprojecta
   des del fus 31, i així totes les zones encaixen amb la península per coordenades UTM.
@@ -78,7 +77,7 @@ s'executen des de l'arrel del repositori amb l'entorn `egra`.
   entrada per gerència amb el seu rectangle, i el de cada gerència, una entrada per municipi), que es desen a
   `data/edificis/catastro/`. Els ZIP dels municipis es conserven entre cel·les i sessions, com a molt 300 MB
   (`catastro.MAX_ZIPS_MB`; s'esborren primer els que fa més temps que no es fan servir); una descàrrega tallada es
-  repren (`.part`, HTTP Range) i un ZIP només es fa servir si és sencer (CRC). Des del 20/11/2026 (F51); abans
+  repren (`.part`, HTTP Range) i un ZIP només es fa servir si és sencer (CRC). Des del 19/11/2026 (F51); abans
   s'esborraven després de llegir-los. Es desa `data/edificis/lloc_<x>_<y>.gpkg`. Navarra i el País Basc no hi són (cadastres propis). El servei WFS per
   rectangle (`https://ovc.catastro.meh.es/INSPIRE/wfsBU.aspx`) s'ha descartat: com a molt ~1 km² per petició i
   2,5 min per 1 km² del centre de Manresa (24 MB), contra 20 s per al ZIP de tot el municipi (6,6 MB); comprovat
@@ -186,6 +185,30 @@ d'OpenStreetMap, ODbL). Detall a `PLA_DE_TREBALL.md` §10.3.
 
 Totes dues textures de la Lluna són equirectangulars amb la longitud 0 (la cara que mira la Terra) al centre.
 Kit: https://svs.gsfc.nasa.gov/4720 (baixat el 28/10/2026, amb autorització de l'equip per la mida).
+
+### Façanes dels edificis — `data/textures/facanes/` (al Git, ~5 MB)
+
+Fotografies de materials reals d'**ambientCG** (https://ambientcg.com), llicència **CC0 1.0** (domini públic: no cal
+atribució, però la registrem). Baixades el 20/11/2026 amb `python scripts/descarregar_textures_facanes.py`, que llegeix
+el paquet 1K-JPG de cada material (no el desa) i en guarda el color (1024 × 1024), el mapa de normals en convenció
+OpenGL i la rugositat (512 × 512). `fonts.json` hi registra la font, la llicència i la mida real de cada textura (la
+d'ambientCG quan la publica; si no, estimada comptant peces a la imatge). Les fa servir `basecode/textures_facanes.py`.
+
+| Textura | Material | Mida real | Font |
+|---|---|---|---|
+| `Plaster001` | arrebossat | 2,00 × 2,00 m (estimada: arrebossat llis, sense peces) | https://ambientcg.com/a/Plaster001 |
+| `Plaster007` | arrebossat | 2,00 × 2,00 m (estimada: arrebossat amb taques, sense peces) | https://ambientcg.com/a/Plaster007 |
+| `PaintedPlaster017` | arrebossat | 2,00 × 2,00 m (estimada: arrebossat pintat, sense peces) | https://ambientcg.com/a/PaintedPlaster017 |
+| `Bricks051` | mao | 1,25 × 1,25 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Bricks051 |
+| `Bricks085` | mao | 2,40 × 1,20 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Bricks085 |
+| `Bricks097` | mao | 1,50 × 1,50 m (estimada: 20 filades de ~7,5 cm) | https://ambientcg.com/a/Bricks097 |
+| `Bricks053` | mao | 1,30 × 1,30 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Bricks053 |
+| `Bricks099` | pedra | 2,00 × 2,00 m (estimada: pedres de 15-40 cm) | https://ambientcg.com/a/Bricks099 |
+| `Bricks066` | pedra | 2,40 × 2,40 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Bricks066 |
+| `Bricks068` | pedra | 1,50 × 1,50 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Bricks068 |
+| `Concrete034` | formigo | 1,10 × 0,55 m (ambientCG (dimensionX/Y)) | https://ambientcg.com/a/Concrete034 |
+| `Concrete031` | formigo | 2,40 × 2,40 m (estimada: un plafo d'encofrat d'1,2 m) | https://ambientcg.com/a/Concrete031 |
+| `CorrugatedSteel005` | xapa | 2,00 × 2,00 m (estimada: grecat de ~20 cm) | https://ambientcg.com/a/CorrugatedSteel005 |
 
 ## Ortofoto (PNOA) — `data/ortofoto/` (no al Git)
 

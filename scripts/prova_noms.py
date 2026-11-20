@@ -17,6 +17,8 @@ import sys
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 SORTIDA = os.path.join(ARREL, 'captures', 'proves')
 
 import glfw  # noqa: E402
@@ -89,9 +91,8 @@ def main():
 
     # camera d'exploracio sobre el centre de Catalunya, mirant avall (una mica inclinada)
     lat, lon = 41.7251, 1.8266     # Manresa (capital del Bages): a 8 km ha de quedar a la imatge
-    app.canviar_vista(0)
+    lliure(app)
     ce = app.camera_exploracio
-    ce.caminar = False
     for alcada in (1200.0, 300.0, 60.0, 8.0, 1.5):
         ce.posicio = geodesia.ecef(lat - alcada / 400.0, lon, alcada)
         ce.orientar(0.0, -70.0)
@@ -115,11 +116,11 @@ def main():
     n300 = len(escrits)
     ok(n60 > 0 and n300 > 0, f'a 60 km {n60} noms (amb comarques) i a 300 km {n300} (provincies i comunitats)')
     # des del terra i caminant, cap
-    app.canviar_vista(1)
+    als_ulls(app)
     fotograma(3)
     ok(len(escrits) == 0, f'des del terra: cap nom ({len(escrits)})')
     app.mostrar_noms = False
-    app.canviar_vista(0)
+    lliure(app)
     ce.posicio = geodesia.ecef(lat - 0.15, lon, 60.0)
     fotograma(3)
     ok(len(escrits) == 0, f'casella "Noms de lloc" desactivada: cap nom ({len(escrits)})')

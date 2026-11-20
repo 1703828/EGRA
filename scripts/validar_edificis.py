@@ -32,6 +32,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import numpy as np  # noqa: E402
@@ -62,7 +64,7 @@ def main():
     app.edificis_aeris = True   # aqui la camera d'exploracio fa de referencia: tambe amb els edificis
     app.mosaic.actiu = False    # sense la fotografia aeria, que arriba a mesura que es baixa: escena quieta
     objectiu = app.ctx.simple_framebuffer((W, H))
-    co, ce = app.camera_observador, app.camera_exploracio
+    co, ce = app.camera, app.camera_exploracio
     errors = []
     a_utm = Transformer.from_crs('EPSG:4326', 'EPSG:25830', always_xy=True)
     a_latlon = Transformer.from_crs('EPSG:25830', 'EPSG:4326', always_xy=True)
@@ -188,11 +190,11 @@ def main():
         lon, lat = a_latlon.transform(*pt)
         ce.posicio = geodesia.ecef(lat, lon, m['cota_coberta'][i] / 1000 + 0.05)   # 50 m per sobre
         ce.rumb, ce.inclinacio = 0.0, -89.9
-        app.canviar_vista(0)
+        lliure(app)
         fotograma()
         dist = distancies()[H // 2, W // 2]
         errs.append(abs(0.05 - dist) * 1000)      # m
-    app.canviar_vista(1)
+    als_ulls(app)
     ok(max(errs) < 0.01, f'(b) 5 cobertes: la superficie dibuixada es a la cota calculada (error maxim {max(errs) * 1000:.1f} mm, '
                          f'mirant avall des de 50 m al centre del cercle inscrit mes gran)')
     print(f'      altura estimada = plantes x {edificis.ALCADA_PLANTA_M:.0f} m; cota de referencia = mediana del MDT sota el contorn; '
@@ -221,11 +223,11 @@ def main():
         res = {}
         for nom_cam in ('ulls', 'exploracio'):
             if nom_cam == 'ulls':
-                app.canviar_vista(1)
-                co.mirar(az, el)
+                als_ulls(app)
+                co.orientar(az, el)
                 co.fov = FOV_SOL
             else:
-                app.canviar_vista(0)
+                lliure(app)
                 ce.posicio = ulls
                 ce.rumb, ce.inclinacio = az, el
                 ce.fov = FOV_SOL
@@ -310,8 +312,8 @@ def main():
     # interruptor repetit en pausa: mateix enquadrament
     app.triar_punt(*PROVA_UAB, 'prova UAB')
     app.hora = maxim - 40 / 60
-    app.canviar_vista(1)
-    co.mirar(270.0, 3.0)
+    als_ulls(app)
+    co.orientar(270.0, 3.0)
     imatges, estats = [], []
     for visible in (True, False, True, False):
         app.edificis.visible = visible
@@ -325,7 +327,7 @@ def main():
     # ------------------------------------------------------------ 5. rendiment
     print('\n== 5. Rendiment')
     app.edificis.visible = True
-    co.mirar(270.0, 3.0)
+    co.orientar(270.0, 3.0)
     co.fov = 60.0
     temps = {}
     for visible in (False, True):

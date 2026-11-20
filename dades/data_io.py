@@ -27,12 +27,11 @@ DIR_MDT = os.path.join(DIR_DADES, 'mdt')       # MDT descarregats (scripts/desca
 CACHE_PROVES = os.environ.get('EGRA_CACHE_PROVES') or None
 DIR_GENERATS = CACHE_PROVES or DIR_DADES
 DIR_CACHE = os.path.join(DIR_GENERATS, 'cache')   # fitxers generats (no es versionen)
-# terrenys del selector: (nom al panell, fitxer, es zona de detall)
+# terrenys del selector: (nom al panell, fitxer, es zona de detall). Asturies i Luarca es van retirar el 20/11/2026
+# (tasca 4.2; el programa no els feia servir)
 TERRENYS = [
     ('Peninsula', os.path.join(DIR_MDT, 'peninsula_200m.tif'), False),
-    ('Asturies', os.path.join(DIR_MDT, 'asturias_25m.tif'), False),
     ('Picos', os.path.join(DIR_MDT, 'picos_5m.tif'), True),
-    ('Luarca', os.path.join(DIR_MDT, 'luarca_5m.tif'), True),
 ]
 # zones de detall de l'escena principal (MDT de 5 m, mateix CRS que la peninsula): el programa carrega
 # la que conte el punt d'observacio. Picos es al Git; les altres, a data/mdt/zones/ (ignorada pel Git),

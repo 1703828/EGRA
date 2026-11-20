@@ -9,9 +9,7 @@ es guarda a data/cache/rajoles/<nom>_<res>m_x<xmin>_y<ymax>_r<rajola>/ i, si ja 
 
 Exemples (executar des de l'arrel del projecte):
     python scripts/descarregar_mdt.py peninsula     # 200 m -> data/mdt/peninsula_200m.tif
-    python scripts/descarregar_mdt.py asturias      #  25 m -> data/mdt/asturias_25m.tif
     python scripts/descarregar_mdt.py picos         #   5 m, 20x20 km -> data/mdt/picos_5m.tif
-    python scripts/descarregar_mdt.py luarca        #   5 m, 20x20 km -> data/mdt/luarca_5m.tif
     python scripts/descarregar_mdt.py vic           #   5 m, 20x20 km -> data/mdt/zones/vic_5m.tif
     python scripts/descarregar_mdt.py escala        #   5 m, 20x20 km -> data/mdt/zones/escala_5m.tif
     python scripts/descarregar_mdt.py valles        #   5 m, ~27x30 km -> data/mdt/zones/valles_5m.tif
@@ -43,9 +41,7 @@ DIR_CACHE = os.path.join(ARREL, 'data', 'cache')  # rajoles descarregades (no es
 # La zona es un bbox (lat_min, lat_max, lon_min, lon_max) o un centre (lat, lon) d'un quadrat de MIDA_DETALL_KM.
 PREDEFINITS = {
     'peninsula': dict(res=200, bbox=(35.9, 43.9, -9.5, 3.4), sortida='peninsula_200m.tif'),
-    'asturias':  dict(res=25,  bbox=(42.88, 43.67, -7.19, -4.51), sortida='asturias_25m.tif'),
     'picos':     dict(res=5,   centre=(43.262, -4.949), sortida='picos_5m.tif'),   # Picos de Europa
-    'luarca':    dict(res=5,   centre=(43.54, -6.54), sortida='luarca_5m.tif'),
     # zones de detall de les ubicacions catalanes (carpeta ignorada pel Git: data/mdt/zones/)
     'vic':       dict(res=5,   centre=(41.9302, 2.2546), sortida='zones/vic_5m.tif'),
     'escala':    dict(res=5,   centre=(42.1250, 3.1330), sortida='zones/escala_5m.tif'),

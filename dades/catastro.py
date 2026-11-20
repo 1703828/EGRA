@@ -18,7 +18,7 @@ entrada per municipi amb el rectangle i l'enllac al ZIP. Els canals es desen a D
 El servei WFS del Catastro (per rectangle) s'ha descartat: com a molt 1 km2 per peticio i ~2,5 min per km2 al
 centre de Manresa (24 MB), contra 20 s per al ZIP de tot el municipi (6,6 MB). Comprovat el 30/10/2026.
 
-Memoria cau dels ZIP (F51, 20/11/2026): es conserven entre cel·les i sessions (dues cel·les veines del mateix
+Memoria cau dels ZIP (F51, 19/11/2026): es conserven entre cel·les i sessions (dues cel·les veines del mateix
 municipi fan servir el mateix ZIP), com a molt MAX_ZIPS_MB; en passar-se'n, s'esborren els que fa mes temps que no es
 fan servir (la data de modificacio es toca a cada us). La descarrega es fa per trossos a <zip>.part: si es talla, la
 seguent la repren on era (capcalera HTTP Range) o, si el servidor no ho admet, la torna a comencar. El ZIP nomes pren

@@ -228,6 +228,7 @@ class Mapes:
         self.nivell_centre = None   # nivell de dades al centre de la pantalla (panell)
         self.pixel_centre_m = None
         self.radi_sol, self.inici = 0.0, 0.0
+        self._cobertura = {}      # (zona, peca) -> els edificis de la zona cobreixen la peca
 
     # ------------------------------------------------------------ que es mostra
 
@@ -456,6 +457,8 @@ class Mapes:
         if ('superficie', clau_cel) in self.fallades or any(t == 'superficie' for t, _ in self.feines) \
                 or 'superficie' in app.detall.feines or not app.detall.preparar:
             return
+        if any(t == 'superficie' for t, _ in app.vegetacio.feines):   # la mateixa feina, per a la vegetacio
+            return
         cx, cy = cel
         parts_zona = next((z['clau'] for z in app.detall.zones() if app.detall.te_edificis(z['clau'], cx, cy)), None)
         self.feines[('superficie', clau_cel)] = FeinaProces(clau_cel, _preparar_superficie, cel, mdt, parts_zona,
@@ -630,7 +633,7 @@ class Mapes:
             sp['rect_graella'].value = (0.0, 0.0, 0.0, 0.0)
         sp['hi_ha_graella'].value = self.tex_graella is not None
         # peces
-        rects, escales, capes0, n_per_nivell = [], [], [], []
+        rects, escales, capes0, n_per_nivell, terra = [], [], [], [], []
         for nivell in NIVELLS:
             ps = [p for p in self.peces.values() if p.nivell == nivell and p.slot is not None and nivell in nivells]
             ps.sort(key=lambda p: p.slot)
@@ -643,16 +646,37 @@ class Mapes:
                 w, h = t[2]
                 escales.append((p.forma[1] / w, p.forma[0] / h))
                 capes0.append(p.slot * t[1])
+                terra.append(int(not cobertes and nivell == 3 and self.terrats and not self._edificis_dibuixats(p)))
             n_per_nivell.append(len(ps))
         maxim = sum(CAPACITAT.values())
         rects += [(0.0, 0.0, 0.0, 0.0)] * (maxim - len(rects))
         escales += [(0.0, 0.0)] * (maxim - len(escales))
         capes0 += [0] * (maxim - len(capes0))
+        terra += [0] * (maxim - len(terra))
         sp['mapa_rect'].write(np.array(rects, 'f4').tobytes())
         sp['mapa_escala'].write(np.array(escales, 'f4').tobytes())
         sp['mapa_capa'].write(np.array(capes0, 'i4').tobytes())
+        if 'mapa_terrat_terra' in sp:
+            sp['mapa_terrat_terra'].write(np.array(terra, 'i4').tobytes())
         sp['mapa_n'].write(np.array(n_per_nivell, 'i4').tobytes())
         sp['mapa_k'].write(np.array([K_GPU[n] if self.amb_intervals else 0 for n in NIVELLS], 'i4').tobytes())
+
+    def _edificis_dibuixats(self, p):
+        """Si els edificis en 3D que es dibuixen ara cobreixen la peca p (N3). Nomes es dibuixen els de la zona activa
+        (app.edificis): els terrats de les peces d'altres llocs ja calculades es mostren al terreny (mapes.glsl)."""
+        app = self.app
+        e, zona = app.edificis, app.zona
+        if e is None or not e.visible or zona is None:
+            return False
+        z = app.detall.carregades.get(zona.cami)
+        if z is None or z.get('edificis') is not e:
+            return False
+        k = (z['clau'], p.clau)
+        if k not in self._cobertura:
+            from .detall import Detall
+            x0, y0, x1, y1 = p.rect
+            self._cobertura[k] = Detall.te_edificis(z['clau'], (x0 + x1) / 2, (y0 + y1) / 2)
+        return self._cobertura[k]
 
     def uniforms_fixos(self, sp):
         """Colors i llindars (una vegada per programa)."""

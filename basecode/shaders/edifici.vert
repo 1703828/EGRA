@@ -1,56 +1,41 @@
 #version 330
-// Edificis (basecode/edificis.py): vertexs en km relatius a l'origen dels edificis (ECEF). El que es constant per
-// part (color, plantes) i el que varia poc (la boira) es calcula aqui, un cop per vertex; edifici.frag nomes fa
-// la llum i les finestres.
+// Edificis (basecode/edificis.py): vertexs en km relatius a l'origen dels edificis (ECEF). Aqui nomes el que depen
+// del vertex (posicio, coordenades de la facana i de la foto, boira); l'aspecte de cada part (material, colors,
+// finestres, textura) el calcula la CPU un sol cop (dades/edificis.aspecte_parts) i edifici.frag el llegeix de la
+// textura tex_aspecte amb l'index de la part.
+//
+// Per que (F53, 20/11/2026): a la F52 l'aspecte es calculava aqui, a cada vertex, i passava al fragment shader com
+// unes 25 sortides per vertex. Amb el milio de triangles del Valles vistos des de lluny, aixo pujava la mediana del
+// recorregut dels mapes (scripts/prova_mapes.py) de 22 a 33 ms per fotograma.
 layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec4 in_atr;   // u (m al llarg del costat), v (m sobre el sol), llargada del costat
                                         // (m; -1 a les cobertes) i index de la part (dades/edificis.malla_zona)
 out vec3 pos_rel;     // relativa a la camera (km)
 out vec2 uv_facana;   // (u, v) en metres
+out vec2 merc_rel;    // Web Mercator del punt menys la de la camera (foto de les cobertes: mosaic.glsl)
 out vec3 boira_v;     // color de la boira en aquesta direccio
 out float visibilitat; // 1 sense boira, 0 tot boira
 flat out float llargada;
-flat out float plantes;
-flat out float mesurada;      // 1 si l'altura ve d'un LiDAR (dades/alcaries.py), 0 si es estimada per plantes
-flat out vec3 base;   // color de la coberta o de la facana d'aquesta part
+flat out int part;    // index de la part (tex_parts, tex_aspecte)
+out float logz;
 uniform mat4 m_proj;
 uniform mat4 m_view;
 uniform mat4 m_model; // trasllada l'origen dels edificis a la seva posicio relativa a la camera
-out float logz;
-uniform sampler2D tex_parts;   // per part: RGB color de la coberta, A plantes (0-63) + 64 si l'altura es mesurada
-                               // + 128 si el color de la coberta es de l'ortofoto
+uniform vec3 merc_jx;          // Mercator relativa = (merc_jx . p, merc_jy . p), p relativa a la camera (km):
+uniform vec3 merc_jy;          // basecode/edificis.jacobia_mercator
 uniform float densitat_boira;  // 1/km
 uniform vec3 boira_sol;        // color del cel a l'horitzo cap al Sol i al contrari (com terrain.frag)
 uniform vec3 boira_contra;
 uniform vec3 sol_horitzontal;
 uniform vec3 amunt_camera;
 
-// colors estetics: facanes mediterranies i, sense ortofoto, teula o terrat
-const vec3 FACANES[6] = vec3[](vec3(0.86, 0.80, 0.68), vec3(0.80, 0.66, 0.50), vec3(0.90, 0.86, 0.78),
-                               vec3(0.74, 0.58, 0.46), vec3(0.78, 0.76, 0.72), vec3(0.84, 0.72, 0.56));
-const vec3 COBERTES[3] = vec3[](vec3(0.62, 0.36, 0.26), vec3(0.55, 0.53, 0.50), vec3(0.70, 0.46, 0.34));
-
-uint hash(uint x) {
-    x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16;
-    return x;
-}
-
 void main() {
     vec4 p = m_model * vec4(in_position, 1.0);
     pos_rel = p.xyz;
     uv_facana = in_atr.xy;
+    merc_rel = vec2(dot(merc_jx, p.xyz), dot(merc_jy, p.xyz));
     llargada = in_atr.z;
-    int part = int(in_atr.w + 0.5);
-    vec4 dades = texelFetch(tex_parts, ivec2(part % 1024, part / 1024), 0);
-    int a = int(dades.a * 255.0 + 0.5);
-    plantes = float(a & 63);
-    mesurada = float((a & 64) != 0);
-    uint h = hash(uint(part) + 1u);
-    float variacio = float((h >> 8) & 255u) / 255.0;
-    if (llargada < 0.0)
-        base = a >= 128 ? dades.rgb : COBERTES[h % 3u] * (0.9 + 0.2 * variacio);
-    else
-        base = FACANES[h % 6u] * (0.92 + 0.16 * variacio);
+    part = int(in_atr.w + 0.5);
     vec3 d = normalize(p.xyz);
     vec3 hz = d - dot(d, amunt_camera) * amunt_camera;
     float w = length(hz) > 1e-6 ? 0.5 + 0.5 * dot(normalize(hz), sol_horitzontal) : 0.5;

@@ -24,6 +24,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import numpy as np  # noqa: E402
@@ -71,10 +73,10 @@ def main():
 
     carpeta = os.path.join(ARREL, 'captures', 'proves')
     os.makedirs(carpeta, exist_ok=True)
-    co = app.camera_observador
+    co = app.camera
     nom, lat, lon = UBICACIONS_PROVES[1]                     # Vic
     app.triar_ubicacio(lat, lon, nom)
-    app.canviar_vista(1)
+    als_ulls(app)
     m = app.model
 
     # ------------------------------------------------------------ 1. GPU = CPU
@@ -83,7 +85,7 @@ def main():
     for h in (14.5, m.hores['c1'] + 0.3, m.hores['maxim']):
         app.hora = h
         az, el = m.sol(h, refraccio=False)
-        co.mirar(az + 30, max(el, 0) + 15)
+        co.orientar(az + 30, max(el, 0) + 15)
         co.fov = 60.0
         color, prof = fotograma(2)
         rng = np.random.default_rng(3)
@@ -106,7 +108,7 @@ def main():
     # ------------------------------------------------------------ 2. el cel no tapa res
     app.hora = m.hores['maxim'] - 0.05
     az, el = m.sol(app.hora, refraccio=False)
-    co.mirar(az, el)
+    co.orientar(az, el)
     co.fov = 3.0                                               # el disc del Sol (amb la Lluna) gran
     amb, prof_amb = fotograma(2)
     app.cel.visible = False
@@ -124,7 +126,7 @@ def main():
     for h in np.arange(h0, h1, 1 / 60):
         app.hora = float(h)
         az, el = m.sol(app.hora, refraccio=False)
-        co.mirar(az, 8.0)
+        co.orientar(az, 8.0)
         color, prof = fotograma(1)
         cel = color[prof >= 1.0].mean(axis=0)
         terra = color[prof < 1.0].mean(axis=0)
@@ -141,7 +143,7 @@ def main():
     for h in np.linspace(on[0] - 1 / 60, on[0], 7):
         app.hora = float(h)
         az, el = m.sol(app.hora, refraccio=False)
-        co.mirar(az, 8.0)
+        co.orientar(az, 8.0)
         color, prof = fotograma(1)
         cel_f = color[prof >= 1.0].mean(axis=0)
         if ant_f is not None:
@@ -181,7 +183,7 @@ def main():
        f'el Sol a la mateixa altura: zenit {zen_p:.3f}, horitzo {hor_p:.3f} (el zenit fosc i l\'horitzo encara amb llum: '
        'no es una posta)')
     for nom_c, gir, el_c in (('totalitat_sol', 0, el_s + 4), ('totalitat_contra', 180, 8)):
-        co.mirar(az_s + gir, el_c)
+        co.orientar(az_s + gir, el_c)
         color, _ = fotograma(2)
         Image.fromarray((color * 255).astype('u1')).save(os.path.join(carpeta, f'cel_picos_{nom_c}.png'))
 
@@ -219,7 +221,7 @@ def main():
     # ------------------------------------------------------------ 6. temps
     print('\n== Temps per fotograma (ms, finestra amagada; mirant al nord des de la placa Major a les 16:30)')
     app.hora = 14.5
-    co.mirar(0.0, 2.0)
+    co.orientar(0.0, 2.0)
     co.fov = 60.0
     for mida in ((1280, 860), (2560, 1720)):
         res = []

@@ -9,8 +9,8 @@ Comprova els llocs amb detall (dades/llocs.py) i el doble clic (main.py, basecod
    - doble clic al mar: no es prepara cap lloc;
    - doble clic a Manresa: el lloc antic del disc es carrega al moment (zona i edificis) i l'observador queda
      sobre el seu relleu de 5 m;
-   - en reproduccio, a la vista des del terra, una zona que s'acaba de carregar no canvia el relleu de sota
-     l'observador fins a la pausa.
+   - en pausa, la zona que es dibuixa es la del punt d'observacio (el bloqueig en reproduccio de la vista des del terra
+     es va treure a la F48 i la seva comprovacio tambe).
 El detall que es prepara en navegar (relleu, edificis i mapa nous) el prova scripts/prova_detall.py.
 Captures a captures/proves/llocs_*.png.
 
@@ -24,6 +24,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 from PIL import Image  # noqa: E402
@@ -94,7 +96,7 @@ def main():
             os.path.join(SORTIDA, nom))
 
     def doble_clic(lat, lon):
-        app.canviar_vista(0)
+        lliure(app)
         return app.anar_al_punt(lat, lon)
 
     def preparacions():
@@ -132,21 +134,17 @@ def main():
        f'{app.edificis.n_parts if app.edificis else 0} parts d\'edifici')
     ok(alt_zona is not None and abs(o.altitud_m - alt_zona) < 0.01,
        f'observador sobre el relleu de 5 m del lloc ({o.altitud_m:.1f} m)')
-    app.camera_observador.mirar(200.0, 5.0)
+    app.camera.orientar(200.0, 5.0)
     for _ in range(3):
         fotograma()
     desa('llocs_ulls.png')
 
-    # reproduccio des del terra: una zona carregada en segon pla no s'activa fins a la pausa
-    zona_obs = app.zona
-    app.reproduint = True
+    # zona del punt: en pausa, la del punt d'observacio es la que es dibuixa. (Abans de la F48, en reproduccio des de la
+    # vista del terra la zona quedava bloquejada; la F48 va treure aquest bloqueig i la seva comprovacio.)
     cami_uab = next(c for c, z in app.detall.carregades.items() if z['nom'].startswith('Valles'))
     app.detall.recollir = lambda: None          # sense feines reals: es prova la condicio directament
     o_lat, o_lon = o.lat, o.lon
-    app.observador = type(o)(UAB[0], UAB[1], o.altitud_m, o.nom)   # (no es fa servir triar_punt, que es bloqueja)
-    app.detall.ultima = -1e9
-    fotograma()
-    ok(app.zona is zona_obs, 'en reproduccio, la vista des del terra no canvia la zona de sota l\'observador')
+    app.observador = type(o)(UAB[0], UAB[1], o.altitud_m, o.nom)   # (no es fa servir triar_punt)
     app.reproduint = False
     app.detall.ultima = -1e9
     fotograma()

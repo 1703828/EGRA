@@ -19,7 +19,7 @@ Per a aquest punt, a cada fotograma (com a molt cada REVISIO_S):
   4. Altures mesurades dels edificis (dades/alcaries.py): quan els edificis es veuen i encara son estimats.
   (Els mapes de l'eclipsi preparen les seves dades a basecode/mapes.py, segons tota la vista: aqui nomes hi ha la
   feina de la superficie dels obstacles, _preparar_superficie, que tambe fan servir.)
-Lloc nou (F51, 20/11/2026): quan el punt es estable (ESPERA_PREPARAR_S), comencen alhora el relleu, el Catastro i el
+Lloc nou (F51, 19/11/2026): quan el punt es estable (ESPERA_PREPARAR_S), comencen alhora el relleu, el Catastro i el
 LiDAR de la cel·la, que no depenen l'un de l'altre; la malla dels edificis, quan hi ha el relleu i el Catastro. Si el
 LiDAR ja hi es, una sola malla amb les altures mesurades; si encara s'esta llegint, s'espera com a molt ESPERA_LIDAR_S
 i, si no arriba (lent o fallat), la de les estimades, i les mesurades arriben despres (punt 4). Mesures:

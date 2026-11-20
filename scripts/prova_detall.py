@@ -25,6 +25,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure, veure_ombra_des_de_lespai, sobre_el_punt  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import numpy as np  # noqa: E402
@@ -138,7 +140,7 @@ def main():
     if 'vic' in parts:
         print('== Vic, placa Major (llista del panell)')
         ubicacio('Vic')
-        app.canviar_vista(1)
+        als_ulls(app)
         fotograma(5)
         z = app.zona
         ok(z is not None and app.nom_zona == 'Vic' and z.alt.shape == (4000, 4000),
@@ -168,17 +170,17 @@ def main():
         amb = int((~np.isnan(cc[:, 0])).sum()) if cc is not None else 0
         ok(cc is not None and amb > 0.99 * len(cc), f'Vic: color de les cobertes de la foto a {amb} de '
            f'{len(cc) if cc is not None else 0} parts ({s:.0f} s)')
-        app.camera_observador.mirar(250, 3)
+        app.camera.orientar(250, 3)
         fotograma(20)
         desa('vic_terra')
         app.edificis_aeris = True
-        app.posar_exploracio_sobre_el_punt()
+        sobre_el_punt(app)
         app.camera_exploracio.posicio = app.ulls() + 0.4 * (app.camera_exploracio.posicio - app.ulls()) / \
             np.linalg.norm(app.camera_exploracio.posicio - app.ulls())
-        app.canviar_vista(0)
+        lliure(app)
         fotograma(20)
         desa('vic_aeria_cobertes')
-        app.canviar_vista(1)
+        als_ulls(app)
         app.edificis_aeris = False
         resum_estat('Vic')
         resultats['vic'] = dict(app.detall.estat)
@@ -187,28 +189,28 @@ def main():
     if 'uab' in parts:
         print('== UAB, placa Civica (llista del panell)')
         ubicacio('UAB')
-        app.canviar_vista(1)
+        als_ulls(app)
         app.mapes.mostrar('durada')
         fotograma(3)
         ok(app.zona is not None and app.nom_zona.startswith('Valles'), 'UAB: la zona del Valles es la que es dibuixa')
-        app.canviar_vista(0)
+        lliure(app)
         app.camera_exploracio.posicio = app.ulls() + 0.4 * app.ulls() / np.linalg.norm(app.ulls())
         app.camera_exploracio.orientar(0.0, -60.0)
         s = esperar(lambda: any(k[0] == 3 for k in app.mapes.peces), 900, 'UAB')
         ok(any(k[0] == 3 for k in app.mapes.peces), f'UAB: mapa de detall amb els obstacles mesurats '
            f'({app.mapes.text_nivell_centre()}, {s:.0f} s)')
-        app.canviar_vista(1)
+        als_ulls(app)
         s = esperar(lambda: app.edificis is not None and app.edificis.mesurades, 600, 'UAB')
         ok(app.edificis is not None and app.edificis.mesurades, f'UAB: altures mesurades ({s:.0f} s): '
            f'{app.edificis.resum_alcades() if app.edificis else ""}')
-        app.camera_observador.mirar(285, 2)
+        app.camera.orientar(285, 2)
         fotograma(10)
         desa('uab_terra_mapa')
         # a 400 m del punt (com a Vic): el centre de la imatge (el punt de detall) queda dins de la cel·la del mapa
-        app.posar_exploracio_sobre_el_punt()
+        sobre_el_punt(app)
         app.camera_exploracio.posicio = app.ulls() + 0.4 * (app.camera_exploracio.posicio - app.ulls()) / \
             np.linalg.norm(app.camera_exploracio.posicio - app.ulls())
-        app.canviar_vista(0)
+        lliure(app)
         fotograma(10)
         desa('uab_aeria_mapa')
         resum_estat('UAB')
@@ -219,10 +221,9 @@ def main():
     if 'valencia' in parts:
         print('== Valencia: des de la UAB, nomes navegant (tecles i roda)')
         ubicacio('UAB')
-        app.posar_exploracio_sobre_el_punt()
-        app.canviar_vista(0)
+        sobre_el_punt(app)
+        lliure(app)
         ce = app.camera_exploracio
-        ce.caminar = False
         fotograma(3)
         temps.clear()
         # 1. pujar amb E (i Ctrl, rapid) fins a ~150 km
@@ -335,13 +336,13 @@ def main():
         fotograma(5)
         o = app.observador
         from dades.noms import distancia_km as dk
-        ok(app.vista == 1 and dk(o.lat, o.lon, *VALENCIA) < 3.0,
+        ok(app.camera_als_ulls() and dk(o.lat, o.lon, *VALENCIA) < 3.0,
            f'Valencia: el doble clic posa el punt d\'observacio a {o.lat:.5f}, {o.lon:.5f} i passa a primera persona')
         r = nom_del_punt()
         print(f'   nom: {text_nom(r)}')
         ok(r is not None and r['municipi'] is not None and 'Val' in r['municipi'][0],
            'Valencia: el municipi del punt es Valencia')
-        app.camera_observador.mirar(285, 2)
+        app.camera.orientar(285, 2)
         fotograma(20)
         desa('valencia_terra')
         resum_estat('Valencia')
@@ -357,8 +358,7 @@ def main():
     if 'antiga' in parts:
         print("== Preparacio antiga: la camera se'n va abans que acabi")
         ce = app.camera_exploracio
-        app.canviar_vista(0)
-        ce.caminar = False
+        lliure(app)
         _, _, amunt = geodesia.base_local(*VALENCIA_LLUNY)
         ce.posicio = geodesia.ecef(*VALENCIA_LLUNY, 0.25)
         ce.orientar(0.0, -89.0)
@@ -383,8 +383,7 @@ def main():
         print('== Tornar al mateix lloc de Valencia')
         ce = app.camera_exploracio
         ubicacio('UAB')
-        app.canviar_vista(0)
-        ce.caminar = False
+        lliure(app)
         app.edificis_aeris = True
         app.mapes.mostrar('durada')
         ce.posicio = geodesia.ecef(*VALENCIA, 400.0)      # lluny (per sobre del detall): res de Valencia

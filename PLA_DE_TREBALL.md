@@ -16,7 +16,7 @@ entès el resultat. Executar una ordre sense entendre'n la sortida no la valida.
 Les instruccions estables de treball són a `CLAUDE.md`. Aquest pla en recull l'aplicació concreta:
 tasques, decisions, dependències, comprovacions i estat.
 
-Darrera actualització: 2026-11-16 (O4 implementat i comprovat automàticament: mapes durant l'exploració, consulta, vegetació amb geometry shader, instancing comparat; pendent de la prova de l'equip).
+Darrera actualització: 2026-11-20 (F53: vegetació que es prepara sola, façanes amb textures d'imatge, proves adaptades a la vista única, ombres del relleu a la península, Luarca i Astúries retirats; pendent de la prova de l'equip).
 
 ---
 
@@ -733,7 +733,7 @@ El cim de 2647 m del MDT no existeix a la superfície dibuixada.
   script mostra tots dos números i els tres termes de la tolerància.
 - Documentem: O2.1 i O2.2 a la web (teoria de vèrtex/fragment/píxel, captura amb la marca, números).
 
-**1.1 Com es dibuixa un fotograma** — Tipus: documentació. Estat: `PENDENT`
+**1.1 Com es dibuixa un fotograma** — Tipus: documentació. Estat: `FET` (20/11/2026: web O2.1, el fotograma del programa pas a pas, contrastat amb `main.render()`, i el cost de cada passada; falta la comprovació de l'equip)
 - Aprenem: el pipeline gràfic, les matrius model/vista/projecció, VBO/IBO/VAO, shaders, uniforms,
   textures, el depth buffer.
 - Canvia: una pàgina a la web (O2.1), ampliant §5, amb referències al llibre de Rougier.
@@ -843,8 +843,8 @@ Per a la F3:
 | Tasca | Canvia | Depèn | Comprovació | Estat |
 |---|---|---|---|---|
 | 4.1 `data/FONTS.md` i política del `.gitignore` (MDT nous a una carpeta ignorada; Picos versionat) | Documentació i `.gitignore` | D21 | Cada fitxer de `data/` hi surt amb la seva comanda | `FET` (MDT nous a `data/mdt/zones/`, ignorada) |
-| 4.2 Retirar Luarca, Astúries i la fulla `mdt05` | `TERRENYS`, scripts, README; retirar del git; esborrar `altres/` | 4.1, permís | `preparar_dades.py`, `captura.py` i `main.py` funcionen | `PENDENT` |
-| 4.3 Zona del Vallès | 5 m en ~25 km (Cerdanyola, UAB, Montmeló) + anell de 25 m fins a ~100 km (dos `Terrain`; el shader ja té les "zones" per amagar el llunyà on hi ha el proper) | 3.4, 0.3; l'equip fa la descàrrega | Horitzó del programa = script (≤ 0,05°); ombra del CNIG al màxim coherent | `EN CURS` (F10: zona de 5 m de 31,7 × 28,5 km i pegats de detall. F11: 3.4 i 0.3 fets; horitzó ≤ 0,006° i ombres comparades amb el CNIG. Falta l'anell de 25 m: ara hi fa el paper un pegat de la península a 200 m de ~100 km) |
+| 4.2 Retirar Luarca, Astúries i la fulla `mdt05` | `TERRENYS`, scripts, README; retirar del git; esborrar `altres/` | 4.1, permís | `preparar_dades.py`, `captura.py` i `main.py` funcionen | `FET` (20/11/2026, permís de l'equip: fora de `TERRENYS` i `descarregar_mdt.py`, `git rm` dels dos MDT i de la fulla 0011; `data/mdt05/altres/`, local i ignorada, no s'ha esborrat) |
+| 4.3 Zona del Vallès | 5 m en ~25 km (Cerdanyola, UAB, Montmeló) + anell de 25 m fins a ~100 km (dos `Terrain`; el shader ja té les "zones" per amagar el llunyà on hi ha el proper) | 3.4, 0.3; l'equip fa la descàrrega | Horitzó del programa = script (≤ 0,05°); ombra del CNIG al màxim coherent | `EN CURS` (revisat el 20/11/2026 amb `validar_horitzo.py`: la imatge coincideix amb la superfície dibuixada a ≤ 0,006°, i la superfície dibuixada amb el MDT complet a ≤ 0,04° a Vic, Cerdanyola i Montmeló; a la UAB l'horitzó és a tocar dels ulls (0 km) i hi difereix 1,9°. Les ombres s'han comparat amb el CNIG; però l'anell de 25 m **dibuixat** no existeix: entre la zona i els ~100 km el relleu és el de 200 m. El relleu de 25 m només el fan servir els mapes (nivell N1, 42.6). No es tanca) |
 | 4.4 Vic i l'Escala | Ídem | 4.3 | Ídem | `FET` (F10: zones de 5 m de 20 × 20 km; F11: horitzó i ombres comprovats. Sense anell de 25 m, com el Vallès) |
 
 - Aprenem: CRS, resolució, nivells de detall senzills, reproduïbilitat.
@@ -899,7 +899,7 @@ Disseny previst inicialment (es manté):
 l'evidència corresponents.
 
 ### F6 — Resta del projecte final (mínim segons l'acta 3; es detallarà després de la F4)
-- 6.1 Ombres del relleu (shadow mapping) i comparació amb `terrain_shadows` del CNIG. `FET` a la zona de 5 m (F11, tasca 11.5). Pendent: estendre-ho fora de la zona (península).
+- 6.1 Ombres del relleu (shadow mapping) i comparació amb `terrain_shadows` del CNIG. `FET` a la zona de 5 m (F11, tasca 11.5) i, des del 20/11/2026 (F53), fora de les zones: la península (200 m) al voltant del punt que es mira (`scripts/captura_ombres_peninsula.py`: GPU contra raig de la CPU, 99,9–100 %).
 - 6.2 Menú de meteorologia (clar, boira, núvols). `PENDENT` (fora d'aquest tram, per indicació de l'equip).
 
 ### F9 — Escena coherent i interacció nova (mínim; D32–D38)
@@ -1907,10 +1907,10 @@ distàncies de 5 m a 20 km, amb curvatura), NumPy: **~20 s**. És un càlcul per
 |---|---|---|---|---|
 | F24 | reorganització + correcció | Eclipsi com a paràmetre (2026, 2027, 2028): efemèrides de JPL Horizons per a cada data (~40 KB cadascuna), anularitat (C2/C3 quan un disc queda sencer dins de l'altre) | Contactes contra el calculador de la NASA en punts de cada eclipsi (com la F11) | `FET` |
 | F25 | N | Circumstàncies en graella (~1 km a les zones, 4 km a la península; vectoritzat): contactes, màxim, fase central, Sol (azimut de quadrícula, elevació aparent) | Contra `ModelEclipsi` punt a punt; 2026, contra les bandes del CNIG (pendent) | `FET` |
-| F26 | N | Mapa estàtic al màxim (relleu): horitzó per direccions d'1°, prop amb el MDT del terreny i lluny amb 200 m; marge i classes 0–3 com el CNIG | Contra un raig exacte en ECEF; contra `terrain_shadows` del CNIG | `EN CURS` |
-| F27 | N | Edificis, arbres i terrats amb **altures mesurades** (D81, D83): LiDAR de l'ICGC a la UAB baixat; falta fer-lo servir al mapa | Contra `perfil_edificis` en punts de prova | `EN CURS` |
+| F26 | N | Mapa estàtic al màxim (relleu): horitzó per direccions d'1°, prop amb el MDT del terreny i lluny amb 200 m; marge i classes 0–3 com el CNIG | Contra un raig exacte en ECEF; contra `terrain_shadows` del CNIG | `FET` (O4: nivells N0–N2; `validar_visibilitat.py` contra el raig exacte i el CNIG, 47.1–47.2) |
+| F27 | N | Edificis, arbres i terrats amb **altures mesurades** (D81, D83): LiDAR de l'ICGC a la UAB baixat; falta fer-lo servir al mapa | Contra `perfil_edificis` en punts de prova | `FET` (O4: nivell N3, superfície dels obstacles mesurats a tot Espanya on hi ha LiDAR; carrer i terrat, 43.3; contra el raig exacte, 47.1 i `prova_consulta.py`) |
 | F28 | N | Mapa dinàmic: per píxel, primer i darrer moment amb el centre del Sol visible; a cada instant, el shader hi afegeix la part tapada per la Lluna; marques a la barra | Hores contra el raig exacte minut a minut | `FET` |
-| F29 | N | Aplicació: el menú "Mapa de visibilitat" (al màxim, totalitat visible, instant actual); consulta d'un punt i exportació, pendents | Inspecció de captures | `EN CURS` |
+| F29 | N | Aplicació: el menú "Mapa de visibilitat" (al màxim, totalitat visible, instant actual); consulta d'un punt i exportació, pendents | Inspecció de captures | `FET` (O4: quatre mapes amb llegenda fixa, consulta i exportació CSV, 43.5–43.6 i 44.1–44.6) |
 | F30 | — | Afluència | Descartada (D80) | — |
 
 **Índex proposat (P17).** Totalitat (o anularitat): segons de la fase central amb tot el disc per sobre de
@@ -2527,11 +2527,11 @@ Estat de les tasques. Cap no és `VALIDAT`: l'equip encara no les ha provat amb 
 |---|---|---|
 | 40.1 línia base | `FET` | *Comprovat automàticament:* `validar_model` (≤ 1,2 s), `prova_vistes` 102 OK, `prova_controls` 69, `prova_eclipsis` 27, `prova_caminar` 26, `prova_obstacles` 25, `prova_cel` 7, `prova_noms` 9, `validar_edificis` 22, `validar_ombres_relleu` correcte |
 | 40.2 captures «abans» | `FET` | `prova_mapes.py --etiqueta abans` (captures `captures/proves/mapes_abans_*`). *Inspeccionat visualment:* rectangle sense color al Vallès des de 40 km; a la UAB, cap mapa fins que acaba el càlcul de la cel·la; colors foscos per la llum de l'eclipsi. Cobertura del terreny d'Espanya amb color: 8–69 %; fotogrames de fins a 2,1 s |
-| 40.3 cost del dibuix per capes | `PENDENT` | (es fa amb F46) |
+| 40.3 cost del dibuix per capes | `FET` (vegeu la taula final d'O4.4) | (es fa amb F46) |
 | 41.1–41.4 definicions | `FET` | D90, D91 i D96 confirmades per l'equip; D95 decidida amb mesures (a sota) |
 | 42.1 prova de continuïtat | `FET` | `scripts/prova_mapes.py` (recorregut R1; la cobertura es mesura comparant la imatge amb i sense mapa, sense panell ni edificis i a plena llum) |
 | 42.2–42.5 nivells, petjada, precedència, resultats antics | `FET` | Vegeu «Mapes per nivells» |
-| 42.6 nivell N1 (25 m) | `PENDENT` | |
+| 42.6 nivell N1 (25 m) | `FET` (vegeu la taula final d'O4.4; revisat el 20/11/2026: el recorregut R1 en fa servir des de 40 km) | |
 | 42.7 ocultació al shader | `FET` | Sense textures ni càlculs nous en moure's: la Lluna es calcula per a cada punt; «al màxim», de la graella de circumstàncies |
 | 42.8 resposta | `FET` | R1 (*comprovat automàticament*): mediana 21 ms, p99 33 ms, màxim 382 ms (abans 2,1 s) |
 | 43.1 format temporal (D95) | `FET` | `validar_temps_visibilitat.py` i `validar_visibilitat.py` (a sota) |
@@ -2539,7 +2539,7 @@ Estat de les tasques. Cap no és `VALIDAT`: l'equip encara no les ha provat amb 
 | 43.3 carrer i terrat | `FET` | Capa `edifici` de la superfície; el terreny mostra el carrer i les cobertes, el terrat. *Inspeccionat visualment:* `captures/proves/consulta_uab.png` |
 | 43.4 blocs reutilitzables | `FET` (parcial) | Peces d'1 km (N3) i cel·les de 3 km (N2) desades per separat; falta mesurar una zona extensa (plana de Vic) |
 | 43.5–43.6 consulta i exportació | `FET` | `scripts/prova_consulta.py` (*comprovat automàticament*): consulta contra el raig exacte, diferència ≤ 0,4 punts; CSV amb metadades |
-| 43.7 obstacles (D94) | `PENDENT` | després de F45 i F46 |
+| 43.7 obstacles (D94) | `FET` (vegeu la taula final d'O4.4) | després de F45 i F46 |
 | 44.1–44.4 bandes, llegenda fixa, color sense llum | `FET` | Llindars i colors a `basecode/mapes.py` (una sola taula per al shader i el panell); el mapa es pinta després de la llum i de la boira |
 | 44.5–44.6 isolínies i recorregut | `FET` (pendent de revisar captures) | `shaders/mapes.glsl` |
 
@@ -2653,7 +2653,7 @@ servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en di
 | 43.7 obstacles (D94) | `FET` (decisió amb mesures) |
 | 45.1, 45.2 estudi de vegetació | `FET` |
 | 45.3 geometry shader | `FET` (casella *Vegetació i objectes (LiDAR)*, desactivada d'entrada) |
-| 45.4 normals | `PENDENT` (opcional) |
+| 45.4 normals | `FET` (F53, 20/11/2026: normal de la superfície suavitzada per punt) |
 | 46.1 estudi d'instancing als edificis | `FET`: no s'integra (no compleix el criteri de fidelitat) |
 | 46.2 edificis llunyans | Descartada: només hi ha edificis de les zones carregades i el guany mesurat és petit |
 | 46.3 instancing a la vegetació | `FET` (comparació; més lent que el geometry shader amb aquestes dades) |
@@ -2700,7 +2700,7 @@ servir el geometry shader; l'instancing queda a *Avançat* per comparar-lo en di
 | 42.6 N1 | `FET` (temps mesurat) |
 | 43.4 blocs reutilitzables | `FET` (zona extensa de la plana de Vic sense mesurar: pendent si l'equip ho vol) |
 | 44.5, 44.6 isolínies i recorregut | `FET` (inspeccionat visualment: `captures/mapes/2026_resum*.png`) |
-| 45.4 normals | No fet (opcional) |
+| 45.4 normals | `FET` (F53) |
 | 47.1–47.6 | `FET` (validació i documentació: web O4, README, pla) |
 
 **Proves de l'equip pendents:** amb la finestra, obrir «Temps observable», volar de la península al Vallès amb la
@@ -2720,9 +2720,9 @@ l'espai.
 | 48.2 | Doble clic (i llista d'ubicacions): punt d'observació i càmera als ulls, mirant el Sol; la càmera segueix els ulls mentre no es mou (`seguir_ulls`). En reproducció, avís al panell | `FET` |
 | 48.3 | `G`: enquadrament de l'ombra des de l'espai (el que feia el botó) i, un altre cop, tornar on era | `FET` |
 | 48.4 | Panell *Càmera*: *Descàrregues en segon pla* amb barra per feina (progrés real o indeterminat) i FPS, *Mirar el Sol*, *Què es dibuixa* i *Tecles* tancats. `Descarregador.baixant`/`progres()` (`dades/teselles.py`) i `lloc` a les feines de xarxa de `detall.py` | `FET` |
-| 48.4b | Equip: «no surten els edificis i no hi ha descàrregues». No reproduït (Cadis, Sabadell, Vic i la UAB: es baixen i es dibuixen, inspeccionat a captures). Però el panell nou amagava el motiu (abans, a *Detall del lloc*): ara, si no hi ha edificis al punt, *Descàrregues* diu per què (descàrrega fallada amb l'error i botó *Tornar a provar*, sense Catastro estatal, càmera a més de 15 km, mar, opció desactivada) | `FET` (causa de l'equip pendent de confirmar) |
+| 48.4b | Equip: «no surten els edificis i no hi ha descàrregues». No reproduït (Cadis, Sabadell, Vic i la UAB: es baixen i es dibuixen, inspeccionat a captures). Però el panell nou amagava el motiu (abans, a *Detall del lloc*): ara, si no hi ha edificis al punt, *Descàrregues* diu per què (descàrrega fallada amb l'error i botó *Tornar a provar*, sense Catastro estatal, càmera a més de 15 km, mar, opció desactivada) | Missatge al panell `FET`; **el cas de l'equip queda pendent de reproducció** (20/11/2026: revisat de nou, vegeu F53, bloc 3) |
 | 48.5 | *Límits de totalitat (CNIG)* com a opció del selector de *Mapes* (2026; exclusiva amb els mapes) | Retirat el 19/11/2026 (equip: el mapa *Ombra de la Lluna* ja ho mostra, millor) |
-| 48.6 | Adaptar a la vista única els scripts que encara fan servir l'API antiga (`canviar_vista`, `camera_observador`, `camera_guiada`, `caminar`): `prova_vistes`, `prova_controls`, `prova_obstacles` (part de caminar), `prova_detall`, `prova_mosaic`, `prova_cel`, `prova_eclipsis`, `prova_noms`, `prova_llocs`, `prova_ortofoto`, `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu`, `estudi_instancing`, `estudi_vegetacio_gpu`. `prova_caminar` és obsolet. Decidir amb l'equip si s'esborren `camera_observador.py`, `camera_guiada.py` i `dades/trajectoria.py` | `PENDENT` |
+| 48.6 | Adaptar a la vista única els scripts que encara fan servir l'API antiga (`canviar_vista`, `camera_observador`, `camera_guiada`, `caminar`): `prova_vistes`, `prova_controls`, `prova_obstacles` (part de caminar), `prova_detall`, `prova_mosaic`, `prova_cel`, `prova_eclipsis`, `prova_noms`, `prova_llocs`, `prova_ortofoto`, `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu`, `estudi_instancing`, `estudi_vegetacio_gpu`. `prova_caminar` és obsolet. Decidir amb l'equip si s'esborren `camera_observador.py`, `camera_guiada.py` i `dades/trajectoria.py` | `FET` (20/11/2026, F53 bloc 3) |
 
 Decisions preses (d'interpretació, per confirmar amb l'equip):
 - `G` es conserva amb un significat nou dins de la vista única (anar a veure l'ombra des de l'espai i tornar), perquè
@@ -2765,7 +2765,7 @@ central C2–C3: vermell) i una llegenda curta a sota. Retirats el màxim, la po
   visualment:** `captures/proves/barra_temps_uab.png` (parcial, la fi és la posta) i `barra_temps_picos.png`
   (totalitat). Pendent: prova de l'equip.
 
-### F51 — Edificis abans en un lloc nou (20/11/2026, petició de l'equip, després de l'auditoria) — FET
+### F51 — Edificis abans en un lloc nou (19/11/2026, petició de l'equip, després de l'auditoria) — FET
 
 Auditoria (19/11, `scripts/auditar_edificis.py`): el Catastro (11–18 s) i la malla, feta dues vegades (estimades i
 mesurades, 7–12 s cada una), feien esperar; el Catastro esperava el relleu (~5 s) sense necessitar-lo; els ZIP
@@ -2800,6 +2800,116 @@ buida; una mesura per cas: la xarxa varia molt, p. ex. el relleu d'Igualada 8 o 
   `prova_canvi_lloc.py` (cap feina d'altures per a la zona anterior; canvi de lloc amb feines en curs: 0 incoherències),
   `prova_navegacio.py` (adaptada al nom nou de la feina).
 - Següent pas, si l'equip ho vol: valorar el Catastro (WFS, ordre de les descàrregues) amb aquests temps.
+
+### F52 — Façanes i cobertes més creïbles (19/11/2026, petició de l'equip) — FET
+
+- Cobertes amb la fotografia aèria del seu lloc (mosaic del terreny; Mercator per la derivada a la càmera: < 1 cm a
+  200 m, 0,6 m a 3 km, **comprovat automàticament** contra `teselles.mercator`); material provisional per tipus mentre
+  no arriba.
+- Façanes: 6 materials procedurals a escala real, per tipus d'edifici (ús del Catastro + mida) i hash estable de
+  l'edifici; finestres per tipus. Blau de les estimades, llum, ombres, geometria i col·lisions, sense canvis.
+- Totes les zones amb malla es classifiquen bé (Vallès 49.797 parts, Vic, l'Escala, Mataró, Moià, Igualada).
+- **Inspeccionat visualment:** `captures/edificis/despres_*.png` (Mataró, Moià, UAB, Vic, l'Escala; carrer, 200 m–1 km,
+  nau industrial, edifici comercial) i `sensefoto_*` (cobertes provisionals).
+- Temps de GPU (mediana, `captura_edificis.py`): Mataró 21–26 → 25–30 ms; Moià 15–16 → 17–18 ms.
+- Pendent: prova de l'equip (si els materials i la proporció de cada tipus agraden).
+
+### F53 — Pendents de l'auditoria i edificis més realistes (20/11/2026, petició de l'equip) — FET (pendent de l'equip)
+
+Cinc blocs, en l'ordre demanat. Cap no és `VALIDAT`: l'equip no els ha provat amb la finestra.
+
+**Bloc 1. Vegetació que funcioni en activar-la** — `FET`
+- Causa del «no canvia res»: la vegetació només es dibuixava on el mapa de visibilitat de detall (N3) ja havia preparat
+  la superfície dels obstacles (UAB, Cerdanyola, una cel·la de Vic i pocs llocs més), i el panell no deia res.
+- Ara (`basecode/vegetacio.py`) la casella prepara en un procés la superfície de les cel·les a menys de 2 km del punt
+  que es mira (la mateixa funció i els mateixos fitxers que el mapa; les dues feines no coincideixen mai). Espera
+  l'etapa dels edificis del lloc (la superfície es desa amb els contorns del Catastro i no es refà). *Descàrregues en
+  segon pla*: «Preparant la vegetació (obstacles del LiDAR) de …» i «Carregant la vegetació de …». Motius al panell:
+  preparant-se, sense cobertura LiDAR, falta el relleu, esperant els edificis, càmera a més d'1,5 km.
+- Aspecte (només llum; la geometria és la del càlcul, D94): normal de la superfície suavitzada (gaussiana de 3 m,
+  `normals_superficie`), to de verd per capçada (`tons_verd`), clapes de fulles (textura de soroll amb mipmaps),
+  oclusió aproximada, llum que travessa les fulles, ombres del relleu i dels edificis (`ombres.glsl`, una lectura).
+  Tasca 45.4 (normals) feta.
+- Cost: 20 bytes per punt (com abans), profunditat amb `gl_FragCoord.w` (una sortida menys), trossos de 500 m (només
+  els propers a la càmera arriben al geometry shader). **Comprovat automàticament** (`estudi_vegetacio_gpu.py`, sol):
+  10,0 ms de GPU al carrer i 7,7 ms des de 400 m (1.031.309 columnes; abans, amb color pla, 6,6 i 5,1–5,7); el mode
+  d'instancing amb el mateix shader, 19,6 i 17,8 ms. Fotograma sencer (`captura_edificis.py --vegetacio`, mateixa
+  càmera i hora): UAB 40 m 37,4 → 44,4 ms; UAB 12 m 38,6 → 43,4; UAB 200 m 37,0 → 42,5; Cerdanyola 100 m 42,1 → 47,0;
+  Vic 150 m 34,4 → 37,3 (inclou les façanes noves, ~+0–2 ms). Càrrega de dades (a part del dibuix): 4–23 s segons si
+  les cel·les ja eren a la memòria.
+- **Comprovat automàticament** (`prova_vegetacio.py`, memòria cau de proves, Mataró nou): es demana sense obrir cap
+  mapa i després dels edificis; surt a *Descàrregues* amb el lloc; 847.376 columnes = les cel·les de la superfície
+  amb objecte, mateixa alçària (< 0,01 mm); a 300 m cap motiu; a 3 km «massa lluny»; sense LiDAR i sense relleu,
+  **simulats** injectant l'estat. Fotogrames lents: cap per la vegetació (un de 0,28 s per la càrrega del relleu).
+- **Inspeccionat visualment:** `captures/edificis/abans_veg_*` i `f53_veg_*`; `docs/img/f53_vegetacio.jpg`. De prop
+  encara es veuen els blocs de 2 m (limitació de la forma, no de la llum).
+
+**Bloc 2. Façanes amb textures d'imatge** — `FET`
+- 13 fotografies de materials (ambientCG, CC0; `scripts/descarregar_textures_facanes.py`, `data/textures/facanes/`,
+  5 MB, fonts a `fonts.json` i `data/FONTS.md`): 3 arrebossats, 4 maons, 3 pedres, 2 formigons, 1 xapa. Color 1024 px;
+  normal i rugositat 512 px. Dues texture arrays compartides (`basecode/textures_facanes.py`), ~91 MB de GPU, mipmaps
+  i anisotròpic 8.
+- Mida real (m) de cada foto: la d'ambientCG o estimada comptant peces (maó de ~7,5 cm de filada). Desplaçament per
+  edifici i taques grans (la mateixa foto ampliada, d'un mipmap de 32 px) contra la repetició. Rústiques (maó vell,
+  paredat, arrebossat tacat) només a cases i agraris. Arrebossats, pedres, formigons i xapa tenyits amb la paleta;
+  el maó conserva el color. Xapa: menys contrast i el nervi de 20 cm. De lluny (> 20 cm per píxel), el color mitjà.
+- Finestres: marc, persiana enrotllable (habitatges, diferent a cada finestra) i vidre amb Fresnel i el Sol reflectit.
+- Rendiment: el càlcul per vèrtex de la F52 (~25 sortides) pujava el recorregut R1 de 22,0 a 32,7 ms. L'aspecte de
+  cada part el calcula ara la CPU un cop (`dades/edificis.aspecte_parts`, mateix hash: mateix material per edifici;
+  **comprovat**: 0 píxels diferents a Vic) i el fragment el llegeix d'una textura RGBA32F (6 texels per part).
+  R1: 22,1 ms. Captures F52 → F53 (14 vistes, GPU inclosa): des de l'aire igual o menys (UAB 300 m 24,5 → 21,1; Mataró
+  1 km 30,2 → 26,6; nau 22,0 → 19,2); carrer de prop +0,7 a 2,5 ms (Mataró 32,3 → 34,8).
+- **Inspeccionat visualment:** `captures/edificis/f52_*` i `f53_*`; `docs/img/f53_facanes.jpg`. Es conserven el blau
+  de les estimades, la foto de les cobertes, les ombres i les col·lisions (`validar_edificis.py`, `prova_obstacles.py`).
+
+**Bloc 3. Proves automàtiques recuperades** — `FET`
+- `scripts/vista_unica.py`: equivalències de l'API antiga amb la vista única (posar als ulls, deixar la càmera
+  lliure, la tecla G, la posició sobre el punt). Adaptats: `prova_vistes`, `prova_controls` (fora la vista guiada, V i
+  el zoom de la roda en observació; camp de visió base 50°), `prova_obstacles` (caminar → W als ulls), `prova_detall`,
+  `prova_mosaic` (el doble clic mira el Sol), `prova_cel`, `prova_eclipsis`, `prova_noms`, `prova_llocs` (fora el
+  bloqueig en reproducció, tret a la F48), `validar_edificis`, `validar_horitzo`, `validar_ombres_relleu`,
+  `estudi_instancing`, `estudi_vegetacio_gpu` (format nou de la vegetació). Retirats: `prova_caminar` (no hi ha mode
+  Caminar) i `prova_ortofoto` (`Terrain.posar_ortofoto` no té cap crida: la fotografia ve del mosaic).
+- Regressió del 20/11 (codi final, una prova darrere l'altra): totes correctes (sortida 0): `prova_navegacio` (23 OK), `prova_vistes` (101), `prova_controls` (50), `prova_obstacles` (23), `prova_cel` (7), `prova_eclipsis` (27), `prova_noms` (9), `prova_llocs` (9), `prova_mosaic` (19), `validar_edificis` (22), `validar_horitzo`, `validar_ombres_relleu`, `validar_model` (diferència màxima amb el CNIG 1,2 s), `prova_consulta` (21), `prova_trajectoria`. A més, `prova_detall` (totes les parts) i `estudi_instancing`, el mateix dia.
+- Recorregut dels mapes R1 (`prova_mapes.py`): terreny amb color 99,4–100 % a les set parades; mediana 22,1 ms, p99
+  39,9, màxim 522 ms.
+- «No surten els edificis» (48.4b): revisat de nou sense poder-lo reproduir. Descartat: l'opció *A la vista aèria*
+  (activada per defecte). Hipòtesis: (1) el lloc s'havia esborrat (com a molt 6; en aquesta sessió, les proves en
+  van expulsar Mataró i Moià, que s'han tornat a preparar) i es tornava a baixar; (2) el punt mirat era a una cel·la
+  veïna sense preparar; (3) una descàrrega fallada (ara el panell ho diu amb *Tornar a provar*). **Pendent de
+  reproducció** amb la finestra: on era la càmera i què deia *Descàrregues*.
+- Observació: les proves que fan servir la memòria cau normal (`prova_detall`, `prova_mapes`, `prova_llocs`) creen
+  llocs i, pel límit de 6, poden esborrar els de l'usuari. Caldria passar-les a `EGRA_CACHE_PROVES` (no fet).
+
+**Bloc 4. Pendents** — `FET` (llevat del que s'indica)
+- 42.6: `FET` (N1 en ús al recorregut R1). 4.3: continua `EN CURS` (no hi ha anell de 25 m dibuixat; vegeu la taula).
+- 6.1 fora de les zones: `basecode/ombres_relleu.py`: si el punt que es mira no és en cap zona de 5 m, fa ombra la
+  península (200 m) en un quadrat de 80 a 300 km al voltant del punt (segons l'altura de la càmera; àncora a passos de
+  0,05° i mida a factors d'1,5, perquè no es refaci a cada moviment), amb la caixa de llum ajustada a les altures del
+  quadrat (9 × 9 punts + 300 m). **Comprovat automàticament** (`captura_ombres_peninsula.py`): GPU contra raig de la
+  CPU 99,9 % (Montserrat 6 km, 1.169 punts), 100 % (40 km, 1.188), 100 % (Cadí, 954); passada des del Sol 13–17 ms un
+  cop per segon de temps de l'eclipsi; fotograma +0,5–1,6 ms. **Inspeccionat visualment:** `captures/ombres/`.
+- F26, F27 i F29: `FET` (fets dins d'O4). 4.2 Luarca i Astúries: `FET`. 6.2 meteorologia: fora d'aquest tram.
+
+**Bloc 5. Documentació** — `FET`: README, `data/FONTS.md`, web (O2.1 completa, O1.9, O4.5, O4.6, secció O5 nova amb
+les comparacions d'abans i després) i aquest pla.
+
+**Proves de l'equip pendents:** activar *Vegetació i objectes (LiDAR)* a un lloc nou (p. ex. Mataró) i veure-la
+arribar; mirar les façanes al carrer (Vic, Mataró) i des de l'aire; volar sobre el Pirineu amb el Sol baix (ombres
+fora de les zones); la navegació, els panells i la barra de temps (F48–F50); si torna a passar «no surten els
+edificis», anotar on era la càmera i què deia *Descàrregues*.
+
+**53.6 Terrats d'altres llocs al mapa (observació de l'equip, 20/11/2026) — FET (pendent de l'equip).**
+Quan l'equip es movia, els terrats ja calculats es tornaven foscos i només en tenien color els del lloc nou. Les peces
+calculades es conserven (fins a 16 a la GPU i totes al disc). Però només es dibuixen en 3D els edificis de la zona activa
+(`app.edificis`), i el terreny deixava sense color els píxels de dins d'un edifici.
+- **Ara:** a les peces dels obstacles on no es dibuixen els edificis, el terreny mostra el valor del terrat. Ho fa el flag
+  `mapa_terrat_terra` per peça, a `mapes.glsl`, i `Mapes._edificis_dibuixats`.
+- **Comprovat automàticament** a Lleó, amb les peces ja calculades i la càmera a 2,2 km: amb la zona de l'est activa,
+  el 18 % dels píxels de la imatge passen de fosc a tenir color, i tots són de la cel·la de l'oest.
+- **Inspeccionat visualment:** comparació abans i després.
+- **Limitació:** aquests terrats es veuen pintats sobre el terreny, no sobre l'edifici en 3D. Dibuixar els edificis de
+  diverses zones alhora demanaria també el seu relleu de 5 m, i queda com a millora possible.
 
 ### F7 — Ampliacions visuals (opcional)
 - 7.1 Textura del Sol amb enfosquiment del limbe (físic, documentable).
@@ -2860,4 +2970,6 @@ buida; una mesura per cas: la xarxa varia molt, p. ex. el relleu d'Igualada 8 o 
 | 18/11/2026 | F49: panell *Eclipsi* simplificat (eclipsi, punt d'observació, Mapes). Sense commit. |
 | 19/11/2026 | Equip: fora *Límits de totalitat (CNIG)* del selector de *Mapes* (el mapa *Ombra de la Lluna* ja ho mostra). |
 | 19/11/2026 | F50: barra de temps reformulada (símbol de reproduir, sense ±5 min, hora a la dreta, marques i llegenda). Sense commit. |
-| 20/11/2026 | F51: relleu, Catastro i LiDAR alhora, una sola malla amb altures mesurades, ZIP conservats, correcció de les altures de la zona anterior; memòria cau de proves. Sense commit. |
+| 19/11/2026 | F51: relleu, Catastro i LiDAR alhora, una sola malla amb altures mesurades, ZIP conservats, correcció de les altures de la zona anterior; memòria cau de proves. Sense commit. |
+| 19/11/2026 | F52: façanes amb materials per tipus i cobertes amb la foto aèria. Corregida la data de la F51 (19/11, no 20/11). Sense commit. |
+| 20/11/2026 | F53 (petició de l'equip): vegetació que es prepara sola i amb millor llum; façanes amb textures d'imatge (ambientCG, CC0) i aspecte calculat a la CPU; 15 scripts adaptats a la vista única (2 retirats); ombres del relleu a la península; Luarca i Astúries retirats; 1.1, 42.6, F26, F27, F29 i 45.4 tancades; 4.3 continua en curs; 48.4b pendent de reproducció. Sense commit. |

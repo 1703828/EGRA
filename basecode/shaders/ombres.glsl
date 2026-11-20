@@ -20,6 +20,9 @@ const float PENDENT_MAX = 20.0;        // el marge creix amb la inclinacio de la
 
 // 3 x 3 lectures (cada una ja barreja 2 x 2 texels): suavitzen la vora de l'ombra
 float mostrar_ombra(sampler2DShadow t, vec3 s, float biaix) {
+#ifdef OMBRA_RAPIDA
+    return texture(t, vec3(s.xy, s.z - biaix));     // (ja barreja 2 x 2 texels)
+#endif
     vec2 texel = 1.0 / vec2(textureSize(t, 0));
     float llum = 0.0;
     for (int i = -1; i <= 1; i++)

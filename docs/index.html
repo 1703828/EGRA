@@ -56,6 +56,19 @@
     <li><a href="#o2-5">O2.5 Ombres (shadow mapping)</a></li>
     <li><a href="#o2-6">O2.6 Organització del codi i del treball</a></li>
   </ol>
+  <h3>O4 · Mapes durant l'exploració i tècniques del puzle</h3>
+  <ol>
+    <li><a href="#o4-1">O4.1 Toon Shading aplicat als mapes</a></li>
+    <li><a href="#o4-5">O4.5 Geometry shader: la vegetació</a></li>
+    <li><a href="#o4-6">O4.6 Instancing</a></li>
+  </ol>
+  <h3>O5 · Tercera tanda (17–20/11): una sola vista, edificis i proves</h3>
+  <ol>
+    <li><a href="#o5-1">O5.1 Una sola vista, panells i barra de temps</a></li>
+    <li><a href="#o5-2">O5.2 Edificis abans en un lloc nou</a></li>
+    <li><a href="#o5-3">O5.3 Façanes i cobertes</a></li>
+    <li><a href="#o5-4">O5.4 Proves automàtiques recuperades</a></li>
+  </ol>
 </nav>
 
 <div class="botons">
@@ -69,15 +82,15 @@
   <tr><td>La Terra, el Sol i la Lluna en un sol model geomètric, amb posicions reals</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Comprovat contra el CNIG; falta la prova de l'equip.</td></tr>
   <tr><td>Relleu de la península (200 m) i zones de 5 m (Picos, Vic, l'Escala i el Vallès) posats sobre la Terra</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Fora d'Espanya, només la textura del globus. Les zones catalanes es descarreguen a part (no són al Git).</td></tr>
   <tr><td>Ombra de la Lluna movent-se sobre la Terra i el terreny</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Calculada per a cada punt; dins de la umbra del CNIG.</td></tr>
-  <tr><td>Observar des del terra (ulls fixos, mirada lliure) i explorar fins a l'espai</td><td><span class="etiqueta actual">ACTUAL</span></td><td>P només reprodueix o pausa el temps.</td></tr>
+  <tr><td>Una sola càmera dels ulls fins a l'espai: doble clic als ulls mirant el Sol, G per veure l'ombra des de l'espai</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Des del 17/11 (F48), sense vista guiada ni tecla V. P només reprodueix o pausa el temps.</td></tr>
   <tr><td>Ubicacions amb coordenades verificades (ICGC i OpenStreetMap)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Plaça Major de Vic, ajuntaments de l'Escala, Cerdanyola i Montmeló, plaça Cívica de la UAB (tasca 0.3).</td></tr>
-  <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Només dins de la zona de 5 m de l'observador (tasca 6.1).</td></tr>
-  <tr><td>Anell de relleu de 25 m fins a ~100 km</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Ara, entre la zona de 5 m i els ~100 km, el relleu és el de 200 m (tasca 4.3).</td></tr>
+  <tr><td>Ombres de les muntanyes (shadow mapping)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>A la zona de 5 m i, des del 20/11, a la península (200 m) fora de les zones (tasca 6.1).</td></tr>
+  <tr><td>Anell de relleu de 25 m fins a ~100 km (dibuixat)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>El relleu dibuixat entre la zona de 5 m i els ~100 km és el de 200 m. Els <em>mapes</em> sí que fan servir el de 25 m (N1) (tasca 4.3).</td></tr>
   <tr><td>Espai de navegació limitat (cub amb parets translúcides) i mirada amb el ratolí capturat</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Tab captura i allibera el ratolí (F15). Pendent de la prova de l'equip amb el ratolí i el trackpad.</td></tr>
-  <tr><td>Allunyar-se fins a l'espai per una trajectòria guiada (la roda fa de progrés)</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Del punt a la Terra, Terra–Lluna i el Sol, a escala real. F15; pendent de la prova de l'equip.</td></tr>
-  <tr><td>Edificis del Catastro a les zones de detall, que poden tapar el Sol</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Vallès, Vic i l'Escala (a Picos no n'hi ha a 2 km). Altures estimades (plantes × 3 m). F14.</td></tr>
+  <tr><td>Edificis del Catastro a qualsevol lloc d'Espanya (menys Navarra i el País Basc), que poden tapar el Sol</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Es baixen en segon pla on es mira. Altures mesurades amb LiDAR (estimades en blau). Façanes amb textures d'imatge i cobertes amb la foto aèria (F52–F53).</td></tr>
+  <tr><td>Vegetació mesurada (LiDAR) amb un geometry shader</td><td><span class="etiqueta actual">ACTUAL</span></td><td>Es prepara sola en activar-la (F53). Columnes de 2 m: la mateixa superfície que el càlcul.</td></tr>
   <tr><td>Condicions meteorològiques</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Tasca 6.2.</td></tr>
-  <tr><td>Mapa de visibilitat de l'eclipsi (relleu i edificis, estàtic i dinàmic; 2026, 2027 i 2028)</td><td><span class="etiqueta planificat">PLANIFICAT</span></td><td>Objectiu O3 (proposta, D79).</td></tr>
+  <tr><td>Mapes de l'eclipsi durant l'exploració (2026, 2027 i 2028), de la península als carrers</td><td><span class="etiqueta actual">ACTUAL</span></td><td>O3 i O4: quatre nivells de dades; recorregut comprovat el 20/11 (99,4–100 % de terreny amb color, mediana 22,1 ms).</td></tr>
 </table></div>
 
 <!-- ======================================================================= O1 -->
@@ -145,8 +158,8 @@
       <li data-estat="pendent">Anell de 25 m fins a ~100 km al voltant del Vallès (tasca 4.3; ara hi ha el relleu de 200 m).</li>
     </ul>
     <p><span class="rotul">Limitacions:</span> el servei de l'IGN només té Espanya (Portugal i França
-      surten a 0 m, com si fossin mar). Els MDT d'Astúries i Luarca encara hi són però es retiraran
-      (tasca 4.2). Els MDT ja pujats al Git es queden a l'historial.</p>
+      surten a 0 m, com si fossin mar). Els MDT d'Astúries i Luarca es van retirar el 20/11/2026
+      (tasca 4.2): el programa no els feia servir. Es queden a l'historial del Git.</p>
   </div>
 </div></details>
 
@@ -571,7 +584,14 @@
     vista des de punts diferents: un punt del terreny és a l'ombra si, des d'allà, el relleu tapa el Sol.</p>
   <p>Les ombres del relleu es fan amb <em>shadow mapping</em> (<a href="#o2-5">O2.5</a>) dins de la zona
     de 5 m de l'observador. La llum ve del Sol aparent, amb la refracció, com el CNIG. Només bloqueja la
-    llum directa del Sol: la del cel continua arribant. Es pot apagar a <em>Avançat</em> per comparar.</p>
+    llum directa del Sol: la del cel continua arribant. Es pot apagar a <em>Càmera › Què es dibuixa</em>.</p>
+  <figure><img src="img/f53_ombres_peninsula.jpg" alt="Ombres del relleu de la península al Cadí i a Montserrat" loading="lazy">
+    <figcaption>Fora de les zones de 5 m (20/11/2026): el Cadí des de 9 km i Montserrat des de 6 km, a les 19:18 (abans
+      de l'eclipsi). Sense ombres, amb ombres i el factor d'ombra (blanc, hi arriba el Sol).</figcaption></figure>
+  <p><span class="rotul">A tota la península (tasca 6.1, 20/11/2026).</span> Quan el punt que es mira no és en cap zona
+    de 5 m, fa ombra el relleu de la península (200 m) en un quadrat de 80 a 300 km al voltant d'aquell punt (més gran
+    com més amunt és la càmera; texels de 20–75 m). La passada des del Sol hi costa 13–17 ms, però només es refà un
+    cop per segon de temps de l'eclipsi (l'àncora es mou a passos de ~5 km); el fotograma, +0,5–1,6 ms.</p>
   <p>Comprovació en dos passos (<code>scripts/validar_ombres_relleu.py --totes</code>). Primer, la GPU
     contra un càlcul independent de la CPU: per a ~1.150 píxels de cada zona, un raig des del punt cap al
     Sol mira si el terreny dibuixat el tapa. Coincideixen tots, llevat dels casos dins del biaix conegut de
@@ -587,6 +607,8 @@
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">Shadow mapping a la zona de 5 m: la GPU i el raig de la CPU coincideixen a totes sis ubicacions, fora del biaix calculat (11,6–12,7 m).</li>
+      <li data-estat="fet">Fora de les zones (península, 200 m): la GPU i un raig de la CPU coincideixen en el 99,9–100 % de ~1.000 píxels per vista a Montserrat (6 i 40 km) i al Cadí, comptant els casos dins del biaix (<code>scripts/captura_ombres_peninsula.py</code>, 20/11/2026).</li>
+      <li data-estat="pendent">L'equip ho mira volant per sobre del Pirineu amb el Sol baix.</li>
       <li data-estat="fet">Comparat amb la capa d'ombres del CNIG a l'hora del màxim: 74–95 % de cel·les iguals amb el MDT de 200 m; diferències explicades per la resolució.</li>
       <li data-estat="fet">Ocultació del Sol pel relleu des de l'observador al màxim: classe 3 (no el tapa) a Vic, Cerdanyola, Montmeló i la UAB, com el CNIG; a l'Escala, el terreny a 100 m de l'ajuntament fa un horitzó de 6,4° que el tapa (el CNIG, amb cel·les de ~230 m, diu 3); a Picos, classe 3 contra 1 del CNIG (<code>scripts/validar_horitzo.py</code>).</li>
       <li data-estat="validat">Prova de l'equip (26/10): a l'Escala, al màxim, el relleu tapa el Sol.</li>
@@ -598,8 +620,8 @@
     </ul>
     <p><span class="rotul">Limitacions:</span> altures dels edificis estimades i no mesurades (cobertes planes;
       sense arbres); el Sol es dibuixa a la seva posició geomètrica (sense refracció), i a prop de l'horitzó
-      l'ocultació real per edificis podria començar uns minuts més tard; els edificis no reben ombres; només la
-      zona de 5 m projecta i rep ombres (en 16 km al voltant del punt); obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
+      l'ocultació real per edificis podria començar uns minuts més tard; dins d'una zona de 5 m, només la zona projecta
+      i rep ombres (en 16 km al voltant del punt), i fora, la península amb el seu relleu de 200 m; obstacles de menys de ~12 m no fan ombra (el biaix que evita l'<em>acne</em>); sense edificis ni arbres; el mapa té texels d'~8 m.</p>
   </div>
 </div></details>
 
@@ -754,12 +776,47 @@
   <p>Per comprovar que ho enteníem, vam agafar un vèrtex del terreny, vam fer a mà tots els càlculs de la
     GPU i vam predir en quin píxel sortiria. La predicció va coincidir amb la imatge
     (<a href="exercici_1_0_vertex_a_pixel.md">exercici 1.0</a>).</p>
+  <p><strong>El fotograma del nostre programa, pas a pas</strong> (<code>main.py</code>, <code>render()</code>; revisat
+    al codi el 20/11/2026):</p>
+  <ol>
+    <li><strong>Entrada i estat (CPU).</strong> Teclat i ratolí; la càmera segueix els ulls si hi és. Es reviuen les
+      feines en segon pla (<code>detall</code>, <code>mapes</code>, <code>vegetacio</code>): el que ha acabat es puja
+      a la GPU, el que falta es demana a un fil o a un procés. Mai no es baixa res dins del bucle.</li>
+    <li><strong>Temps i astres.</strong> L'hora avança si es reprodueix; es calculen el Sol i la Lluna (ECEF, doble
+      precisió a la CPU) i la càmera fa les seves matrius. Tot es dibuixa <em>relatiu a la càmera</em>: la CPU resta
+      la posició de la càmera en doble precisió i la GPU només rep números petits (float32 no dona per a 6.000 km).</li>
+    <li><strong>Passada des del Sol</strong> (<code>ombres_relleu.py</code>): només si l'hora ha canviat un segon o
+      el punt s'ha mogut, el relleu i els edificis es dibuixen vistos des del Sol en dues textures de profunditat
+      (el mapa d'ombres). A cada fotograma normal no es refà.</li>
+    <li><strong>Cel a baixa resolució</strong> (<code>cel.calcular</code>): la dispersió de l'atmosfera en una textura
+      petita.</li>
+    <li><strong>Objectes opacs</strong>, cadascun amb el seu VAO i el seu programa: Sol i Lluna, la Terra, el relleu
+      (la península i la zona de detall, que s'hi encaixa), els edificis i la vegetació (punts → columnes al geometry
+      shader). Tots escriuen la profunditat amb l'escala <em>logarítmica</em> (<code>gl_FragDepth</code>), perquè a la
+      mateixa imatge hi ha coses a 1 m i a 150 milions de km.</li>
+    <li><strong>Cel</strong>, només on no hi ha res; l'atmosfera vista des de l'espai; i, al final, les coses
+      <strong>translúcides</strong> (parets del cub, halo del Sol), que no escriuen profunditat.</li>
+    <li><strong>Ratolí després de dibuixar</strong>: el doble clic llegeix la profunditat del píxel (ja plena) per
+      saber quin punt del terreny s'ha clicat (<em>picking</em>). Després, el panell (imgui) i el canvi de buffer.</li>
+  </ol>
+  <p><strong>Quant costa cada pas</strong> (<code>scripts/estudi_instancing.py</code>, 20/11/2026, temps de GPU per
+    passada amb consultes <code>GL_TIME_ELAPSED</code>, forçant els mapes d'ombres a cada fotograma): al carrer de la
+    UAB, passada des del Sol 8–10 ms, terreny 5–6 + 8 ms (dos nivells), edificis 7–10 ms, la Terra 1,2 ms, el cel
+    0,2 ms. Sense forçar les ombres (es refan un cop per segon), el fotograma sencer a la UAB és d'uns 21 ms
+    (<code>scripts/captura_edificis.py</code>).</p>
+  <p><strong>Una lliçó mesurada (F53).</strong> A la F52 cada vèrtex dels edificis calculava el material i passava ~25
+    valors al fragment shader. Amb el milió de triangles del Vallès vist des de lluny, el recorregut dels mapes va
+    passar de 22 a 33 ms per fotograma. Ara la CPU calcula l'aspecte de cada part un sol cop i el fragment shader el
+    llegeix d'una textura amb l'índex de la part: el recorregut torna a 22,1 ms i les imatges són les mateixes. El que
+    es fa per vèrtex es paga per cada vèrtex de tota l'escena, encara que acabi ocupant mig píxel.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <a href="../basecode/engine.py"><code>basecode/engine.py</code></a> (bucle),
       <a href="../main.py"><code>main.py</code></a>, <a href="../basecode/terrain.py"><code>basecode/terrain.py</code></a>,
-      <a href="../scripts/exercici_fotograma.py"><code>scripts/exercici_fotograma.py</code></a>.</p>
+      <a href="../scripts/exercici_fotograma.py"><code>scripts/exercici_fotograma.py</code></a>,
+      <a href="../scripts/estudi_instancing.py"><code>scripts/estudi_instancing.py</code></a> (cost per passada).</p>
     <p class="rotul">Criteris</p>
-    <ul class="criteris"><li data-estat="validat">Un vèrtex seguit a mà fins al píxel coincideix amb el que dibuixa la GPU (exercici 1.0).</li></ul>
+    <ul class="criteris"><li data-estat="validat">Un vèrtex seguit a mà fins al píxel coincideix amb el que dibuixa la GPU (exercici 1.0).</li>
+      <li data-estat="fet">L'ordre del fotograma del programa actual, descrit pas a pas i contrastat amb <code>main.render()</code>, amb el cost mesurat de cada passada (20/11/2026).</li></ul>
   </div>
 </div></details>
 
@@ -1187,13 +1244,31 @@
   <figure class="costat"><img src="img/o4_vegetacio_uab.jpg" alt="Vegetació mesurada a la UAB" loading="lazy">
     <figcaption>La vegetació del LiDAR dibuixada amb el geometry shader (gris: objectes a tocar dels edificis).</figcaption></figure>
   <p><strong>Cost.</strong> 1 milió de columnes: 35 ms de GPU la primera versió; 5–7 ms sense emetre els punts
-    lluny, fora de la vista o darrere, ni les cares tapades o d'esquena.</p>
+    lluny, fora de la vista o darrere, ni les cares tapades o d'esquena (16/11, color pla).</p>
+  <p><strong>F53 (20/11/2026): es prepara sola i té millor aspecte.</strong> Abans només sortia on el mapa de
+    visibilitat havia preparat la superfície dels obstacles (UAB, Vic i poca cosa més): l'equip activava la casella i
+    no veia res. Ara la casella prepara en segon pla la superfície de les cel·les a menys de 2 km del punt que es mira
+    (la mateixa feina i el mateix fitxer que el mapa); <em>Descàrregues en segon pla</em> diu què es prepara i on, i
+    si no se'n veu, el panell en diu el motiu.</p>
+  <figure><img src="img/f53_vegetacio.jpg" alt="Vegetació de la UAB abans i després de la F53" loading="lazy">
+    <figcaption>UAB des de 40 m i des de 12 m, mateixa càmera i hora. Esquerra: columnes d'un sol color. Dreta: la
+      normal de la superfície suavitzada, un to per capçada, clapes de fulles, oclusió aproximada i ombres. La forma
+      (les columnes) és la mateixa: de prop encara es veuen els blocs de 2 m.</figcaption></figure>
+  <p>L'aspecte només canvia la <em>llum</em>, no la forma: a cada punt la CPU hi desa la normal de la superfície
+    suavitzada (una gaussiana de 3 m, terra inclòs, perquè les vores de cada massa s'arrodoneixin) i un to de verd
+    (soroll suavitzat a l'escala d'una capçada); el fragment shader hi afegeix clapes de fulles d'una textura de soroll
+    amb mipmaps i les ombres del relleu i dels edificis. Per no encarir el geometry shader (cada valor que emet es
+    multiplica per 12 vèrtexs i un milió de punts), les dades noves van en 4 bytes per punt (20 bytes en total, com
+    abans), la profunditat es calcula al fragment amb <code>gl_FragCoord.w</code>, i els punts s'agrupen en trossos
+    de 500 m: només s'envien a la GPU els que són a prop de la càmera.</p>
   <div class="fitxa">
-    <p><span class="rotul">Fitxers:</span> <code>basecode/vegetacio.py</code>, <code>basecode/shaders/vegetacio.vert</code>, <code>.geom</code>, <code>.frag</code>, <code>scripts/estudi_vegetacio.py</code></p>
+    <p><span class="rotul">Fitxers:</span> <code>basecode/vegetacio.py</code>, <code>basecode/shaders/vegetacio.vert</code>, <code>.geom</code>, <code>.frag</code>, <code>vegetacio_comu.glsl</code>, <code>scripts/estudi_vegetacio.py</code>, <code>scripts/prova_vegetacio.py</code></p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
       <li data-estat="fet">Integrat i activable (<em>Vegetació i objectes (LiDAR)</em>), compatible amb OpenGL 3.3 core.</li>
-      <li data-estat="fet">Coherent amb el càlcul: la mateixa superfície (D94); limitació 2,5D documentada.</li>
+      <li data-estat="fet">Coherent amb el càlcul: la mateixa superfície (D94); limitació 2,5D documentada. A Mataró (lloc nou), 847.376 columnes = les cel·les amb objecte de la superfície, amb la mateixa alçària (&lt; 0,01 mm) (<code>scripts/prova_vegetacio.py</code>).</li>
+      <li data-estat="fet">Es prepara sola en un lloc nou sense obrir cap mapa i surt a <em>Descàrregues</em> amb el lloc; motius al panell (massa lluny comprovat; sense LiDAR i sense relleu, simulats) (<code>scripts/prova_vegetacio.py</code>, memòria cau de proves).</li>
+      <li data-estat="fet">Cost amb l'aspecte nou: 10,0 ms de GPU al carrer i 7,7 ms des de 400 m (1 milió de columnes; <code>scripts/estudi_vegetacio_gpu.py</code>). Fotograma sencer, +3 a 7 ms respecte del color pla (<code>captura_edificis.py --vegetacio</code>).</li>
       <li data-estat="pendent">L'equip ho prova des del carrer i des de l'aire.</li>
     </ul>
   </div>
@@ -1210,19 +1285,124 @@
     memòria (37 → 2,4 MB) i una mica de GPU, però canviava l'horitzó de la posta fins a desenes de graus: no
     s'integra.</p>
   <p><strong>Vegetació.</strong> Les mateixes columnes amb instancing (un cub compartit i 20 bytes per columna)
-    donen la mateixa imatge, però costen 15–17 ms contra 6–7 ms del geometry shader: l'instancing processa sempre
-    els 36 vèrtexs de cada caixa. Es pot activar a <em>Avançat</em> per comparar-ho en directe.</p>
+    donen la mateixa imatge, però costen 15–17 ms contra 6–7 ms del geometry shader (16/11): l'instancing processa
+    sempre els 36 vèrtexs de cada caixa. Amb l'aspecte de la F53 (20/11, mateix fragment shader a les dues):
+    19,6 i 17,8 ms amb instancing contra 10,0 i 7,7 ms amb el geometry shader (carrer i 400 m). Des de la F48 ja no
+    hi ha l'apartat <em>Avançat</em>: la comparació es fa amb <code>scripts/estudi_vegetacio_gpu.py</code>
+    (<code>Vegetacio.instancing</code>), que s'ha d'executar sol (amb altres programes alhora la GPU es comparteix i
+    els temps no valen).</p>
+  <p><strong>Límit d'OpenGL 3.3.</strong> Amb instancing no es pot començar per una instància concreta (cal OpenGL
+    4.2): no es pot fer el mateix que el geometry shader, que només rep els trossos de 500 m a prop de la càmera.</p>
   <div class="fitxa">
     <p><span class="rotul">Fitxers:</span> <code>basecode/shaders/vegetacio_inst.vert</code>, <code>scripts/estudi_instancing.py</code>, <code>scripts/estudi_vegetacio_gpu.py</code></p>
     <p class="rotul">Criteris</p>
     <ul class="criteris">
-      <li data-estat="fet">Ús concret i explicable amb el nostre codi (vegetació), amb comparació mesurada.</li>
+      <li data-estat="fet">Ús concret i explicable amb el nostre codi (vegetació), amb comparació mesurada (16/11 i, amb l'aspecte nou, 20/11).</li>
       <li data-estat="no-compleix">Caixes en lloc de les malles del Catastro: canvien l'ocultació del Sol (criteri &lt; 0,05°).</li>
     </ul>
   </div>
 </div></details>
 
 </section>
+
+<!-- ======================================================================= O5 -->
+<section class="objectiu" id="o5">
+<h2>O5 · Tercera tanda (17–20/11/2026): una sola vista, edificis i proves</h2>
+<p class="intro-objectiu">Peticions de l'equip després de la segona entrega. Detall i mesures al pla (F48–F53).
+  <span class="progres-objectiu"></span></p>
+
+<details class="sub" id="o5-1">
+<summary><span class="cap"><span class="titol">O5.1 · Una sola vista, panells i barra de temps (F48–F50)</span></span>
+  <span class="frase">Una càmera dels ulls a l'espai i panells més curts.</span></summary>
+<div class="cos">
+  <p>Abans hi havia tres vistes (des dels ulls, exploració i guiada) i la tecla V. Ara hi ha <strong>una sola
+    càmera</strong> (<code>basecode/camera_exploracio.py</code>) que pot baixar fins als ulls (1,7 m) i pujar fins a
+    l'espai. El doble clic porta el punt d'observació i la càmera als ulls, mirant el Sol; G va a veure l'ombra de la
+    Lluna des de 12.000 km i, un altre cop, torna. El panell <em>Càmera</em> mostra les descàrregues en segon pla amb el
+    seu progrés real, i el motiu quan no hi ha edificis o vegetació. El panell <em>Eclipsi</em> té el selector
+    d'eclipsi, el punt d'observació i els mapes. La barra de temps té el símbol de reproduir, l'hora fora de la barra i
+    marques de l'eclipsi.</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <code>main.py</code>, <code>ui.py</code>, <code>basecode/camera_exploracio.py</code>, <code>scripts/prova_navegacio.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Navegació unificada: arrencada als ulls, W A S D, E/Q (mai sota els ulls), fletxes, doble clic, G anada i tornada, P, textos de <em>Descàrregues</em> (<code>scripts/prova_navegacio.py</code>, 20/11).</li>
+      <li data-estat="fet">Seqüència de l'equip amb el bucle real i el panell: als ulls, fletxes, arrossegar, P, roda fins a l'espai, P, tornar (<code>scripts/prova_vistes.py</code>, adaptada el 20/11).</li>
+      <li data-estat="pendent">L'equip prova la navegació, els panells i la barra de temps amb la finestra.</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o5-2">
+<summary><span class="cap"><span class="titol">O5.2 · Edificis abans en un lloc nou (F51)</span></span>
+  <span class="frase">Relleu, Catastro i LiDAR alhora, i una sola malla.</span></summary>
+<div class="cos">
+  <p>En un lloc nou, el relleu, el Catastro i el LiDAR es baixen alhora, i si el LiDAR arriba a temps es fa una sola
+    malla amb les altures mesurades (abans se'n feien dues). Els ZIP del Catastro es conserven (com a molt 300 MB) i
+    una descàrrega tallada es repren. Les altures definitives a Igualada passen de 52,9 a 36,9 s; a Mataró, de 66,1 a
+    41,9 s. Els primers edificis amb prou feines s'avancen: ara el camí crític és el Catastro (taula al pla, F51).</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Mesures abans i després amb el mateix mètode i una memòria cau de proves (<code>scripts/auditar_edificis.py</code>).</li>
+      <li data-estat="fet">ZIP: represa, <code>.part</code> malmès, límit d'espai i cel·les veïnes (<code>scripts/prova_cadastre_zips.py</code>); canvi de lloc amb feines en curs, 0 incoherències (<code>scripts/prova_canvi_lloc.py</code>).</li>
+      <li data-estat="pendent">«No surten els edificis» (equip, 17/11): no s'ha pogut reproduir (pla, 48.4b).</li>
+    </ul>
+  </div>
+</div></details>
+
+<details class="sub" id="o5-3">
+<summary><span class="cap"><span class="titol">O5.3 · Façanes i cobertes (F52–F53)</span></span>
+  <span class="frase">Fotografies de materials reals a les façanes i la foto aèria a les cobertes.</span></summary>
+<div class="cos">
+  <figure><img src="img/f53_facanes.jpg" alt="Façanes abans i després de la F53" loading="lazy">
+    <figcaption>Mateixa càmera i hora (17:00). A dalt, Vic des de la plaça; al mig, una façana de Mataró a 4 m; a baix,
+      una nau de Mataró. Esquerra: materials procedimentals (F52). Dreta: textures d'imatge amb normals (F53).</figcaption></figure>
+  <p><strong>Cobertes.</strong> Cada coberta mostra la fotografia aèria del seu propi lloc (les teselles del terreny),
+    amb la conversió a Web Mercator per la derivada al punt de la càmera (error &lt; 1 cm a 200 m, 0,6 m a 3 km). És una
+    dada real; no és una ortofoto vertadera, i d'un edifici alt se'n pot veure una mica de façana.</p>
+  <p><strong>Façanes.</strong> A la F52 els materials eren dibuixos del shader i l'equip els trobava difuminats. A la F53
+    són 13 fotografies de materials reals (ambientCG, CC0): arrebossats, maons, pedres, formigons i xapa, cadascuna amb
+    el mapa de normals (el relleu de les juntes respon a la llum) i de rugositat. Van en dues <dfn>texture arrays</dfn>
+    compartides per tots els edificis (~91 MB de GPU), a la seva mida real (un maó fa 6 cm d'alt). El material depèn
+    del tipus d'edifici (ús del Catastro) i del hash del seu identificador. Les finestres tenen marc, persiana i un vidre
+    que reflecteix el cel més com més rasant es mira (Fresnel).</p>
+  <p><strong>Aproximació estètica:</strong> el Catastro no diu de què és cada façana. El que és dada real és la foto
+    de les cobertes i les plantes (files de finestres).</p>
+  <div class="fitxa">
+    <p><span class="rotul">Fitxers:</span> <code>basecode/textures_facanes.py</code>, <code>basecode/edificis.py</code>, <code>basecode/shaders/edifici.vert</code>, <code>edifici.frag</code>, <code>dades/edificis.py</code> (<code>tipus_parts</code>, <code>aspecte_parts</code>), <code>scripts/captura_edificis.py</code>, <code>scripts/descarregar_textures_facanes.py</code></p>
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Totes les zones amb edificis es classifiquen per tipus (Vallès, Vic, l'Escala, Mataró, Moià, Igualada).</li>
+      <li data-estat="fet">Mateixa assignació de material abans i després de passar el càlcul a la CPU: 0 píxels diferents a Vic des del carrer.</li>
+      <li data-estat="fet">Temps (GPU inclosa, mateixes 14 vistes): des de l'aire igual o menys que la F52 (UAB 300 m: 24,5 → 21,1 ms); al carrer de prop, +0,7 a 2,5 ms. Recorregut dels mapes: mediana 22,1 ms (abans de la F52, 22,0).</li>
+      <li data-estat="pendent">L'equip valora els materials i la proporció de cada tipus.</li>
+    </ul>
+    <p><span class="rotul">Limitacions:</span> el material és inventat (coherent amb el tipus); les textures es
+      repeteixen cada 1,1–2,4 m (dissimulat amb taques grans i un desplaçament per edifici); de lluny es veu el color
+      mitjà de cada foto.</p>
+  </div>
+</div></details>
+
+<details class="sub" id="o5-4">
+<summary><span class="cap"><span class="titol">O5.4 · Proves automàtiques recuperades</span></span>
+  <span class="frase">Les proves tornen a comprovar el programa actual.</span></summary>
+<div class="cos">
+  <p>La vista única (F48) va deixar 15 scripts amb l'API antiga. S'han adaptat els que comproven coses vigents
+    (<code>scripts/vista_unica.py</code> tradueix els passos antics al que fa ara el programa) i se n'han retirat dues
+    obsoletes: <code>prova_caminar.py</code> (el mode Caminar ja no existeix) i <code>prova_ortofoto.py</code> (el
+    programa ja no carrega l'ortofoto). Les comprovacions que només tenien sentit amb dues vistes (la vista guiada, la
+    tecla V, el zoom de la roda en observació) s'han tret.</p>
+  <div class="fitxa">
+    <p class="rotul">Criteris</p>
+    <ul class="criteris">
+      <li data-estat="fet">Regressió del 20/11/2026 amb el codi final, 15 scripts: tots correctes (<code>prova_vistes</code> 101 comprovacions, <code>prova_controls</code> 50, <code>prova_navegacio</code> 23, <code>prova_obstacles</code> 23, <code>validar_edificis</code> 22, <code>prova_consulta</code> 21...; llista al pla, F53).</li>
+      <li data-estat="fet">Recorregut dels mapes de la península als carrers de la UAB: 99,4–100 % de terreny amb color a les set parades, mediana 22,1 ms (<code>scripts/prova_mapes.py</code>).</li>
+    </ul>
+  </div>
+</div></details>
+</section>
+
 
 <footer>
   MDT i dades de l'eclipsi © Instituto Geográfico Nacional / CNIG (CC BY 4.0). "Official astronomical

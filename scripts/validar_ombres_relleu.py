@@ -32,6 +32,8 @@ import sys
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import numpy as np  # noqa: E402
@@ -116,7 +118,7 @@ def main():
         _, _, amunt = geodesia.base_local(lat, lon)
         ce.posicio = app.ulls() + 4.0 * direccio_mirada(lat, lon, az, 0.0) + 7.0 * amunt
         ce.rumb, ce.inclinacio = az + 180.0, -55.0
-        app.canviar_vista(0)
+        lliure(app)
         app.ombres.depuracio = True
         fotograma()
         factor = np.frombuffer(objectiu.read(components=3), 'u1').reshape(H, W, 3)[..., 0] / 255.0
@@ -210,7 +212,7 @@ def main():
             print(f'CNIG contra el nostre calcul amb el MDT de {nom_s}: {total} cel·les; coincideixen '
                   f'{(tt[0, 0] + tt[1, 1]) / max(total, 1) * 100:.1f} %  (CNIG tapat: {tt[1].sum()}, nosaltres '
                   f'tapat: {tt[:, 1].sum()}; tapat nomes al CNIG: {tt[1, 0]}, nomes nosaltres: {tt[0, 1]})')
-        app.canviar_vista(1)
+        als_ulls(app)
 
     app._shutdown()
     print('\nRESULTAT:', 'TOT CORRECTE' if not errors else f'FALLA: {"; ".join(errors)}')

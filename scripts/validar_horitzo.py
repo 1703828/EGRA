@@ -33,6 +33,8 @@ import sys
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import numpy as np  # noqa: E402
@@ -55,7 +57,7 @@ def main():
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - horitzo', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
     app.mostrar_edificis = False   # horitzo del relleu: els edificis es comproven a validar_edificis.py
-    co = app.camera_observador
+    co = app.camera
     errors = []
 
     def fotograma():
@@ -92,7 +94,7 @@ def main():
         return millor, dist_millor
 
     def horitzo_renderitzat(azimut, inclinacio):
-        co.mirar(azimut, inclinacio)
+        co.orientar(azimut, inclinacio)
         co.fov = FOV_GRAUS
         fotograma()
         prof = np.frombuffer(objectiu.read(components=1, attachment=-1, dtype='f4'), 'f4').reshape(H, W)

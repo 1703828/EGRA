@@ -9,10 +9,10 @@ Prova dels edificis com a obstacles (dades/obstacles.py) i dels punts d'observac
    des de punts exteriors a prop de la UAB, Cerdanyola i Montmelo: cap acaba dins d'un edifici ni a menys de
    0,3 m d'una facana. Temps per moviment.
 3. Programa real (finestra amagada): a les sis ubicacions els ulls son a l'exterior i, mirant amunt, es veu el
-   cel; la coordenada de referencia dels quatre punts desplacats es dins d'un edifici. Caminant cap a l'ajuntament de Cerdanyola
-   (de cara, en diagonal, corrent i amb un pas de 30 s) no s'hi entra; en vol lliure no s'entra per la facana
-   pero es pot baixar sobre la coberta i passar-hi per sobre; recuperacio si la camera queda dins; passar a
-   caminar damunt d'un edifici; doble clic sobre un terrat; edificis amagats i tornats a mostrar.
+   cel; la coordenada de referencia dels quatre punts desplacats es dins d'un edifici. Als ulls, amb W i Ctrl cap
+   a l'ajuntament de Cerdanyola (de cara i en diagonal; F48: la camera unica, ja no hi ha mode Caminar) no s'hi
+   entra; a 2,7 m no s'entra per la facana pero es pot baixar sobre la coberta i passar-hi per sobre; recuperacio
+   si la camera queda dins; doble clic sobre un terrat; edificis amagats i tornats a mostrar.
 
 Executa (des de l'arrel, amb l'entorn egra):  python scripts/prova_obstacles.py
 """
@@ -24,6 +24,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import numpy as np  # noqa: E402
 import shapely  # noqa: E402
@@ -123,7 +125,7 @@ def programa_real():
     W, H = 640, 480
     app = programa.GraphicsEngine(win_size=(W, H), title='EGRA - prova dels obstacles', use_ui_panel=True)
     objectiu = app.ctx.simple_framebuffer((W, H))
-    co, ce = app.camera_observador, app.camera_exploracio
+    co, ce = app.camera, app.camera_exploracio
 
     def fotograma(n=1, dt=1 / 60):
         for _ in range(n):
@@ -140,8 +142,8 @@ def programa_real():
 
     def cel_amunt():
         """Fraccio de pixels de cel (sense res dibuixat) mirant amunt des dels ulls de l'observador."""
-        app.canviar_vista(1)
-        co.mirar(0.0, 89.0)
+        als_ulls(app)
+        co.orientar(0.0, 89.0)
         co.fov = 60.0
         fotograma(2)
         prof = np.frombuffer(objectiu.read(components=1, attachment=-1, dtype='f4'), 'f4')
@@ -165,10 +167,11 @@ def programa_real():
         else:
             ok(sep >= RADI_COS_M and cel > 0.5, text)
 
-    # caminar cap a l'ajuntament de Cerdanyola
+    # als ulls, cap a l'ajuntament de Cerdanyola (F48: ja no hi ha mode Caminar; la mateixa camera, amb W, a l'altura
+    # dels ulls i a la velocitat minima, o amb Ctrl, 5 vegades mes)
     nom, lat, lon = UBICACIONS_PROVES[3]
     app.triar_ubicacio(lat, lon, nom)
-    app.caminar_des_del_punt()
+    als_ulls(app)
     fotograma()
     obs = app.edificis.obstacles
     o = app.observador
@@ -176,29 +179,23 @@ def programa_real():
     inici = ce.posicio.copy()
 
     def estat():
-        la, lo, _ = ce.geodesiques()
+        la, lo, al = ce.geodesiques()
         x, y = obs.utm(la, lo)
         return obs.separacio(x, y), obs.dins(x, y) is not None
 
     for gir, nom_cas in ((0.0, 'de cara'), (40.0, 'en diagonal (40 graus)')):
+        lliure(app)
         ce.posicio = inici
         ce.orientar(az + gir, 0.0)
-        pitjor, dins, xoc = 99.0, False, False
-        for _ in range(300):                      # 30 s corrent amb fotogrames lents (dt = 0,1 s)
-            ce.caminar_pas(1.0, 0.0, 0.1, correr=True)
-            s, d = estat()
-            pitjor, dins, xoc = min(pitjor, s), dins or d, xoc or ce.contra_edifici
-        ok(xoc and not dins and pitjor >= RADI_COS_M - 1e-3,
-           f'caminant {nom_cas} cap a l\'ajuntament, 30 s corrent: topa i no hi entra (minim {pitjor:.3f} m de la facana)')
-    ce.posicio = inici
-    ce.orientar(az, 0.0)
-    cami = ce.caminar_pas(1.0, 0.0, 30.0, correr=True)
-    seps = [obs.separacio(*obs.utm(*(float(v) for v in geodesia.geodesiques(p)[:2]))) for p in cami]
-    ok(min(seps) >= RADI_COS_M - 1e-3, f'un sol pas de 30 s (135 m) cap a la facana: cap punt del cami a menys de '
-                                       f'{RADI_COS_M} m ({min(seps):.3f} m)')
+        pitjor, dins = 99.0, False
+        for _ in range(300):                      # 30 s amb fotogrames lents (dt = 0,1 s), amb Ctrl (x5)
+            ce.moure(5.0, 0.0, 0.0, 0.1)
+            s_, d = estat()
+            pitjor, dins = min(pitjor, s_), dins or d
+        ok(not dins and pitjor >= RADI_VOL_M - 1e-3,
+           f'als ulls {nom_cas} cap a l\'ajuntament, 30 s amb W i Ctrl: no hi entra (minim {pitjor:.3f} m de la facana)')
 
     # vol lliure: per la facana no, per sobre de la coberta si
-    ce.caminar = False
     ce.posicio = inici + 0.001 * geodesia.base_local(o.lat, o.lon)[2]        # 2,7 m sobre el terra
     ce.orientar(az, 0.0)
     for _ in range(120):
@@ -223,37 +220,32 @@ def programa_real():
     ok(np.linalg.norm(ce.posicio - p0) > 0.005 and abs(al2 - al) < 1e-5,
        'i hi pot passar per sobre en horitzontal (sense que la coberta el faci fora)')
 
-    # recuperacio, passar a caminar damunt d'un edifici, doble clic sobre un terrat
-    ce.caminar = True
+    # recuperacio (la camera posada dins d'un edifici en surt al fotograma seguent) i doble clic sobre un terrat
+    lliure(app)
     ce.posicio = geodesia.ecef(o.lat_ref, o.lon_ref, app.altitud_terra_km(o.lat_ref, o.lon_ref) + ALCADA_ULLS_KM)
-    app.canviar_vista(0)
     fotograma()
-    s, d = estat()
-    ok(not d and s >= RADI_COS_M - 1e-3, f'camera caminant dins de l\'edifici: al fotograma seguent, fora ({app.avis_caminar})')
-    ce.caminar = False
-    ce.posicio = geodesia.ecef(o.lat_ref, o.lon_ref, sostre + 0.05)
-    app.passar_a_caminar()
-    s, d = estat()
-    ok(ce.caminar and not d and s >= RADI_COS_M - 1e-3, f'passar a caminar damunt de l\'edifici: {app.avis_caminar}')
+    s_, d = estat()
+    ok(not d and s_ >= RADI_VOL_M - 1e-3, f'camera posada dins de l\'edifici: al fotograma seguent, fora ({s_:.2f} m)')
     app.triar_punt(o.lat_ref, o.lon_ref)
     o2 = app.observador
     ok(o2.desplacament_m > 0 and obs.separacio(*obs.utm(o2.lat, o2.lon)) >= 2.99,
        f'doble clic sobre el terrat (o un punt dins): els ulls al carrer, a {o2.desplacament_m:.1f} m')
 
     # edificis amagats: es poden travessar (com es veu); en tornar-los a mostrar, recuperacio
-    app.caminar_des_del_punt()
+    als_ulls(app)
+    lliure(app)
     ce.orientar(az, 0.0)
     app.edificis.visible = False
     d_amagats = False
-    for _ in range(200):                          # fins que es dins de l'edifici
-        ce.caminar_pas(1.0, 0.0, 0.1, correr=True)
+    for _ in range(300):                          # fins que es dins de l'edifici
+        ce.moure(5.0, 0.0, 0.0, 0.1)
         _, d_amagats = estat()
         if d_amagats:
             break
     app.edificis.visible = True
     fotograma()
-    s, d = estat()
-    ok(d_amagats and not d and s >= RADI_COS_M - 1e-3,
+    s_, d = estat()
+    ok(d_amagats and not d and s_ >= RADI_VOL_M - 1e-3,
        'edificis amagats: es poden travessar; en tornar-los a mostrar, la camera surt a fora')
     app._shutdown()
 

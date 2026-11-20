@@ -673,6 +673,8 @@ class GraphicsEngine(GraphicsEngineBase):
         self.detall.destroy()
         self.mapes.destroy()
         self.vegetacio.destroy()
+        if getattr(self, 'textures_facanes', None) is not None:
+            self.textures_facanes.destroy()
         self.mosaic.destroy()
         self.ombres.destroy()
         self.cel.destroy()

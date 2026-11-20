@@ -1,0 +1,145 @@
+[
+ {
+  "id": "Plaster001",
+  "material": "arrebossat",
+  "mida_m": [
+   2.0,
+   2.0
+  ],
+  "escala": "estimada: arrebossat llis, sense peces",
+  "url": "https://ambientcg.com/a/Plaster001",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Plaster007",
+  "material": "arrebossat",
+  "mida_m": [
+   2.0,
+   2.0
+  ],
+  "escala": "estimada: arrebossat amb taques, sense peces",
+  "url": "https://ambientcg.com/a/Plaster007",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "PaintedPlaster017",
+  "material": "arrebossat",
+  "mida_m": [
+   2.0,
+   2.0
+  ],
+  "escala": "estimada: arrebossat pintat, sense peces",
+  "url": "https://ambientcg.com/a/PaintedPlaster017",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks051",
+  "material": "mao",
+  "mida_m": [
+   1.25,
+   1.25
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Bricks051",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks085",
+  "material": "mao",
+  "mida_m": [
+   2.4,
+   1.2
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Bricks085",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks097",
+  "material": "mao",
+  "mida_m": [
+   1.5,
+   1.5
+  ],
+  "escala": "estimada: 20 filades de ~7,5 cm",
+  "url": "https://ambientcg.com/a/Bricks097",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks053",
+  "material": "mao",
+  "mida_m": [
+   1.3,
+   1.3
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Bricks053",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks099",
+  "material": "pedra",
+  "mida_m": [
+   2.0,
+   2.0
+  ],
+  "escala": "estimada: pedres de 15-40 cm",
+  "url": "https://ambientcg.com/a/Bricks099",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks066",
+  "material": "pedra",
+  "mida_m": [
+   2.4,
+   2.4
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Bricks066",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Bricks068",
+  "material": "pedra",
+  "mida_m": [
+   1.5,
+   1.5
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Bricks068",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Concrete034",
+  "material": "formigo",
+  "mida_m": [
+   1.1,
+   0.55
+  ],
+  "escala": "ambientCG (dimensionX/Y)",
+  "url": "https://ambientcg.com/a/Concrete034",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "Concrete031",
+  "material": "formigo",
+  "mida_m": [
+   2.4,
+   2.4
+  ],
+  "escala": "estimada: un plafo d'encofrat d'1,2 m",
+  "url": "https://ambientcg.com/a/Concrete031",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ },
+ {
+  "id": "CorrugatedSteel005",
+  "material": "xapa",
+  "mida_m": [
+   2.0,
+   2.0
+  ],
+  "escala": "estimada: grecat de ~20 cm",
+  "url": "https://ambientcg.com/a/CorrugatedSteel005",
+  "llicencia": "CC0 1.0 (ambientCG)"
+ }
+]

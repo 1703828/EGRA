@@ -19,7 +19,11 @@ Decisions:
     Sol. Amb el Sol baix, una caixa quadrada estiraria molt cada texel sobre el terra.
   - La llum ve del Sol aparent (azimut i elevacio amb refraccio, com el CNIG i D18): es la direccio de
     la qual arriba la llum al terra. El terreny es geometric.
-  - Nomes la zona de 5 m projecta i rep ombres (primera versio, zona controlada). La peninsula no.
+  - Si el punt que es mira es dins d'una zona de 5 m, nomes la zona projecta i rep ombres. Si no (tasca 6.1,
+    20/11/2026), la peninsula: el seu relleu de 200 m en un quadrat al voltant d'aquell punt (de 80 a 300 km de
+    costat segons l'altura de la camera). El mapa
+    nomes es refa quan canvia l'hora (al segon) o el punt: el cost de dibuixar la peninsula des del Sol es paga un
+    cop per segon de temps de l'eclipsi, no a cada fotograma.
   - Dos mapes (F36): el gran (MIDA_KM, texels d'~8 m) per al relleu, i un de fi (MIDA_FI_KM, 3 x 3 km al voltant
     de l'ancora, texels de 0,7-0,9 m) quan hi ha edificis: els edificis hi fan ombra (tots, no nomes els de mes de
     ~12 m com amb el gran) i en reben (edifici.frag). El fi s'ajusta a les altures del quadrat (alcades_fi): amb el
@@ -40,6 +44,8 @@ from dades import geodesia
 
 RESOLUCIO = 4096       # texels per costat del mapa d'ombres gran
 MIDA_KM = 16.0         # mig costat del quadrat de terreny cobert, al voltant de l'ancora (punt de detall)
+MIDA_PENINSULA_KM = 40.0   # fora de les zones de 5 m (relleu de 200 m): texels de ~20 m, prou per a vertexs de 200 m
+MIDA_PENINSULA_MAX_KM = 150.0   # (des de molt amunt: texels de ~75 m)
 # Mapa fi (F36, peticio de l'equip): els edificis fan ombra i en reben. 3 x 3 km amb texels de menys d'1 m.
 RESOLUCIO_FI = 4096
 MIDA_FI_KM = 1.5       # mig costat
@@ -118,20 +124,21 @@ class OmbresRelleu:
         proj = glm.ortho(min(xs), max(xs), min(ys), max(ys), 1.0, 2 * DIST_SOL_KM)
         return proj * vista, el, max((max(xs) - min(xs)), (max(ys) - min(ys))) / resolucio
 
-    def alcades_fi(self, lat, lon, zona):
-        """(minima, maxima) en km del quadrat fi: el relleu en una graella de 9 x 9 punts (el que es dibuixa) i, a
-        sobre, ALCADA_EDIFICIS_KM per als edificis. Amb el Sol baix, una caixa ajustada fa els texels mes petits."""
+    def alcades_fi(self, lat, lon, zona, mida=MIDA_FI_KM, a_sobre=ALCADA_EDIFICIS_KM, n=9):
+        """(minima, maxima) en km del quadrat (mig costat mida): el relleu en una graella de n x n punts (el que es
+        dibuixa) i, a sobre, a_sobre (els edificis, al mapa fi). Amb el Sol baix, una caixa ajustada fa els texels mes
+        petits."""
         hs = []
-        dlat = MIDA_FI_KM / 111.32
-        dlon = MIDA_FI_KM / (111.32 * math.cos(math.radians(lat)))
-        for f in np.linspace(-1, 1, 9):
-            for g in np.linspace(-1, 1, 9):
+        dlat = mida / 111.32
+        dlon = mida / (111.32 * math.cos(math.radians(lat)))
+        for f in np.linspace(-1, 1, n):
+            for g in np.linspace(-1, 1, n):
                 h = zona.altitud_latlon(lat + f * dlat, lon + g * dlon)
                 if h is not None:
                     hs.append(h / 1000.0 * zona.exaggeration)
         if not hs:
-            return -0.05, ALCADA_EDIFICIS_KM
-        return min(hs) - 0.05, max(hs) + ALCADA_EDIFICIS_KM
+            return -0.05, a_sobre
+        return min(hs) - 0.05, max(hs) + a_sobre
 
     def actualitzar(self):
         """Passada des del Sol, si ha canviat alguna cosa. Es crida abans de dibuixar el fotograma."""
@@ -139,6 +146,20 @@ class OmbresRelleu:
         # ancora: el centre del pegat dens de la zona (el punt de detall: el que es mira o el punt d'observacio)
         lat, lon = zona.pegat['centre'] if zona is not None and zona.pegat is not None else \
             (app.observador.lat, app.observador.lon)
+        mida = MIDA_KM
+        punt = app.detall.punt if getattr(app, 'detall', None) is not None and app.detall.punt is not None else (lat, lon)
+        if zona is None or not zona.conte(*punt):
+            # el punt que es mira es fora de la zona de 5 m (tasca 6.1, 20/11/2026): el relleu de la peninsula (200 m,
+            # amb el seu pegat dens si n'hi ha) projecta i rep ombres en un quadrat al voltant d'aquell punt, de mig
+            # costat MIDA_PENINSULA_KM o el doble de l'altura de la camera (des de mes amunt es veu mes terreny), com a
+            # molt MIDA_PENINSULA_MAX_KM
+            # (l'ancora i la mida es quantifiquen perque el mapa no es refaci a cada petit moviment de la camera:
+            # l'ancora a passos de 0,05 graus, ~5 km; la mida, a factors de 1,5)
+            zona = app.peninsula
+            lat, lon = round(punt[0] / 0.05) * 0.05, round(punt[1] / 0.05) * 0.05
+            h = max(app.camera.alcada_sobre_terra(), 1e-3)
+            mida = min(MIDA_PENINSULA_KM * 1.5 ** max(0, math.ceil(math.log(2.0 * h / MIDA_PENINSULA_KM, 1.5))),
+                       MIDA_PENINSULA_MAX_KM)
         if not self.actiu or zona is None or not zona.conte(lat, lon):
             # sense mapa: cal oblidar la clau perque, en tornar-les a encendre (en pausa, la mateixa
             # hora), el mapa es torni a calcular i valid torni a ser True
@@ -148,15 +169,18 @@ class OmbresRelleu:
         if zona is not self.zona or pegat is not self.pegat or edificis is not self.edificis:
             self.oblidar_vaos()          # zona, pegat o edificis nous: els buffers han canviat
             self.zona, self.pegat, self.edificis, self.clau = zona, pegat, edificis, None
-        amb_edificis = edificis is not None and edificis.visible
+        amb_edificis = edificis is not None and edificis.visible and zona is app.zona
         # l'hora, arrodonida al segon (de temps de l'eclipsi): en 1 s el Sol es mou 0,004 graus i l'ombra d'un edifici
         # de 20 m, menys d'1 m; a velocitat x1 el mapa es refa un cop per segon i no a cada fotograma
-        clau = (round(app.hora * 3600.0), lat, lon, zona.exaggeration, amb_edificis)
+        clau = (round(app.hora * 3600.0), lat, lon, zona.exaggeration, amb_edificis, id(zona), round(mida))
         if clau == self.clau:
             return
         self.clau = clau
         self.ancora = geodesia.ecef(lat, lon, 0.0)
-        self.m_llum, el, self.texel_km = self.matriu_llum(lat, lon, zona)
+        # la caixa de la llum, de l'altura minima a la maxima del quadrat (la de tota la zona per a una zona de 5 m; a
+        # la peninsula, la del quadrat: el maxim de la peninsula, 3,4 km, estiraria molt els texels amb el Sol baix)
+        alc = self.alcades_fi(lat, lon, zona, mida, 0.3) if zona is not app.zona else None   # (+300 m: cims entre punts)
+        self.m_llum, el, self.texel_km = self.matriu_llum(lat, lon, zona, mida, alc)
         self.valid = el > -1.0            # amb el Sol sota l'horitzo no hi ha ombres del relleu
         self.m_llum_fi, _, self.texel_fi_km = self.matriu_llum(lat, lon, zona, MIDA_FI_KM,
                                                                self.alcades_fi(lat, lon, zona), RESOLUCIO_FI)
@@ -197,7 +221,7 @@ class OmbresRelleu:
     def aplicar(self, sp, terreny):
         """Uniforms del mapa per a un terreny (terrain.frag). El mapa sempre es lliga a la seva unitat,
         encara que aquest terreny no el faci servir: un sampler sense textura fa avisar el controlador."""
-        rep = self.valid and terreny is self.app.zona
+        rep = self.valid and terreny is self.zona     # la zona de 5 m o, fora, la peninsula (la que fa el mapa)
         sp['depuracio_ombra'].value = self.depuracio
         self.uniforms(sp, rep)
 

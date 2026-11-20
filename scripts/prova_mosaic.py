@@ -31,6 +31,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import numpy as np  # noqa: E402
 
@@ -183,10 +185,9 @@ def amb_finestra():
     nom, lat, lon = next(u for u in UBICACIONS_PROVES if u[0].startswith('Vic'))
     app.triar_ubicacio(lat, lon, nom)
     app.hora = 14.5     # 16:30 hora local: Sol alt, abans de l'eclipsi
-    app.canviar_vista(0)
+    lliure(app)
 
     def posar(lat_c, lon_c, alt_km, rumb, incl):
-        ce.caminar = False
         ce.posicio = geodesia.ecef(lat_c, lon_c, alt_km)
         ce.orientar(rumb, incl)
         ce.inercia, ce.zoom_pendent = None, 0.0
@@ -342,18 +343,19 @@ def amb_finestra():
         io.add_mouse_button_event(0, False)
         fotograma()
     fotograma(3)
-    co = app.camera_observador
-    ok(app.vista == 1 and abs(co.rumb - rumb) < 1e-6 and abs(co.inclinacio - programa.INCLINACIO_EN_ARRIBAR) < 1e-6,
-       f'doble clic: primera persona al punt ({app.observador.lat:.5f}, {app.observador.lon:.5f}), mirant cap on mirava '
-       f'la camera (rumb {co.rumb:.0f}, {co.inclinacio:.0f} graus)')
+    co = app.camera
+    az_sol, _ = app.model.sol(app.hora)
+    ok(app.camera_als_ulls() and abs((co.rumb - az_sol + 180.0) % 360.0 - 180.0) < 1.0,
+       f'doble clic: primera persona al punt ({app.observador.lat:.5f}, {app.observador.lon:.5f}), mirant el Sol '
+       f'(rumb {co.rumb:.0f}, Sol a {az_sol:.0f}; F48)')
     ok(app.edificis.visible, 'en primera persona, els edificis es dibuixen')
     esperar()
     imatge().save(os.path.join(CARPETA, 'mosaic_primera_persona.png'))
     print(f'   primera persona: {temps_fotograma():.1f} ms per fotograma')
-    app.canviar_vista(0)
+    lliure(app)
+    ce.posicio = geodesia.ecef(41.9288 - 0.0107, 2.2553, 0.486 + 1.19)     # (F48: sense V; l'usuari s'allunya)
     fotograma(2)
-    ok(not app.edificis.visible and np.linalg.norm(ce.posicio - geodesia.ecef(41.9288 - 0.0107, 2.2553, 0.486 + 1.19)) < 1e-6,
-       'V: es torna a la vista aeria on era la camera, sense edificis')
+    ok(not app.edificis.visible, 'de nou a la vista aeria (1,2 km del terra): sense edificis')
     app.edificis_aeris = True
     fotograma(2)
     ok(app.edificis.visible, 'opcio "Edificis tambe a la vista aeria": es dibuixen')

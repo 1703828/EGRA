@@ -24,6 +24,9 @@ uniform sampler2DArray mapa_n3;
 uniform vec4 mapa_rect[30];           // peces de tots els nivells, en ordre (N0, N1, N2, N3), UV del terreny
 uniform vec2 mapa_escala[30];         // part de la capa que ocupa la peca
 uniform int mapa_capa[30];            // primera capa de la peca a la textura del seu nivell
+// 1: peca dels obstacles (N3) on ara no es dibuixen els edificis en 3D (un altre lloc): el terreny mostra el valor del
+// terrat als pixels dels edificis (si no, quedarien sense color en canviar de lloc)
+uniform int mapa_terrat_terra[30];
 uniform int mapa_n[4];                // peces de cada nivell
 uniform int mapa_k[4];                // intervals a la GPU per nivell (0: nomes la capa resum)
 uniform sampler2D tex_graella;        // circumstancies: tapat al maxim (0-1), durada de la fase central (s); -1 sense
@@ -79,7 +82,8 @@ bool dades_mapa(out vec4 resum, out int nivell, out vec3 coord) {
             // sobre la coberta). Al terreny (carrer) no es mostra (ni el nivell de sota, que no ho sap); a les
             // cobertes, nomes aquests
             bool edifici = nv == 3 && mod(floor(v.a / 256.0 + 0.001), 2.0) > 0.5;
-            if (mapa_cobertes != edifici) {
+            bool terrat_al_terra = edifici && !mapa_cobertes && mapa_terrat_terra[i] == 1;
+            if (mapa_cobertes != edifici && !terrat_al_terra) {
                 if (edifici) return false;
                 continue;
             }

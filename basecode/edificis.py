@@ -6,13 +6,19 @@ camera: el disc del Sol, el halo (que es dibuixa despres i no escriu profunditat
 
 Segueix l'estructura dels objectes del repte 4 (VBO + VAO + shader + m_model, render, destroy).
 
-Aspecte (shaders/edifici.frag), segons l'origen de l'altura de cada part (peticio de l'equip de l'1/11):
-  - Altura mesurada (LiDAR, dades/alcaries.py): coberta amb el color de la fotografia aeria del PNOA al seu lloc
-    (dada real, dades/edificis.colors_cobertes; mentre no hi es, o si no se'n pot treure, un color de teula o de
-    terrat) i facanes amb colors variats (aproximacio estetica).
+Aspecte (shaders/edifici.vert i edifici.frag; F52, 19/11/2026):
+  - Cobertes: la fotografia aeria (el mosaic de teselles del terreny, basecode/mosaic.py) projectada al seu lloc:
+    cada coberta mostra la imatge del seu propi lloc (dada real). Mentre la tesella no ha arribat, el color mitja de
+    la foto sobre la coberta (dades/edificis.colors_cobertes) o, si encara no se sap, un material provisional
+    coherent amb el tipus (teula, terrat o xapa); la foto el substitueix a mesura que arriba.
+  - Facanes: un material procedimental (arrebossat, mao, pedra, formigo, xapa o mur cortina) i les finestres segons
+    el tipus d'edifici (casa, bloc, comercial, industrial, agrari, servei public: dades/edificis.tipus_parts, de l'us
+    del Catastro i la mida). El material es tria amb el hash de l'identificador de l'edifici: estable i igual a totes
+    les seves parts. Aproximacio estetica: el Catastro no diu el material real.
   - Altura estimada (plantes x 3 m): tot l'edifici blau, un color que no es d'edifici: es veu que no es una mesura.
-  Facanes amb finestres procedimentals, una fila per planta (plantes del Catastro, cada 3 m). Les dades de cada
-  part (color de coberta, plantes i origen de l'altura) van en una textura que el shader llegeix amb l'index.
+  Les dades de cada part van en dues textures que el shader llegeix amb l'index: tex_parts (color de coberta,
+  plantes, origen de l'altura) i tex_edifici (hash de l'edifici i tipus). Cap textura d'imatge per a les facanes:
+  els materials es calculen al shader, a l'escala real (metres de la facana), sense memoria de GPU afegida.
 La llum (directa del Sol i del cel) es calcula un cop per fotograma al centre dels edificis amb la mateixa
 formula que el terreny: elevacio del Sol i part del Sol que hi tapa la Lluna.
 """
@@ -30,10 +36,14 @@ from dades.obstacles import Obstacles
 from dades.model_eclipsi import area_tapada, angle_entre
 from dades.efemerides import RADI_SOL_KM, RADI_LLUNA_KM
 from dades import atmosfera
-from dades.edificis import cobertes_desades, ALCADA_PLANTA_M
+from dades.edificis import cobertes_desades, tipus_parts, aspecte_parts, ALCADA_PLANTA_M, TEXELS_ASPECTE
+from dades.geodesia import A_KM, B_KM
 
 AMPLADA_TEXTURA_PARTS = 1024
 UNITAT_PARTS = 0
+UNITAT_ASPECTE = 1     # aspecte de cada part (dades/edificis.aspecte_parts)
+UNITAT_MOSAIC = 9      # la mateixa que el terreny (basecode/terrain.py): la mateixa textura de teselles, cap copia
+E2 = 1.0 - (B_KM / A_KM) ** 2
 
 
 def suau(a, b, x):
@@ -88,6 +98,8 @@ class Edificis:
         self.n_mesurades = int(self.origen_alcada.sum())
         # color de les cobertes, si ja s'ha calculat (si no, basecode/detall.py el calcula en un proces)
         self.colors_coberta = cobertes_desades(zona, self.n_parts) if self.n_parts else None
+        # tipus i hash de l'edifici de cada part (aspecte de facanes i cobertes)
+        self.tipus, self.hash_edifici = tipus_parts(zona, m, self.contorns) if self.n_parts else (None, None)
         self.origen_ecef = m['origen'] if m is not None else np.zeros(3)
         self.memoria_gpu = tri.nbytes + atr.nbytes
         self.vores = m['vores'] if m is not None else np.zeros((0, 5))
@@ -106,8 +118,18 @@ class Edificis:
         self.vbo = self.ctx.buffer(vertexs.tobytes()) if self.n_triangles else None
         self.vao = self.ctx.vertex_array(self.shader_program, [(self.vbo, '3f 4f', 'in_position', 'in_atr')]) \
             if self.vbo else None
-        self.tex_parts = None
+        self.tex_parts = self.tex_aspecte = None
         self.actualitzar_textura_parts()
+        if self.n_parts:
+            # aspecte de cada part (material, colors, finestres, capa de la textura de la facana), calculat un sol cop:
+            # TEXELS_ASPECTE texels RGBA32F seguits per part (dades/edificis.aspecte_parts; edifici.frag)
+            tf = textures_facanes(self.app)
+            a = aspecte_parts(self.tipus, self.hash_edifici, tf.grups if tf.disponibles else None, tf.mitjanes)
+            w = AMPLADA_TEXTURA_PARTS
+            d = np.zeros(((a.shape[0] * TEXELS_ASPECTE + w - 1) // w * w, 4), 'f4')
+            d[:a.shape[0] * TEXELS_ASPECTE] = a.reshape(-1, 4)
+            self.tex_aspecte = self.ctx.texture((w, len(d) // w), 4, d.tobytes(), dtype='f4')
+            self.tex_aspecte.filter = (mgl.NEAREST, mgl.NEAREST)
 
     def resum_alcades(self):
         """Text curt de l'origen de les altures (panell)."""
@@ -196,6 +218,21 @@ class Edificis:
             mapes.aplicar_edificis(sp, self)
         self.tex_parts.use(UNITAT_PARTS)
         sp['tex_parts'].value = UNITAT_PARTS
+        self.tex_aspecte.use(UNITAT_ASPECTE)
+        sp['tex_aspecte'].value = UNITAT_ASPECTE
+        # foto de les cobertes: el mosaic del terreny i, per passar de posicio a Mercator, la seva derivada al punt de
+        # la camera (float64 a la CPU). Mercator(punt) - Mercator(camera) = J (punt - camera): exacte a prop de la
+        # camera; l'error creix amb el quadrat de la distancia (~1 m a 3 km, quan una coberta ja ocupa pocs pixels)
+        app.mosaic.aplicar(sp, UNITAT_MOSAIC)
+        # textures de les facanes (compartides per tots els edificis: basecode/textures_facanes.py)
+        tf = textures_facanes(app)
+        if not getattr(self, '_uniforms_facanes', False):
+            tf.uniforms_fixos(sp)
+            self._uniforms_facanes = True
+        tf.aplicar(sp)
+        jx, jy = jacobia_mercator(app.camera.posicio)
+        sp['merc_jx'].write(glm.vec3(*jx))
+        sp['merc_jy'].write(glm.vec3(*jy))
         # les cares del darrere no es dibuixen (tots els triangles miren cap a fora, dades/edificis.malla_zona):
         # el shader escriu gl_FragDepth i la GPU no pot descartar abans els fragments tapats
         self.ctx.enable(mgl.CULL_FACE)
@@ -203,6 +240,29 @@ class Edificis:
         self.ctx.disable(mgl.CULL_FACE)
 
     def destroy(self):
-        for obj in (self.vao, self.vbo, self.shader_program, self.tex_parts):
+        for obj in (self.vao, self.vbo, self.shader_program, self.tex_parts, self.tex_aspecte):
             if obj is not None:
                 obj.release()
+
+
+def textures_facanes(app):
+    """Les textures de les facanes, carregades un sol cop per programa (no per zona) i desades a l'app."""
+    if getattr(app, 'textures_facanes', None) is None:
+        from .textures_facanes import TexturesFacanes
+        app.textures_facanes = TexturesFacanes(app.ctx)
+    return app.textures_facanes
+
+
+def jacobia_mercator(posicio):
+    """(jx, jy): vectors ECEF (per km) tals que, per a un desplacament petit d des de posicio, la coordenada Web Mercator
+    (dades/teselles.mercator: tot el mon = 1, Y cap al sud) canvia (jx . d, jy . d). Nomes compta la part horitzontal
+    (est i nord del lloc): un punt de la coberta te la latitud i la longitud del seu contorn. X = lon / 2pi: dX/dest =
+    1 / (2pi N cos(lat)); Y = -asinh(tan lat) / 2pi: dY/dnord = -1 / (2pi M cos(lat)), amb N i M els radis de curvatura
+    de l'el·lipsoide WGS84 (km)."""
+    lat, lon, _ = geodesia.geodesiques(np.asarray(posicio))
+    lat, lon = float(lat), float(lon)
+    est, nord, _ = geodesia.base_local(lat, lon)
+    s, c = math.sin(math.radians(lat)), max(math.cos(math.radians(lat)), 1e-6)
+    w = 1.0 - E2 * s * s
+    n_curv, m_curv = A_KM / math.sqrt(w), A_KM * (1.0 - E2) / w ** 1.5
+    return est / (2 * math.pi * n_curv * c), -nord / (2 * math.pi * m_curv * c)

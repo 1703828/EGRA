@@ -27,6 +27,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure, veure_ombra_des_de_lespai  # noqa: E402  (F48: una sola vista)
 SORTIDA = os.path.join(ARREL, 'captures', 'proves')
 
 import glfw  # noqa: E402
@@ -121,13 +123,13 @@ def main():
             ok(all(t.overlay == 0 and not t.limits_totalitat for t in app.terrenys()),
                'capes i limits del CNIG desactivats (nomes son del 2026)')
         # captures: des del terra mirant el Sol, i l'ombra des de l'espai
-        fotograma(lambda: app.canviar_vista(1))
+        fotograma(lambda: als_ulls(app))
         fotograma(app.mirar_el_sol, n=4)
         imatge().save(os.path.join(SORTIDA, f'eclipsi_{clau}_terra_maxim.png'))
-        fotograma(app.veure_ombra_des_de_lespai, n=6)
+        fotograma(lambda: veure_ombra_des_de_lespai(app), n=6)
         imatge().save(os.path.join(SORTIDA, f'eclipsi_{clau}_ombra_espai.png'))
         # mapa de visibilitat: se'n llegeix o se'n comenca a calcular un de l'eclipsi actiu i el dibuix continua
-        fotograma(lambda: app.canviar_vista(1))
+        fotograma(lambda: als_ulls(app))
         app.mapes.mostrar('durada')
         t0, n = time.time(), 0
         while time.time() - t0 < ESPERA_MAPA_S:   # primer acaben les lectures i el detall que hi hagi en curs

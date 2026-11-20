@@ -3,9 +3,13 @@ Geometry shader contra instancing amb les mateixes dades (tasca 46.3 del pla): l
 (basecode/vegetacio.py, ~1 milio de columnes de 2 m) dibuixada de tres maneres, amb el programa real i la mateixa
 camera (des del carrer i des de 400 m):
   gs              el que fa el programa: un punt per columna; el geometry shader emet la coberta i nomes les cares
-                  visibles (ni tapades per la columna del costat ni d'esquena), i res lluny o fora de la vista.
-  inst            instancing: un cub compartit (36 vertexs) i 20 bytes per columna (glVertexAttribDivisor); totes les
-                  cares de totes les columnes, sense descartar res.
+                  visibles (ni tapades per la columna del costat ni d'esquena), i res lluny o fora de la vista. Totes
+                  les cel·les carregades, amb el fragment shader del programa (F53: llum, color i ombres) i nomes els
+                  trossos de 500 m a prop de la camera.
+  inst_programa   el mode d'instancing del programa (vegetacio_inst.vert): el mateix fragment shader i descart, totes
+                  les cel·les, sense trossos (OpenGL 3.3 no te primera instancia).
+  inst            instancing de prova, nomes geometria (color fix) i una cel·la: un cub compartit (36 vertexs) i 20
+                  bytes per columna (glVertexAttribDivisor); totes les cares de totes les columnes, sense descartar res.
   inst_descart    instancing amb el mateix descart que el gs, fet al vertex shader: els vertexs d'una cara que no
                   s'ha de dibuixar (o d'una columna lluny) van tots al mateix punt (triangles degenerats).
 Es mesura el temps de GPU (consultes GL_TIME_ELAPSED, mediana de 30) i la memoria a la GPU.
@@ -19,6 +23,8 @@ import time
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure  # noqa: E402  (F48: una sola vista)
 
 import glfw  # noqa: E402
 import glm  # noqa: E402
@@ -32,7 +38,7 @@ in vec3 in_cub;        // vertex del cub unitat (-1..1 en x i y, 0..1 en z)
 in float in_cara;      // 0 coberta, 1 est, 2 oest, 3 nord, 4 sud, 5 base
 in vec3 in_base;       // per instancia
 in float in_alt;
-in float in_cares;
+in vec4 in_dades;      // bytes / 255: cares exposades, normal, to (basecode/vegetacio.FORMAT; aqui nomes les cares)
 uniform mat4 m_proj, m_view;
 uniform vec3 origen_rel, est, nord, amunt;
 uniform float meitat, dist_max;
@@ -41,7 +47,7 @@ void main() {
     vec3 b = in_base + origen_rel;
     vec3 p = b + in_cub.x * meitat * est + in_cub.y * meitat * nord + in_cub.z * in_alt * amunt;
     if (descartar) {
-        int cara = int(in_cara + 0.5), mask = int(in_cares + 0.5);
+        int cara = int(in_cara + 0.5), mask = int(in_dades.x * 255.0 + 0.5);
         vec3 n = cara == 1 ? est : cara == 2 ? -est : cara == 3 ? nord : cara == 4 ? -nord : cara == 0 ? amunt : -amunt;
         bool fora = length(b) > dist_max || cara == 5;
         if (cara >= 1 && cara <= 4) fora = fora || (mask & (1 << (cara - 1))) == 0 || dot(b + n * meitat, n) > 0.0;
@@ -93,26 +99,28 @@ def main():
             ctx.finish()
     veg = app.vegetacio
     veg.actiu = True
-    app.canviar_vista(1)
+    als_ulls(app)
     t0 = time.time()
     while time.time() - t0 < 120 and not veg.cel_les:
         fotograma(3)
     c = next(iter(veg.cel_les.values()))
-    dades = np.frombuffer(c['vbo'].read(), 'f4').reshape(-1, 5)
-    print(f'{len(dades)} columnes; memoria a la GPU: gs {dades.nbytes / 1e6:.1f} MB (20 B per punt); instancing '
-          f'{(dades.nbytes + cub().nbytes) / 1e6:.1f} MB (els mateixos 20 B + el cub); una malla amb les cares '
-          f'copiades (sense descart) en faria {len(dades) * 30 * 12 / 1e6:.0f} MB', flush=True)
+    n_col, mida = c['n'], c['vbo'].size
+    print(f'{n_col} columnes a la primera cel·la ({sum(v["n"] for v in veg.cel_les.values())} a les {len(veg.cel_les)} '
+          f'cel·les); memoria a la GPU: gs {mida / 1e6:.1f} MB ({mida // n_col} B per punt); instancing '
+          f'{(mida + cub().nbytes) / 1e6:.1f} MB (els mateixos + el cub); una malla amb les cares '
+          f'copiades (sense descart) en faria {n_col * 30 * 12 / 1e6:.0f} MB', flush=True)
+    dades = range(n_col)
     prog = ctx.program(vertex_shader=VERT_INST, fragment_shader=FRAG)
     b_cub = ctx.buffer(cub().tobytes())
     vao = ctx.vertex_array(prog, [(b_cub, '3f 1f', 'in_cub', 'in_cara'),
-                                  (c['vbo'], '3f 1f 1f/i', 'in_base', 'in_alt', 'in_cares')])
+                                  (c['vbo'], '3f 1f 4f1/i', 'in_base', 'in_alt', 'in_dades')])
     o = c['origen']
     lat, lon, _ = geodesia.geodesiques(o)
     est, nord, amunt = geodesia.base_local(float(lat), float(lon))
     obs = app.observador
     _, nord_o, amunt_o = geodesia.base_local(obs.lat, obs.lon)
-    vistes = [('carrer', lambda: (app.canviar_vista(1), app.camera_observador.mirar(100, 3))),
-              ('aire 400 m', lambda: (app.canviar_vista(0), setattr(app.camera_exploracio, 'posicio',
+    vistes = [('carrer', lambda: (als_ulls(app), app.camera.orientar(100, 3))),
+              ('aire 400 m', lambda: (lliure(app), setattr(app.camera_exploracio, 'posicio',
                                                                      app.ulls() - 0.3 * nord_o + 0.25 * amunt_o),
                                       app.camera_exploracio.orientar(0, -40)))]
     for nom, posar in vistes:
@@ -121,7 +129,7 @@ def main():
         cam = app.camera
         res = {}
         fbo = ctx.simple_framebuffer((W, H))
-        for variant in ('gs', 'inst', 'inst_descart'):
+        for variant in ('gs', 'inst_programa', 'inst', 'inst_descart'):
             ts = []
             for _ in range(30):
                 fbo.use()
@@ -129,8 +137,10 @@ def main():
                 ctx.enable(mgl.DEPTH_TEST)
                 q = ctx.query(time=True)
                 with q:
-                    if variant == 'gs':
+                    if variant in ('gs', 'inst_programa'):
+                        veg.instancing = variant == 'inst_programa'
                         veg.render()
+                        veg.instancing = False
                     else:
                         prog['m_proj'].write(cam.m_proj)
                         prog['m_view'].write(cam.m_view)

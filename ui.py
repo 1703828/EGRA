@@ -393,8 +393,9 @@ def descarregues(app):
             linies.append((textos[tipus].format(on(f)).strip() + '...', fraccio_feina(f)))
     if m.feina_graella is not None:
         linies.append(("Calculant les circumstancies de l'eclipsi...", fraccio_feina(m.feina_graella)))
-    if app.vegetacio.feines:
-        linies.append((f'Preparant la vegetacio {on(next(iter(app.vegetacio.feines.values())))}...', None))
+    textos = {'superficie': 'Preparant la vegetacio (obstacles del LiDAR) {}', 'punts': 'Carregant la vegetacio {}'}
+    for (tipus, _), f in app.vegetacio.feines.items():
+        linies.append((textos[tipus].format(on(f)) + '...', fraccio_feina(f)))
     if app.consulta_nom is not None:
         linies.append(('Consultant el nom del punt d\'observacio (IGN)...', None))
     return linies
@@ -443,6 +444,9 @@ def panell_descarregues(app):
         imgui.text_colored(COLOR_AVIS, sense_accents(f'Sense edificis aqui: {motiu}'))
         if app.detall.fallades and imgui.button('Tornar a provar', amplada_completa()):
             app.detall.fallades.clear()
+    motiu = app.vegetacio.motiu()          # basecode/vegetacio.py: preparant-se, sense LiDAR, massa lluny...
+    if motiu:
+        imgui.text_colored(COLOR_AVIS, sense_accents(f'Sense vegetacio aqui: {motiu}'))
     imgui.text(f'FPS: {app.fps:.0f}' + ('  (en repos: no canvia res)' if app.en_repos else ''))
 
 

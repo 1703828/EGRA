@@ -16,8 +16,8 @@ Per a cada ubicacio (Picos, Vic, l'Escala, Cerdanyola, Montmelo, la UAB):
   5. "Anar al maxim": l'hora es la del maxim, pausat i sense moure la camera.
   6. L'ombra a hores representatives: brillantor del terra a l'inici, al maxim i al final, i
      "Veure l'ombra des de l'espai": el centre de la imatge es el punt on l'ombra es mes fosca.
-Despres: canviar d'ubicacio des de l'exploracio no mou aquella camera, i la sequencia sencera de l'equip
-(triar, observar, girar amb fletxes i ratoli, P, explorar fins a l'espai, P, tornar) amb el bucle real del
+Despres: canviar d'ubicacio amb la camera lliure no la mou, i la sequencia sencera de l'equip
+(triar, als ulls, girar amb fletxes, arrossegar, P, roda fins a l'espai, P, tornar) amb el bucle real del
 programa, el panell dibuixat i el teclat i el ratoli simulats. Al final, que el controlador no hagi escrit
 cap avis de textures ("UNSUPPORTED ... texture unloadable").
 
@@ -36,6 +36,8 @@ import tempfile
 ARREL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ARREL)
 sys.path.insert(0, ARREL)
+sys.path.insert(0, os.path.join(ARREL, 'scripts'))
+from vista_unica import als_ulls, lliure, veure_ombra_des_de_lespai, sobre_el_punt  # noqa: E402  (F48: una sola vista)
 SORTIDA = os.path.join(ARREL, 'captures', 'proves')
 
 # els avisos del controlador d'OpenGL van directament al descriptor 2 (stderr): els desviem a un fitxer
@@ -186,11 +188,11 @@ def main():
        and app.ef.inici <= app.hora <= app.ef.final,
        f"arrencada pausada a {hl(app.hora)}, una hora abans de C1 ({hl(m0.hores['c1'])}) a {app.observador.nom}, "
        f"dins de la barra de temps ({hl(app.ef.inici)}-{hl(app.ef.final)})")
-    co, ce = app.camera_observador, app.camera_exploracio
+    co, ce = app.camera, app.camera_exploracio
     for k, (nom, lat, lon) in enumerate(UBICACIONS_PROVES):
         print(f'\n== {nom}')
         app.reproduint = False
-        app.canviar_vista(1)
+        als_ulls(app)
         ok(app.triar_punt(lat, lon, nom), 'en pausa es pot triar el punt')
         ok(app.nom_zona is not None, f'zona de detall de 5 m carregada: {app.nom_zona}')
         m = app.model
@@ -198,7 +200,7 @@ def main():
         captures = []
 
         # 1. ulls a 1,7 m dels triangles dibuixats
-        co.mirar(0.0, -89.99)
+        co.orientar(0.0, -89.99)
         fotograma(2)
         dist = llegir_distancies()[H // 2, W // 2] * 1000
         ok(abs(dist - 1.7) < TOLERANCIA_ULLS_M, f'mirant avall, el terra dibuixat es a {dist:.3f} m dels ulls')
@@ -210,7 +212,7 @@ def main():
         # 2. mirar al voltant i als peus
         az_sol, _ = m.sol(app.hora)
         for rumb, inc in ((0, -5), (90, -5), (180, -5), (270, -5), (az_sol, -30), (az_sol + 90, -60)):
-            co.mirar(rumb, inc)
+            co.orientar(rumb, inc)
             fotograma(2)
             captures.append((imatge(), f'{nom}  rumb {rumb % 360:.0f}  incl {inc}'))
             if inc <= -30:
@@ -219,9 +221,10 @@ def main():
                    f'mirant a {inc} graus, la meitat de baix es terreny a menys de {baix.max() * 1000:.0f} m')
 
         # 3. pausa i reproduccio sense moure la mirada
-        co.mirar(az_sol, 5.0)
+        co.orientar(az_sol, 5.0)
         fotograma()
         ulls, mirada, h0 = co.posicio.copy(), (co.rumb, co.inclinacio), app.hora
+        o_abans = app.observador
         app.reproduir_pausar()
         fotograma(30)
         ok(app.reproduint and app.hora > h0 and (np.linalg.norm(co.posicio - ulls) < 1e-9)
@@ -233,12 +236,14 @@ def main():
 
         # 4. allunyar-se fins a l'espai (comprovant la superficie a cada fotograma), reprendre el temps
         # alla dalt i tornar
-        app.posar_exploracio_sobre_el_punt()
-        app.canviar_vista(0)
+        sobre_el_punt(app)
+        lliure(app)
         ce.inclinacio = -60.0
         alcades, pitjor, fora, esquena, n_total = [], (0.0, 0.0), 0, 0, 0
-        if app.edificis is not None:      # la comprovacio es del relleu: els edificis no hi son superficie
-            app.edificis.visible = False
+        # la comprovacio es del relleu: els edificis no hi son superficie (les dues opcions: el programa torna a decidir
+        # a cada fotograma si es dibuixen, segons si la camera es a prop del terra; F48)
+        opcions = (app.mostrar_edificis, app.edificis_aeris)
+        app.mostrar_edificis = app.edificis_aeris = False
         for i in range(60):
             ce.avancar(-1.0)
             fotograma()
@@ -262,6 +267,7 @@ def main():
         exemples.clear()
         ok(fora == 0 and esquena == 0, f'pujant, {n_total} pixels de terra: {fora} fora de la superficie dibuixada, '
                                        f'{esquena} vistos per sota (pitjor {pitjor[0] * 1000:+.1f} m, a {pitjor[1]:,.1f} km)')
+        app.mostrar_edificis, app.edificis_aeris = opcions
         cam, mirada_ce, h2 = ce.posicio.copy(), (ce.rumb, ce.inclinacio), app.hora
         app.reproduir_pausar()
         fotograma(30)
@@ -271,8 +277,19 @@ def main():
         app.hora = h1
         app.tornar_al_punt()
         fotograma()
-        ok(app.vista == 1 and (np.linalg.norm(co.posicio - ulls) < 1e-9) and (co.rumb, co.inclinacio) == mirada,
-           "tornar al punt d'observacio: els mateixos ulls i la mateixa mirada")
+        # (els ulls son a 1,7 m del relleu dibuixat: en tornar de l'espai, el detall del lloc es torna a carregar uns
+        # fotogrames despres i la camera el segueix, app.seguir_ulls)
+        for _ in range(600):
+            if not app.detall.feines:
+                break
+            fotograma()
+        fotograma(5)
+        # (els ulls son a 1,7 m del relleu que es dibuixa en aquell moment, que pot ser un altre nivell de detall que
+        # abans d'anar a l'espai: es compara amb els ulls actuals i amb el mateix punt d'observacio)
+        ok(app.camera_als_ulls() and np.linalg.norm(co.posicio - app.ulls()) < 1e-9 and app.observador is o_abans
+           and abs(co.inclinacio - programa.INCLINACIO_EN_ARRIBAR) < 1e-9,
+           f"tornar al punt d'observacio: la camera als ulls del mateix punt (a {np.linalg.norm(co.posicio - ulls) * 1e3:.2f} m "
+           f"d'on eren abans, pel nivell de detall del relleu), mirant just sobre l'horitzo (F48: una sola camera)")
 
         # 5. anar al maxim
         pos = co.posicio.copy()
@@ -286,7 +303,7 @@ def main():
         for etiqueta, hora in (('inici', m.hores['c1'] + 5 / 60), ('maxim', m.hores['maxim']),
                                ('final', min(m.hores['c4'] or app.ef.final, app.ef.final) - 5 / 60)):
             app.hora = hora
-            co.mirar(az_sol, -20.0)
+            co.orientar(az_sol, -20.0)
             fotograma(2)
             im = imatge()
             brillantors.append(np.asarray(im)[H // 2:].mean())
@@ -295,7 +312,7 @@ def main():
         ok(brillantors[1] < brillantors[0],
            f"al maxim el terra es mes fosc que a l'inici (brillantor {brillantors[0]:.0f} -> {brillantors[1]:.0f})")
         app.hora = m.hores['maxim']
-        app.veure_ombra_des_de_lespai()
+        veure_ombra_des_de_lespai(app)
         fotograma(2)
         dist_c = llegir_distancies()[H // 2, W // 2]
         punt = ce.posicio + ce.davant() * dist_c / np.dot(ce.davant(), ce.davant())
@@ -317,8 +334,8 @@ def main():
     app.reproduir_pausar()
     ok(app.triar_punt(41.5, 2.1) is False and app.observador is o, 'durant la reproduccio no es pot canviar el punt')
     app.reproduir_pausar()
-    app.posar_exploracio_sobre_el_punt()
-    app.canviar_vista(0)
+    sobre_el_punt(app)
+    lliure(app)
     ce.inclinacio = -45.0
     if app.edificis is not None:          # el picking del terreny (sobre una coberta, el punt es a la coberta)
         app.edificis.visible = False
@@ -340,12 +357,15 @@ def main():
         app.triar_ubicacio(lat, lon, nom)
         fotograma()
     ok(app.hora == h and not app.reproduint, "canviar d'ubicacio (llista) no canvia l'hora ni posa en marxa el temps")
+    lliure(app)                          # (la llista, com el doble clic, porta la camera als ulls: F48)
+    ce.posicio = ce.posicio + 5.0 * ce.posicio / np.linalg.norm(ce.posicio)
+    fotograma()
     cam, ulls = ce.posicio.copy(), app.ulls()
     nom, lat, lon = UBICACIONS_PROVES[1]
     app.triar_punt(lat, lon, nom)
     fotograma()
     ok(np.array_equal(ce.posicio, cam) and np.linalg.norm(app.ulls() - ulls) > 10,
-       "canviar d'ubicacio des de l'exploracio: la camera d'exploracio no es mou; els ulls van al punt nou")
+       "canviar el punt d'observacio amb la camera lliure: la camera no es mou; els ulls van al punt nou")
 
     bucle_real(app, programa, ok)   # l'ultima: en acabar, run() tanca el programa
     # avisos del controlador
@@ -362,14 +382,14 @@ def main():
 
 def bucle_real(app, programa, ok):
     """La sequencia que fa l'equip, amb el bucle real del programa (GraphicsEngineBase.run: el panell es
-    dibuixa a cada fotograma) i el teclat i el ratoli simulats: les tecles P i V i el ratoli entren com a
+    dibuixa a cada fotograma) i el teclat i el ratoli simulats: la tecla P i el ratoli entren com a
     esdeveniments d'imgui (els mateixos que envia GLFW); les fletxes, que el programa llegeix amb
     glfw.get_key, es simulen substituint aquesta funcio. Triar la ubicacio crida app.triar_ubicacio, que es el
     que fa el desplegable del panell. Comprova l'estat (no les imatges: llegir el framebuffer de la finestra
     de macOS no es fiable)."""
     from basecode import window as winmod
     from dades.observador import UBICACIONS_PROVES
-    co, ce = app.camera_observador, app.camera_exploracio
+    co, ce = app.camera, app.camera_exploracio
     io = imgui.get_io()
     premudes = set()
     get_key = glfw.get_key
@@ -382,11 +402,13 @@ def bucle_real(app, programa, ok):
     def desa(nom):
         return lambda: estat.__setitem__(nom, dict(ulls=co.posicio.copy(), mirada=(co.rumb, co.inclinacio),
                                                    cam=ce.posicio.copy(), cam_mirada=(ce.rumb, ce.inclinacio),
-                                                   hora=app.hora, reproduint=app.reproduint, vista=app.vista))
+                                                   hora=app.hora, reproduint=app.reproduint, vista=app.camera_als_ulls(),
+                                                   ulls_obs=app.ulls().copy(),
+                                                   sobre=ce.alcada_sobre_terra(), panell=imgui.get_io().want_capture_mouse))
 
     nom, lat, lon = UBICACIONS_PROVES[3]
-    passos = [lambda: app.triar_ubicacio(lat, lon, nom), lambda: app.canviar_vista(1),   # 1. triar la ubicacio
-              lambda: co.mirar(200.0, 5.0), desa('inici'),
+    passos = [lambda: app.triar_ubicacio(lat, lon, nom), lambda: als_ulls(app),   # 1. triar la ubicacio
+              lambda: co.orientar(200.0, 5.0), desa('inici'),
               lambda: premudes.add(glfw.KEY_RIGHT)] + [None] * 15 + [             # 3. girar amb les fletxes
               lambda: premudes.clear(), desa('fletxes'),
               lambda: (io.add_mouse_pos_event(450, 400), io.add_mouse_button_event(0, True))] + [
@@ -394,8 +416,8 @@ def bucle_real(app, programa, ok):
               lambda: io.add_mouse_button_event(0, False), None, desa('ratoli')] + \
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('reproduint')] + tecla(imgui.Key.KEY_P) + [  # 4. P
               desa('pausa')] + [None] * 10 + [desa('pausa_despres')] + \
-             tecla(imgui.Key.KEY_V) + [None, desa('exploracio')] + [                # 5. explorar i allunyar-se
-              (lambda: app.ratoli.on_scroll(app.window, 0.0, -1.0)) for _ in range(40)] + [None, desa('espai')] + \
+             [lambda: (io.add_mouse_pos_event(480, 320), co.orientar(co.rumb, -60.0))] + [   # 5. mirant avall, la roda enrere
+              (lambda: app.ratoli.on_scroll(app.window, 0.0, -1.0)) for _ in range(40)] + [None] * 30 + [desa('espai')] + \
              tecla(imgui.Key.KEY_P) + [None] * 20 + [desa('espai_reproduint')] + tecla(imgui.Key.KEY_P) + [  # 6
               lambda: app.tornar_al_punt(), None, desa('tornada'),                  # 7. tornar al punt
               lambda: app.ratoli.capturar(), None, lambda: premudes.add(glfw.KEY_ESCAPE), None,   # Esc
@@ -423,32 +445,32 @@ def bucle_real(app, programa, ok):
     winmod.should_close, glfw.get_key, app.render = should_close, get_key, render
 
     e = estat
-    ok(e['inici']['vista'] == 1 and app.nom_zona is not None,
-       f"1-2. ubicacio triada ({nom}) i vista d'observacio als ulls")
+    ok(e['inici']['vista'] and app.nom_zona is not None,
+       f"1-2. ubicacio triada ({nom}) i camera als ulls")
     ok(e['fletxes']['mirada'][0] != e['inici']['mirada'][0] and (np.linalg.norm(e['fletxes']['ulls'] - e['inici']['ulls']) < 1e-9),
        f"3. fletxa dreta: el rumb passa de {e['inici']['mirada'][0]:.1f} a {e['fletxes']['mirada'][0]:.1f} graus "
        f"i els ulls no es mouen")
+    # (arrossegar sobre el terra el mou; sobre el cel gira la mirada. Aqui el cursor es sobre el cel: amb la finestra
+    # amagada el programa no pot llegir la profunditat de la pantalla, com quan no hi ha res sota el cursor)
     ok(e['ratoli']['mirada'] != e['fletxes']['mirada'] and (np.linalg.norm(e['ratoli']['ulls'] - e['inici']['ulls']) < 1e-9),
-       f"3. arrossegar el ratoli: la mirada passa a ({e['ratoli']['mirada'][0]:.1f}, {e['ratoli']['mirada'][1]:.1f}) "
-       f"graus i els ulls no es mouen")
+       f"3. arrossegar el ratoli sobre el cel: la mirada passa a ({e['ratoli']['mirada'][0]:.1f}, "
+       f"{e['ratoli']['mirada'][1]:.1f}) graus i els ulls no es mouen")
     r, p, pd = e['reproduint'], e['pausa'], e['pausa_despres']
     ok(r['reproduint'] and r['hora'] > e['ratoli']['hora'] and r['mirada'] == e['ratoli']['mirada']
-       and (np.linalg.norm(r['ulls'] - e['inici']['ulls']) < 1e-9),
-       '4. tecla P: el temps avanca i la mirada (que no segueix el Sol) i els ulls es queden')
+       and (np.linalg.norm(r['ulls'] - e['ratoli']['ulls']) < 1e-9),
+       '4. tecla P: el temps avanca i la camera i la mirada (que no segueix el Sol) es queden')
     ok(not p['reproduint'] and pd['hora'] == p['hora'], '4. tecla P altra vegada: el temps es congela')
-    x, s, sr = e['exploracio'], e['espai'], e['espai_reproduint']
+    s, sr = e['espai'], e['espai_reproduint']
     alt = float(np.linalg.norm(s['cam'])) - 6371.0
-    sobre = float(np.linalg.norm(x['cam'] - x['ulls']))
-    ok(x['vista'] == 0 and sobre < 20.0, f"5. tecla V: l'exploracio comenca a {sobre:.1f} km dels ulls, "
-                                          f"sobre la ubicacio triada")
-    ok(x['vista'] == 0 and alt > 5000 and s['hora'] == p['hora'],
-       f"5. tecla V i roda: la camera d'exploracio puja a ~{alt:,.0f} km sense canviar l'hora")
+    ok(not s['vista'] and alt > 100 and s['hora'] == p['hora'],
+       f"5. roda enrere (40 passos): la mateixa camera puja a ~{alt:,.0f} km sense canviar l'hora "
+       f"({s['sobre']:.3f} km sobre el terra; cursor sobre el panell: {s['panell']})")
     ok(sr['reproduint'] and sr['hora'] > s['hora'] and np.array_equal(sr['cam'], s['cam'])
        and sr['cam_mirada'] == s['cam_mirada'],
        "6. tecla P a l'espai: el temps avanca i la camera no es mou ni gira")
     t = e['tornada']
-    ok(t['vista'] == 1 and (np.linalg.norm(t['ulls'] - e['inici']['ulls']) < 1e-9) and t['mirada'] == e['ratoli']['mirada'],
-       "7. tornar al punt d'observacio: els mateixos ulls i la mirada que s'havia deixat")
+    ok(t['vista'] and (np.linalg.norm(t['ulls'] - e['inici']['ulls']) < 1e-9) and t['mirada'][0] == s['mirada'][0],
+       "7. tornar al punt d'observacio: els mateixos ulls i el rumb que s'havia deixat (mirada a l'horitzo)")
     ok(e['esc'] is False and n[0] >= len(passos),
        'Esc amb el ratoli capturat: l\'allibera i el programa continua (amb el ratoli lliure, Esc tanca, com abans)')
 
